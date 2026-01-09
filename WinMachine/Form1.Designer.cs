@@ -28,12 +28,31 @@
         /// </summary>
         private void InitializeComponent()
         {
-            components = new System.ComponentModel.Container();
+            BtnZController = new Button();
+            SuspendLayout();
+            // 
+            // BtnZController
+            // 
+            BtnZController.Location = new Point(547, 108);
+            BtnZController.Name = "BtnZController";
+            BtnZController.Size = new Size(94, 29);
+            BtnZController.TabIndex = 0;
+            BtnZController.Text = "正运动控制";
+            BtnZController.UseVisualStyleBackColor = true;
+            // 
+            // Form1
+            // 
+            AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(BtnZController);
+            Name = "Form1";
             Text = "Form1";
+            ResumeLayout(false);
         }
 
         #endregion
+
+        private Button BtnZController;
     }
 }

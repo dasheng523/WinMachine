@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using Devices.Motion.Abstractions;
 using Devices.Shared;
+using Leadshine;
 
 namespace Devices.Motion.Implementations.Leadshine
 {
