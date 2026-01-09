@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using cszmcaux; // 引用正运动官方提供的C#封装类
 using Devices.Motion.Abstractions;
-using Devices.Shared;
+using Common.Core;
 
 namespace Devices.Motion.Implementations.Zaux
 {

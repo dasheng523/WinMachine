@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Devices\Devices.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
   </ItemGroup>
 
 </Project>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Devices.Motion.Abstractions;
-using Devices.Shared;
+using Common.Core;
 
 namespace Devices.Motion.Implementations.Simulator
 {

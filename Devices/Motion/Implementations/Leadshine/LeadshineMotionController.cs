@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Devices.Motion.Abstractions;
-using Devices.Shared;
+using Common.Core;
 using Leadshine;
 
 namespace Devices.Motion.Implementations.Leadshine

@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Forms;
 using Devices.Motion.Abstractions;
-using Devices.Shared;
+using Common.Core;
 
 namespace WinMachine
 {

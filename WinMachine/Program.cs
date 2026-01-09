@@ -6,6 +6,8 @@ using Devices.Motion.Abstractions;
 using Devices.Motion.Implementations.Zaux;
 using Devices.Motion.Implementations.Leadshine;
 using Devices.Motion.Implementations.Simulator;
+using WinMachine.Services;
+
 
 namespace WinMachine;
 
@@ -47,6 +49,10 @@ internal static class Program
         // 注册窗体
         services.AddTransient<Form1>();
         services.AddTransient<ZControllerView>();
+
+        // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)
+        services.AddSingleton<IMachineService, MachineManager>();
+
 
         // 根据配置动态注册运动控制器
         var systemOptions = config.GetSection("System").Get<SystemOptions>();

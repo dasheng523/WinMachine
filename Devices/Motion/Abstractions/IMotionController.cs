@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Devices.Shared;
+using Common.Core;
 
 namespace Devices.Motion.Abstractions
 {

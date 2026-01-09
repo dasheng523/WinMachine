@@ -1,4 +1,4 @@
-using Devices.Shared;
+using Common.Core;
 using System;
 
 namespace Devices.Motion.Abstractions
