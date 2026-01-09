@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Devices/Devices.csproj" />
+  <Project Path="WinMachine/WinMachine.csproj" />
+</Solution>
