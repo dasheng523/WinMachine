@@ -1,7 +1,11 @@
 using System;
+using System.Drawing;
 using System.Windows.Forms;
 using Devices.Motion.Abstractions;
 using Common.Core;
+using LanguageExt;
+using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
 namespace WinMachine
 {
@@ -18,54 +22,80 @@ namespace WinMachine
 
         private void OnJogMouseDown(MotionDirection dir)
         {
-            try
-            {
-                // 先设置一个默认速度，如果没设置过的话
-                _motion.SetSpeed(TARGET_AXIS, new AxisSpeed(100, 500, 0.1, 0.1, 100, 0.05));
-                _motion.Move_JOG(TARGET_AXIS, dir);
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"JOG 失败: {ex.Message}");
-            }
+            var flow =
+                from _ in _motion.SetSpeed(TARGET_AXIS, new AxisSpeed(100, 500, 0.1, 0.1, 100, 0.05))
+                from __ in _motion.Move_JOG(TARGET_AXIS, dir)
+                select unit;
+
+            _ = flow.Match(
+                Succ: _ => unit,
+                Fail: err =>
+                {
+                    MessageBox.Show($"JOG 失败: {err.Message}");
+                    return unit;
+                });
         }
 
         private void OnJogMouseUp()
         {
-            _motion.Stop(TARGET_AXIS);
+            _ = _motion.Stop(TARGET_AXIS).Match(
+                Succ: _ => unit,
+                Fail: err =>
+                {
+                    MessageBox.Show($"Stop 失败: {err.Message}");
+                    return unit;
+                });
         }
 
         private void OnStopClick()
         {
-            _motion.Stop(TARGET_AXIS);
+            _ = _motion.Stop(TARGET_AXIS).Match(
+                Succ: _ => unit,
+                Fail: err =>
+                {
+                    MessageBox.Show($"Stop 失败: {err.Message}");
+                    return unit;
+                });
         }
 
         private void OnToggleOutput()
         {
             int bit = (int)numOutputIndex.Value;
-            int current = _motion.GetOutput(bit);
-            Level next = (current == 1) ? Level.Off : Level.On;
-            _motion.SetOutput(bit, next);
+
+            var flow =
+                from current in _motion.GetOutput(bit)
+                let next = (current == 1) ? Level.Off : Level.On
+                from _ in _motion.SetOutput(bit, next)
+                select unit;
+
+            _ = flow.Match(
+                Succ: _ => unit,
+                Fail: err =>
+                {
+                    MessageBox.Show($"切换输出失败: {err.Message}");
+                    return unit;
+                });
         }
 
         private void OnTimerTick()
         {
-            try
-            {
-                // 刷新坐标
-                double pos = _motion.GetCommandPos(TARGET_AXIS);
-                lblPosition.Text = pos.ToString("F3");
+            _ = _motion.GetCommandPos(TARGET_AXIS).Match(
+                Succ: pos =>
+                {
+                    lblPosition.Text = pos.ToString("F3");
+                    return unit;
+                },
+                Fail: _ => unit);
 
-                // 刷新输入状态
-                int inputBit = (int)numInputIndex.Value;
-                Level inLevel = _motion.GetInput(inputBit);
-                lblInStatus.Text = inLevel == Level.On ? "状态: 高电平 [ON]" : "状态: 低电平 [OFF]";
-                lblInStatus.ForeColor = inLevel == Level.On ? Color.Red : Color.Black;
-            }
-            catch
-            {
-                // 忽略刷新异常
-            }
+            int inputBit = (int)numInputIndex.Value;
+            _ = _motion.GetInput(inputBit).Match(
+                Succ: inLevel =>
+                {
+                    lblInStatus.Text = inLevel == Level.On ? "状态: 高电平 [ON]" : "状态: 低电平 [OFF]";
+                    lblInStatus.ForeColor = inLevel == Level.On ? Color.Red : Color.Black;
+                    return unit;
+                },
+                Fail: _ => unit);
         }
     }
 }

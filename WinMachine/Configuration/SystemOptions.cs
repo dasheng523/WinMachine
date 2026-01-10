@@ -19,4 +19,9 @@ public class SystemOptions
     /// 控制器 IP 地址
     /// </summary>
     public string DeviceIp { get; set; } = "127.0.0.1";
+
+    /// <summary>
+    /// 控制器卡号/站号 (如雷赛 CardNo)
+    /// </summary>
+    public ushort DeviceCardNo { get; set; } = 0;
 }

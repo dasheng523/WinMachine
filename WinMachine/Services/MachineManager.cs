@@ -4,6 +4,9 @@ using System.Reactive.Linq;
 using Common.Lifecycle;
 using Common.Fsm;
 using Devices.Motion.Abstractions;
+using LanguageExt;
+using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
 namespace WinMachine.Services
 {
@@ -77,44 +80,82 @@ namespace WinMachine.Services
 
         #region 硬件动作实现 (Private Actions)
 
+        private Fin<LUnit> ConnectFlow() =>
+            from _ in _motion.Initialization()
+            select unit;
+
+        private Fin<LUnit> HomeFlow(int axis) =>
+            from _ in _motion.GoBackHome(axis)
+            select unit;
+
         private void DoConnect()
         {
-            try
-            {
-                _motion.Initialization();
-                // 模拟一个异步连接过程
-                Observable.Timer(TimeSpan.FromSeconds(1), _scheduler)
-                    .Subscribe(_ => _fsm.Fire(MachineTrigger.Connected));
-            }
-            catch (Exception)
-            {
-                _fsm.Fire(MachineTrigger.ErrorOccurred);
-            }
+            _ = ConnectFlow().Match(
+                Succ: _ =>
+                {
+                    // 模拟一个异步连接过程
+                    Observable.Timer(TimeSpan.FromSeconds(1), _scheduler)
+                        .Subscribe(__ => _fsm.Fire(MachineTrigger.Connected));
+                    return unit;
+                },
+                Fail: _ =>
+                {
+                    _fsm.Fire(MachineTrigger.ErrorOccurred);
+                    return unit;
+                });
         }
 
         private void DoHome()
         {
-            try
-            {
-                // 假设所有轴回原点，这里简化逻辑
-                _motion.GoBackHome(0); 
-                
-                // 使用 Rx 轮询检查回原点是否完成 (Poll Check)
-                Observable.Interval(TimeSpan.FromMilliseconds(500), _scheduler)
-                    .Where(_ => _motion.CheckHomeDone(0))
-                    .FirstAsync()
-                    .Subscribe(_ => _fsm.Fire(MachineTrigger.Homed));
-            }
-            catch
-            {
-                _fsm.Fire(MachineTrigger.ErrorOccurred);
-            }
+            const int axis = 0;
+
+            _ = HomeFlow(axis).Match(
+                Succ: _ =>
+                {
+                    IDisposable? subscription = null;
+                    subscription = Observable.Interval(TimeSpan.FromMilliseconds(500), _scheduler)
+                        .Select(__ => _motion.CheckHomeDone(axis))
+                        .Subscribe(r =>
+                            r.Match(
+                                Succ: done =>
+                                {
+                                    if (done)
+                                    {
+                                        subscription?.Dispose();
+                                        _fsm.Fire(MachineTrigger.Homed);
+                                    }
+
+                                    return unit;
+                                },
+                                Fail: _ =>
+                                {
+                                    subscription?.Dispose();
+                                    _fsm.Fire(MachineTrigger.ErrorOccurred);
+                                    return unit;
+                                }));
+
+                    return unit;
+                },
+                Fail: _ =>
+                {
+                    _fsm.Fire(MachineTrigger.ErrorOccurred);
+                    return unit;
+                });
         }
 
         private void DoStop()
         {
-            _motion.Stop(0);
-            _fsm.Fire(MachineTrigger.Stopped);
+            _ = _motion.Stop(0).Match(
+                Succ: _ =>
+                {
+                    _fsm.Fire(MachineTrigger.Stopped);
+                    return unit;
+                },
+                Fail: _ =>
+                {
+                    _fsm.Fire(MachineTrigger.ErrorOccurred);
+                    return unit;
+                });
         }
 
         #endregion

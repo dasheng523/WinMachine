@@ -53,30 +53,31 @@ internal static class Program
         // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)
         services.AddSingleton<IMachineService, MachineManager>();
 
-
-        // 根据配置动态注册运动控制器
-        var systemOptions = config.GetSection("System").Get<SystemOptions>();
-
-        if (systemOptions?.UseSimulator == true)
+        // 运动控制器：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
+        services.AddSingleton<IMotionController<int, int, int>>(sp =>
         {
-            // 注册模拟器 (这里泛型参数暂定为 int，实际建议使用具体的枚举)
-            services.AddSingleton(typeof(IMotionController<int, int, int>), typeof(SimulatorMotionController<int, int, int>));
-        }
-        else
-        {
-            // 根据具体类型注册
-            switch (systemOptions?.ControllerType)
+            var opt = sp.GetRequiredService<IOptions<SystemOptions>>().Value;
+
+            if (opt.UseSimulator || string.Equals(opt.ControllerType, "Simulator", StringComparison.OrdinalIgnoreCase))
             {
-                case "ZMotion":
-                    services.AddSingleton(typeof(IMotionController<int, int, int>), typeof(ZauxMotionController<int, int, int>));
-                    break;
-                case "Leadshine":
-                    services.AddSingleton(typeof(IMotionController<int, int, int>), typeof(LeadshineMotionController<int, int, int>));
-                    break;
-                default:
-                    services.AddSingleton(typeof(IMotionController<int, int, int>), typeof(SimulatorMotionController<int, int, int>));
-                    break;
+                return new SimulatorMotionController<int, int, int>();
             }
-        }
+
+            if (string.Equals(opt.ControllerType, "ZMotion", StringComparison.OrdinalIgnoreCase))
+            {
+                return new ZauxMotionController<int, int, int>
+                {
+                    IP = opt.DeviceIp,
+                    CardNo = opt.DeviceCardNo
+                };
+            }
+
+            if (string.Equals(opt.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
+            {
+                return new LeadshineMotionController<int, int, int>(opt.DeviceIp, opt.DeviceCardNo);
+            }
+
+            return new SimulatorMotionController<int, int, int>();
+        });
     }
 }

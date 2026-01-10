@@ -4,6 +4,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Devices.Motion.Abstractions;
 using Common.Core;
+using LanguageExt;
+using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
 namespace Devices.Motion.Implementations.Simulator
 {
@@ -27,7 +30,11 @@ namespace Devices.Motion.Implementations.Simulator
         private readonly Dictionary<int, Level> _inputs = new Dictionary<int, Level>();
         private readonly Dictionary<int, Level> _outputs = new Dictionary<int, Level>();
 
-        private int ToInt(object value) => Convert.ToInt32(value);
+        private int ToInt(object? value)
+        {
+            if (value is null) throw new ArgumentNullException(nameof(value));
+            return Convert.ToInt32(value);
+        }
 
         private MockAxisData GetAxisData(TAxis axis)
         {
@@ -37,80 +44,80 @@ namespace Devices.Motion.Implementations.Simulator
             return _axes[index];
         }
 
-        public void AxisEnable(TAxis axis, Level enable)
+        public Fin<LUnit> AxisEnable(TAxis axis, Level enable)
         {
             GetAxisData(axis).Enabled = enable;
+            return FinSucc(unit);
         }
 
-        public bool CheckDone(TAxis axis)
+        public Fin<bool> CheckDone(TAxis axis)
         {
-            return !GetAxisData(axis).IsMoving;
+            return FinSucc(!GetAxisData(axis).IsMoving);
         }
 
-        public bool CheckHomeDone(TAxis axis)
+        public Fin<bool> CheckHomeDone(TAxis axis)
         {
-            return true;
+            return FinSucc(true);
         }
 
         public void Dispose()
         {
         }
 
-        public Level GetAxisAlarm(TAxis axis)
+        public Fin<Level> GetAxisAlarm(TAxis axis)
         {
-            return Level.Off;
+            return FinSucc(Level.Off);
         }
 
-        public AxisStatus GetAxisStatus(TAxis axis)
+        public Fin<AxisStatus> GetAxisStatus(TAxis axis)
         {
-            return new AxisStatus
+            return FinSucc(new AxisStatus
             {
                 ServoAlarm = Level.Off,
                 PositiveHardLimit = Level.Off,
                 NegativeHardLimit = Level.Off,
                 EmergencyStop = Level.Off,
                 Origin = Level.Off
-            };
+            });
         }
 
-        public double GetCommandPos(TAxis axis)
+        public Fin<double> GetCommandPos(TAxis axis)
         {
-            return GetAxisData(axis).Position;
+            return FinSucc(GetAxisData(axis).Position);
         }
 
-        public double GetEncoderPos(TAxis axis)
+        public Fin<double> GetEncoderPos(TAxis axis)
         {
-            return GetAxisData(axis).Position;
+            return FinSucc(GetAxisData(axis).Position);
         }
 
-        public Level GetInput(TIn bitNo)
-        {
-            int bit = ToInt(bitNo);
-            return _inputs.ContainsKey(bit) ? _inputs[bit] : Level.Off;
-        }
-
-        public int GetOutput(TOut bitNo)
+        public Fin<Level> GetInput(TIn bitNo)
         {
             int bit = ToInt(bitNo);
-            return _outputs.ContainsKey(bit) ? (int)_outputs[bit] : 0;
+            return FinSucc(_inputs.ContainsKey(bit) ? _inputs[bit] : Level.Off);
         }
 
-        public double GetSpeed(TAxis axis)
+        public Fin<int> GetOutput(TOut bitNo)
         {
-            return GetAxisData(axis).Speed.Max;
+            int bit = ToInt(bitNo);
+            return FinSucc(_outputs.ContainsKey(bit) ? (int)_outputs[bit] : 0);
         }
 
-        public void GoBackHome(TAxis axis)
+        public Fin<double> GetSpeed(TAxis axis)
+        {
+            return FinSucc(GetAxisData(axis).Speed.Max);
+        }
+
+        public Fin<LUnit> GoBackHome(TAxis axis)
         {
             var data = GetAxisData(axis);
             data.Position = 0;
+            return FinSucc(unit);
         }
 
-        public void Initialization()
-        {
-        }
+        public Fin<LUnit> Initialization() => FinSucc(unit);
 
-        public void Move_Absolute(TAxis axis, double pos)
+        public Fin<LUnit> Move_Absolute(TAxis axis, double pos)
         {
             var data = GetAxisData(axis);
             data.IsMoving = true;
@@ -120,14 +127,16 @@ namespace Devices.Motion.Implementations.Simulator
                 data.Position = pos;
                 data.IsMoving = false;
             });
+            return FinSucc(unit);
         }
 
-        public void Move_JOG(TAxis axis, MotionDirection dir)
+        public Fin<LUnit> Move_JOG(TAxis axis, MotionDirection dir)
         {
             GetAxisData(axis).IsMoving = true;
+            return FinSucc(unit);
         }
 
-        public void Move_Relative(TAxis axis, double pos)
+        public Fin<LUnit> Move_Relative(TAxis axis, double pos)
         {
             var data = GetAxisData(axis);
             data.IsMoving = true;
@@ -137,36 +146,43 @@ namespace Devices.Motion.Implementations.Simulator
                 data.Position += pos;
                 data.IsMoving = false;
             });
+            return FinSucc(unit);
         }
 
-        public void SetCommandPos(TAxis axis, double pos)
+        public Fin<LUnit> SetCommandPos(TAxis axis, double pos)
         {
             GetAxisData(axis).Position = pos;
+            return FinSucc(unit);
         }
 
-        public void SetEncoderPos(TAxis axis, double pos)
+        public Fin<LUnit> SetEncoderPos(TAxis axis, double pos)
         {
             GetAxisData(axis).Position = pos;
+            return FinSucc(unit);
         }
 
-        public void SetOutput(TOut bitNo, Level level)
+        public Fin<LUnit> SetOutput(TOut bitNo, Level level)
         {
             _outputs[ToInt(bitNo)] = level;
+            return FinSucc(unit);
         }
 
-        public void SetSpeed(TAxis axis, AxisSpeed speed)
+        public Fin<LUnit> SetSpeed(TAxis axis, AxisSpeed speed)
         {
             GetAxisData(axis).Speed = speed;
+            return FinSucc(unit);
         }
 
-        public void Stop(TAxis axis)
+        public Fin<LUnit> Stop(TAxis axis)
         {
             GetAxisData(axis).IsMoving = false;
+            return FinSucc(unit);
         }
 
-        public void EStop(TAxis axis)
+        public Fin<LUnit> EStop(TAxis axis)
         {
             GetAxisData(axis).IsMoving = false;
+            return FinSucc(unit);
         }
     }
 }

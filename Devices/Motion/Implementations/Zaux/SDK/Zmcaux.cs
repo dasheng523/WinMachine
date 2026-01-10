@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.InteropServices;
 
+#pragma warning disable CS8981
+
 /********************************** ZMC系列控制器  ************************************************
 **--------------文件信息--------------------------------------------------------------------------------
 **文件名: zmcaux.h
@@ -4121,3 +4123,5 @@ namespace cszmcaux
 
     }
 }
+
+#pragma warning restore CS8981

@@ -173,9 +173,9 @@ namespace Devices.Motion.Implementations.Leadshine
                 return "成功";
             }
 
-            if (ErrorMessages.TryGetValue(errorCode, out string message))
+            if (ErrorMessages.TryGetValue(errorCode, out var message))
             {
-                return message;
+                return message ?? $"未知错误代码: {errorCode}";
             }
 
             return $"未知错误代码: {errorCode}";
