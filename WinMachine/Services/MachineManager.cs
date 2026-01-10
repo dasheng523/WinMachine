@@ -1,4 +1,5 @@
 using System;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using Common.Lifecycle;
 using Common.Fsm;
@@ -28,10 +29,17 @@ namespace WinMachine.Services
     {
         private readonly IMotionController<int, int, int> _motion;
         private readonly StateMachine _fsm;
+        private readonly IScheduler _scheduler;
 
         public MachineManager(IMotionController<int, int, int> motion)
+            : this(motion, scheduler: null)
+        {
+        }
+
+        public MachineManager(IMotionController<int, int, int> motion, IScheduler? scheduler)
         {
             _motion = motion;
+            _scheduler = scheduler ?? Scheduler.Default;
 
             // 1. 配置状态机 DSL
             _fsm = new StateMachineBuilder()
@@ -75,7 +83,7 @@ namespace WinMachine.Services
             {
                 _motion.Initialization();
                 // 模拟一个异步连接过程
-                Observable.Timer(TimeSpan.FromSeconds(1))
+                Observable.Timer(TimeSpan.FromSeconds(1), _scheduler)
                     .Subscribe(_ => _fsm.Fire(MachineTrigger.Connected));
             }
             catch (Exception)
@@ -92,7 +100,7 @@ namespace WinMachine.Services
                 _motion.GoBackHome(0); 
                 
                 // 使用 Rx 轮询检查回原点是否完成 (Poll Check)
-                Observable.Interval(TimeSpan.FromMilliseconds(500))
+                Observable.Interval(TimeSpan.FromMilliseconds(500), _scheduler)
                     .Where(_ => _motion.CheckHomeDone(0))
                     .FirstAsync()
                     .Subscribe(_ => _fsm.Fire(MachineTrigger.Homed));

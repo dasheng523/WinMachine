@@ -5,17 +5,12 @@ using Common.Core;
 
 namespace Devices.Motion.Abstractions
 {
-    public interface IMotionController<TAxis, TIn, TOut>
+    public interface IMotionController<TAxis, TIn, TOut> : IDisposable
     {
         /// <summary>
         /// 初始化运动控制卡/控制器连接。
         /// </summary>
         void Initialization();
-
-        /// <summary>
-        /// 释放运动控制卡/控制器连接。
-        /// </summary>
-        void Dispose();
 
 
         /// <summary>
