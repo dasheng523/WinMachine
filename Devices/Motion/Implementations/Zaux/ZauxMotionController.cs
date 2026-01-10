@@ -218,7 +218,7 @@ namespace Devices.Motion.Implementations.Zaux
             }
         }
 
-        public Fin<int> GetOutput(TOut bitNo)
+        public Fin<Level> GetOutput(TOut bitNo)
         {
             try
             {
@@ -226,11 +226,11 @@ namespace Devices.Motion.Implementations.Zaux
                 uint val = 0;
                 // 参见 PDF 指令199: ZAux_Direct_GetOp
                 CheckResult(zmcaux.ZAux_Direct_GetOp(_handle, bit, ref val));
-                return FinSucc((int)val);
+                return FinSucc(val == 0 ? Level.Off : Level.On);
             }
             catch (Exception ex)
             {
-                return FinFail<int>(MotionError($"GetOutput({bitNo})", ex));
+                return FinFail<Level>(MotionError($"GetOutput({bitNo})", ex));
             }
         }
 

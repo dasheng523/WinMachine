@@ -130,7 +130,7 @@ namespace Devices.Motion.Abstractions
         /// </summary>
         /// <param name="bitNo">输出口编号</param>
         /// <returns>0-低电平，1-高电平</returns>
-        Fin<int> GetOutput(TOut bitNo);
+        Fin<Level> GetOutput(TOut bitNo);
 
 
         /// <summary>

@@ -11,10 +11,10 @@ namespace WinMachine
 {
     public partial class ZControllerView : Form
     {
-        private readonly IMotionController<int, int, int> _motion;
-        private const int TARGET_AXIS = 0;
+        private readonly IMotionController<ushort, ushort, ushort> _motion;
+        private const ushort TARGET_AXIS = 0;
 
-        public ZControllerView(IMotionController<int, int, int> motion)
+        public ZControllerView(IMotionController<ushort, ushort, ushort> motion)
         {
             _motion = motion;
             InitializeComponent();
@@ -60,11 +60,11 @@ namespace WinMachine
 
         private void OnToggleOutput()
         {
-            int bit = (int)numOutputIndex.Value;
+            ushort bit = (ushort)numOutputIndex.Value;
 
             var flow =
                 from current in _motion.GetOutput(bit)
-                let next = (current == 1) ? Level.Off : Level.On
+                let next = (current == Level.On) ? Level.Off : Level.On
                 from _ in _motion.SetOutput(bit, next)
                 select unit;
 
@@ -87,7 +87,7 @@ namespace WinMachine
                 },
                 Fail: _ => unit);
 
-            int inputBit = (int)numInputIndex.Value;
+            ushort inputBit = (ushort)numInputIndex.Value;
             _ = _motion.GetInput(inputBit).Match(
                 Succ: inLevel =>
                 {

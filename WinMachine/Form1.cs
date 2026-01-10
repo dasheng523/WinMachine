@@ -7,10 +7,10 @@ namespace WinMachine
 {
     public partial class Form1 : Form
     {
-        private readonly IMotionController<int, int, int> _motion;
+        private readonly IMotionController<ushort, ushort, ushort> _motion;
         private readonly SystemOptions _options;
 
-        public Form1(IMotionController<int, int, int> motion, IOptions<SystemOptions> options)
+        public Form1(IMotionController<ushort, ushort, ushort> motion, IOptions<SystemOptions> options)
         {
             InitializeComponent();
             _motion = motion;

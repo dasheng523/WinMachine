@@ -21,7 +21,7 @@ public class SimulatorMotionControllerTests
     [Fact]
     public void MoveJog_ThenStop_ShouldReportDone()
     {
-        using var motion = new SimulatorMotionController<int, int, int>();
+        using var motion = new SimulatorMotionController<ushort, ushort, ushort>();
 
         Expect(motion.Move_JOG(0, Devices.Motion.Abstractions.MotionDirection.Positive));
         Expect(motion.CheckDone(0)).Should().BeFalse();
@@ -33,7 +33,7 @@ public class SimulatorMotionControllerTests
     [Fact]
     public void GoBackHome_ShouldSetAxisPositionToZero()
     {
-        using var motion = new SimulatorMotionController<int, int, int>();
+        using var motion = new SimulatorMotionController<ushort, ushort, ushort>();
 
         Expect(motion.SetCommandPos(0, 123.0));
         Expect(motion.GetCommandPos(0)).Should().Be(123.0);

@@ -187,15 +187,16 @@ namespace Devices.Motion.Implementations.Leadshine
             }
         }
 
-        public Fin<int> GetOutput(TOut bitNo)
+        public Fin<Level> GetOutput(TOut bitNo)
         {
             try
             {
-                return FinSucc((int)LTSMC.smc_read_outbit(CardNo, ToUShort(bitNo, nameof(bitNo))));
+                short state = LTSMC.smc_read_outbit(CardNo, ToUShort(bitNo, nameof(bitNo)));
+                return FinSucc(state == 0 ? Level.Off : Level.On);
             }
             catch (Exception ex)
             {
-                return FinFail<int>(MotionError($"GetOutput({bitNo})", ex));
+                return FinFail<Level>(MotionError($"GetOutput({bitNo})", ex));
             }
         }
 

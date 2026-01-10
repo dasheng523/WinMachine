@@ -30,16 +30,16 @@ namespace WinMachine.Services
     /// </summary>
     public class MachineManager : IMachineService
     {
-        private readonly IMotionController<int, int, int> _motion;
+        private readonly IMotionController<ushort, ushort, ushort> _motion;
         private readonly StateMachine _fsm;
         private readonly IScheduler _scheduler;
 
-        public MachineManager(IMotionController<int, int, int> motion)
+        public MachineManager(IMotionController<ushort, ushort, ushort> motion)
             : this(motion, scheduler: null)
         {
         }
 
-        public MachineManager(IMotionController<int, int, int> motion, IScheduler? scheduler)
+        public MachineManager(IMotionController<ushort, ushort, ushort> motion, IScheduler? scheduler)
         {
             _motion = motion;
             _scheduler = scheduler ?? Scheduler.Default;
@@ -84,7 +84,7 @@ namespace WinMachine.Services
             from _ in _motion.Initialization()
             select unit;
 
-        private Fin<LUnit> HomeFlow(int axis) =>
+        private Fin<LUnit> HomeFlow(ushort axis) =>
             from _ in _motion.GoBackHome(axis)
             select unit;
 
@@ -107,7 +107,7 @@ namespace WinMachine.Services
 
         private void DoHome()
         {
-            const int axis = 0;
+            const ushort axis = 0;
 
             _ = HomeFlow(axis).Match(
                 Succ: _ =>

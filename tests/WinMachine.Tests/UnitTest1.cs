@@ -14,7 +14,7 @@ public class MachineManagerIntegrationStyleTests
     public void Connect_Home_Start_Stop_ShouldReachExpectedStates_WithVirtualTime()
     {
         var scheduler = new TestScheduler();
-        using var motion = new SimulatorMotionController<int, int, int>();
+        using var motion = new SimulatorMotionController<ushort, ushort, ushort>();
         using var manager = new MachineManager(motion, scheduler);
 
         var states = new List<MachineState>();

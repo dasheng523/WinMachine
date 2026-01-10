@@ -97,10 +97,10 @@ namespace Devices.Motion.Implementations.Simulator
             return FinSucc(_inputs.ContainsKey(bit) ? _inputs[bit] : Level.Off);
         }
 
-        public Fin<int> GetOutput(TOut bitNo)
+        public Fin<Level> GetOutput(TOut bitNo)
         {
             int bit = ToInt(bitNo);
-            return FinSucc(_outputs.ContainsKey(bit) ? (int)_outputs[bit] : 0);
+            return FinSucc(_outputs.ContainsKey(bit) ? _outputs[bit] : Level.Off);
         }
 
         public Fin<double> GetSpeed(TAxis axis)

@@ -54,18 +54,18 @@ internal static class Program
         services.AddSingleton<IMachineService, MachineManager>();
 
         // 运动控制器：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
-        services.AddSingleton<IMotionController<int, int, int>>(sp =>
+        services.AddSingleton<IMotionController<ushort, ushort, ushort>>(sp =>
         {
             var opt = sp.GetRequiredService<IOptions<SystemOptions>>().Value;
 
             if (opt.UseSimulator || string.Equals(opt.ControllerType, "Simulator", StringComparison.OrdinalIgnoreCase))
             {
-                return new SimulatorMotionController<int, int, int>();
+                return new SimulatorMotionController<ushort, ushort, ushort>();
             }
 
             if (string.Equals(opt.ControllerType, "ZMotion", StringComparison.OrdinalIgnoreCase))
             {
-                return new ZauxMotionController<int, int, int>
+                return new ZauxMotionController<ushort, ushort, ushort>
                 {
                     IP = opt.DeviceIp,
                     CardNo = opt.DeviceCardNo
@@ -74,10 +74,10 @@ internal static class Program
 
             if (string.Equals(opt.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
             {
-                return new LeadshineMotionController<int, int, int>(opt.DeviceIp, opt.DeviceCardNo);
+                return new LeadshineMotionController<ushort, ushort, ushort>(opt.DeviceIp, opt.DeviceCardNo);
             }
 
-            return new SimulatorMotionController<int, int, int>();
+            return new SimulatorMotionController<ushort, ushort, ushort>();
         });
     }
 }
