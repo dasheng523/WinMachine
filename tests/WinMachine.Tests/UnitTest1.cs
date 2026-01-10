@@ -15,7 +15,8 @@ public class MachineManagerIntegrationStyleTests
     {
         var scheduler = new TestScheduler();
         using var motion = new SimulatorMotionController<ushort, ushort, ushort>();
-        using var manager = new MachineManager(motion, scheduler);
+        using var motionSystem = new MotionSystem(new[] { new MotionBoard("Main", motion) });
+        using var manager = new MachineManager(motionSystem, scheduler);
 
         var states = new List<MachineState>();
         using var sub = manager.State.Subscribe(states.Add);

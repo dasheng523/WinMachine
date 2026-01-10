@@ -6,6 +6,7 @@ using Common.Core;
 using LanguageExt;
 using static LanguageExt.Prelude;
 using LUnit = LanguageExt.Unit;
+using WinMachine.Services;
 
 namespace WinMachine
 {
@@ -14,9 +15,9 @@ namespace WinMachine
         private readonly IMotionController<ushort, ushort, ushort> _motion;
         private const ushort TARGET_AXIS = 0;
 
-        public ZControllerView(IMotionController<ushort, ushort, ushort> motion)
+        public ZControllerView(IMotionSystem motionSystem)
         {
-            _motion = motion;
+            _motion = motionSystem.Primary;
             InitializeComponent();
         }
 

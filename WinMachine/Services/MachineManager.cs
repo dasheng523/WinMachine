@@ -30,18 +30,20 @@ namespace WinMachine.Services
     /// </summary>
     public class MachineManager : IMachineService
     {
+        private readonly IMotionSystem _motionSystem;
         private readonly IMotionController<ushort, ushort, ushort> _motion;
         private readonly StateMachine _fsm;
         private readonly IScheduler _scheduler;
 
-        public MachineManager(IMotionController<ushort, ushort, ushort> motion)
-            : this(motion, scheduler: null)
+        public MachineManager(IMotionSystem motionSystem)
+            : this(motionSystem, scheduler: null)
         {
         }
 
-        public MachineManager(IMotionController<ushort, ushort, ushort> motion, IScheduler? scheduler)
+        public MachineManager(IMotionSystem motionSystem, IScheduler? scheduler)
         {
-            _motion = motion;
+            _motionSystem = motionSystem;
+            _motion = motionSystem.Primary;
             _scheduler = scheduler ?? Scheduler.Default;
 
             // 1. 配置状态机 DSL
@@ -81,7 +83,7 @@ namespace WinMachine.Services
         #region 硬件动作实现 (Private Actions)
 
         private Fin<LUnit> ConnectFlow() =>
-            from _ in _motion.Initialization()
+            from _ in _motionSystem.Initialization()
             select unit;
 
         private Fin<LUnit> HomeFlow(ushort axis) =>

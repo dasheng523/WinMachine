@@ -53,31 +53,53 @@ internal static class Program
         // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)
         services.AddSingleton<IMachineService, MachineManager>();
 
-        // 运动控制器：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
-        services.AddSingleton<IMotionController<ushort, ushort, ushort>>(sp =>
+        // MotionSystem：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
+        services.AddSingleton<IMotionSystem>(sp =>
         {
             var opt = sp.GetRequiredService<IOptions<SystemOptions>>().Value;
 
-            if (opt.UseSimulator || string.Equals(opt.ControllerType, "Simulator", StringComparison.OrdinalIgnoreCase))
+            var boards = (opt.MotionBoards is { Count: > 0 })
+                ? opt.MotionBoards
+                : new List<MotionBoardOptions>
+                {
+                    new()
+                    {
+                        Name = "Main",
+                        ControllerType = opt.UseSimulator ? "Simulator" : opt.ControllerType,
+                        DeviceIp = opt.DeviceIp,
+                        DeviceCardNo = opt.DeviceCardNo
+                    }
+                };
+
+            IMotionController<ushort, ushort, ushort> CreateController(MotionBoardOptions b)
             {
+                if (opt.UseSimulator || string.Equals(b.ControllerType, "Simulator", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new SimulatorMotionController<ushort, ushort, ushort>();
+                }
+
+                if (string.Equals(b.ControllerType, "ZMotion", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new ZauxMotionController<ushort, ushort, ushort>
+                    {
+                        IP = b.DeviceIp,
+                        CardNo = b.DeviceCardNo
+                    };
+                }
+
+                if (string.Equals(b.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
+                {
+                    return new LeadshineMotionController<ushort, ushort, ushort>(b.DeviceIp, b.DeviceCardNo);
+                }
+
                 return new SimulatorMotionController<ushort, ushort, ushort>();
             }
 
-            if (string.Equals(opt.ControllerType, "ZMotion", StringComparison.OrdinalIgnoreCase))
-            {
-                return new ZauxMotionController<ushort, ushort, ushort>
-                {
-                    IP = opt.DeviceIp,
-                    CardNo = opt.DeviceCardNo
-                };
-            }
+            var motionBoards = boards
+                .Select(b => new MotionBoard(b.Name, CreateController(b)))
+                .ToList();
 
-            if (string.Equals(opt.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
-            {
-                return new LeadshineMotionController<ushort, ushort, ushort>(opt.DeviceIp, opt.DeviceCardNo);
-            }
-
-            return new SimulatorMotionController<ushort, ushort, ushort>();
+            return new MotionSystem(motionBoards);
         });
     }
 }
