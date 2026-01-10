@@ -89,7 +89,11 @@ internal static class Program
 
                 if (string.Equals(b.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
                 {
-                    return new LeadshineMotionController<ushort, ushort, ushort>(b.DeviceIp, b.DeviceCardNo);
+                    var init = b.LeadshineInit is null
+                        ? null
+                        : LeadshineInit.BuildInitDelegate(b.LeadshineInit);
+
+                    return new LeadshineMotionController<ushort, ushort, ushort>(b.DeviceIp, b.DeviceCardNo, init);
                 }
 
                 return new SimulatorMotionController<ushort, ushort, ushort>();

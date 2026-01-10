@@ -50,4 +50,10 @@ public class MotionBoardOptions
     /// 控制器卡号/站号 (如雷赛 CardNo)
     /// </summary>
     public ushort DeviceCardNo { get; set; } = 0;
+
+    /// <summary>
+    /// 雷赛板卡初始化参数（仅当 ControllerType=Leadshine 时生效）。
+    /// 用于配置：轴正反限位、报警、脉冲模式、脉冲当量、寻零等。
+    /// </summary>
+    public Devices.Motion.Implementations.Leadshine.LeadshineBoardInitOptions? LeadshineInit { get; set; }
 }
