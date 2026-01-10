@@ -13,19 +13,29 @@ namespace WinMachine
     public partial class ZControllerView : Form
     {
         private readonly IMotionController<ushort, ushort, ushort> _motion;
-        private const ushort TARGET_AXIS = 0;
+        private readonly ushort _targetAxis;
+
+        public ZControllerView(IMotionSystem motionSystem, IAxisResolver axisResolver)
+        {
+            _motion = motionSystem.Primary;
+            _targetAxis = axisResolver.ResolveOnPrimary("Z1").Match(
+                Succ: a => a,
+                Fail: _ => (ushort)0);
+            InitializeComponent();
+        }
 
         public ZControllerView(IMotionSystem motionSystem)
         {
             _motion = motionSystem.Primary;
+            _targetAxis = (ushort)0;
             InitializeComponent();
         }
 
         private void OnJogMouseDown(MotionDirection dir)
         {
             var flow =
-                from _ in _motion.SetSpeed(TARGET_AXIS, new AxisSpeed(100, 500, 0.1, 0.1, 100, 0.05))
-                from __ in _motion.Move_JOG(TARGET_AXIS, dir)
+                from _ in _motion.SetSpeed(_targetAxis, new AxisSpeed(100, 500, 0.1, 0.1, 100, 0.05))
+                from __ in _motion.Move_JOG(_targetAxis, dir)
                 select unit;
 
             _ = flow.Match(
@@ -39,7 +49,7 @@ namespace WinMachine
 
         private void OnJogMouseUp()
         {
-            _ = _motion.Stop(TARGET_AXIS).Match(
+            _ = _motion.Stop(_targetAxis).Match(
                 Succ: _ => unit,
                 Fail: err =>
                 {
@@ -50,7 +60,7 @@ namespace WinMachine
 
         private void OnStopClick()
         {
-            _ = _motion.Stop(TARGET_AXIS).Match(
+            _ = _motion.Stop(_targetAxis).Match(
                 Succ: _ => unit,
                 Fail: err =>
                 {
@@ -80,7 +90,7 @@ namespace WinMachine
 
         private void OnTimerTick()
         {
-            _ = _motion.GetCommandPos(TARGET_AXIS).Match(
+            _ = _motion.GetCommandPos(_targetAxis).Match(
                 Succ: pos =>
                 {
                     lblPosition.Text = pos.ToString("F3");

@@ -5,7 +5,7 @@ trigger: always_on
 该项目使用 .net 10
 用户喜欢haskell中的Monad, 尽可能用上类似的概念
 尽量用 Linq 与 Monad 结合
-
+当用户跟你讨论的时候，尽量用代码示例来说明你的观点，且必须得到用户的认可后，才能继续
 
 
 ## WinMachine 机器介绍

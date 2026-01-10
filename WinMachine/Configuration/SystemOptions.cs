@@ -30,6 +30,25 @@ public class SystemOptions
     /// 为空/未配置时，回退使用上面的单板字段。
     /// </summary>
     public List<MotionBoardOptions> MotionBoards { get; set; } = [];
+
+    /// <summary>
+    /// 逻辑轴名到 (板卡名 + 轴号) 的映射。
+    /// 建议 key 使用：X/Y1/Y2/Z1/Z2/P1/P2/L1..L4/R1/R2/RS1/RS2 等。
+    /// </summary>
+    public Dictionary<string, AxisRefOptions> AxisMap { get; set; } = [];
+}
+
+public sealed class AxisRefOptions
+{
+    /// <summary>
+    /// 板卡名（对应 MotionBoards[*].Name）。为空则使用 Primary。
+    /// </summary>
+    public string? Board { get; set; }
+
+    /// <summary>
+    /// 板卡上的物理轴号。
+    /// </summary>
+    public ushort Axis { get; set; }
 }
 
 public class MotionBoardOptions

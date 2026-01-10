@@ -53,6 +53,9 @@ internal static class Program
         // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)
         services.AddSingleton<IMachineService, MachineManager>();
 
+        // 逻辑轴映射（配置驱动）
+        services.AddSingleton<IAxisResolver, AxisResolver>();
+
         // MotionSystem：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
         services.AddSingleton<IMotionSystem>(sp =>
         {
@@ -89,9 +92,42 @@ internal static class Program
 
                 if (string.Equals(b.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase))
                 {
+                    Func<string, ushort>? axisNameResolver = null;
+                    if (b.LeadshineInit is not null)
+                    {
+                        axisNameResolver = name =>
+                        {
+                            var map = opt.AxisMap;
+                            if (map is null || map.Count == 0)
+                            {
+                                throw new InvalidOperationException("未配置 System.AxisMap，无法解析 AxisName");
+                            }
+
+                            // 兼容大小写
+                            if (!map.TryGetValue(name, out var hit))
+                            {
+                                hit = map.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+                            }
+
+                            if (hit is null)
+                            {
+                                throw new KeyNotFoundException($"AxisMap 未找到: {name}");
+                            }
+
+                            // 若 AxisMap 显式指定了 Board，则要求与当前板卡一致，避免把配置打到别的板卡。
+                            if (!string.IsNullOrWhiteSpace(hit.Board)
+                                && !string.Equals(hit.Board, b.Name, StringComparison.OrdinalIgnoreCase))
+                            {
+                                throw new InvalidOperationException($"AxisName={name} 映射到 Board={hit.Board}，但当前正在初始化 Board={b.Name}");
+                            }
+
+                            return hit.Axis;
+                        };
+                    }
+
                     var init = b.LeadshineInit is null
                         ? null
-                        : LeadshineInit.BuildInitDelegate(b.LeadshineInit);
+                        : LeadshineInit.BuildInitDelegate(b.LeadshineInit, axisNameResolver);
 
                     return new LeadshineMotionController<ushort, ushort, ushort>(b.DeviceIp, b.DeviceCardNo, init);
                 }

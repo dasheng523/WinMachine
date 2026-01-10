@@ -19,6 +19,12 @@ public sealed class LeadshineBoardInitOptions
     public List<ushort> EnableAxes { get; set; } = [];
 
     /// <summary>
+    /// 使能轴列表（逻辑轴名，优先级高于 EnableAxes）。
+    /// 例如：X/Y1/Z1 或 L1/RS2 等。
+    /// </summary>
+    public List<string> EnableAxisNames { get; set; } = [];
+
+    /// <summary>
     /// 当 EnableAllAxes=true 时的轴数量。
     /// </summary>
     public ushort AxisCount { get; set; } = 8;
@@ -31,7 +37,15 @@ public sealed class LeadshineBoardInitOptions
 
 public sealed class LeadshineAxisInitOptions
 {
+    /// <summary>
+    /// 物理轴号（与 AxisName 二选一；若 AxisName 有值则优先使用 AxisName）。
+    /// </summary>
     public ushort Axis { get; set; }
+
+    /// <summary>
+    /// 逻辑轴名（推荐）。会在上层通过 System.AxisMap 解析到物理轴号。
+    /// </summary>
+    public string? AxisName { get; set; }
 
     public LeadshineElModeOptions? ElMode { get; set; }
 

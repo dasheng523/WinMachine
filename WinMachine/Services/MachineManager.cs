@@ -32,18 +32,30 @@ namespace WinMachine.Services
     {
         private readonly IMotionSystem _motionSystem;
         private readonly IMotionController<ushort, ushort, ushort> _motion;
+        private readonly IAxisResolver? _axes;
         private readonly StateMachine _fsm;
         private readonly IScheduler _scheduler;
 
         public MachineManager(IMotionSystem motionSystem)
-            : this(motionSystem, scheduler: null)
+            : this(motionSystem, scheduler: null, axes: null)
+        {
+        }
+
+        public MachineManager(IMotionSystem motionSystem, IAxisResolver axes)
+            : this(motionSystem, scheduler: null, axes: axes)
         {
         }
 
         public MachineManager(IMotionSystem motionSystem, IScheduler? scheduler)
+            : this(motionSystem, scheduler, axes: null)
+        {
+        }
+
+        public MachineManager(IMotionSystem motionSystem, IScheduler? scheduler, IAxisResolver? axes)
         {
             _motionSystem = motionSystem;
             _motion = motionSystem.Primary;
+            _axes = axes;
             _scheduler = scheduler ?? Scheduler.Default;
 
             // 1. 配置状态机 DSL
@@ -82,13 +94,25 @@ namespace WinMachine.Services
 
         #region 硬件动作实现 (Private Actions)
 
+        private Fin<ushort> ResolveAxisOrDefault(string axisName, ushort fallbackAxis)
+        {
+            if (_axes is null)
+            {
+                return FinSucc(fallbackAxis);
+            }
+
+            var r = _axes.ResolveOnPrimary(axisName);
+            return r.IsFail ? FinSucc(fallbackAxis) : r;
+        }
+
         private Fin<LUnit> ConnectFlow() =>
             from _ in _motionSystem.Initialization()
             select unit;
 
-        private Fin<LUnit> HomeFlow(ushort axis) =>
+        private Fin<ushort> StartHomeFlow(string axisName, ushort fallbackAxis) =>
+            from axis in ResolveAxisOrDefault(axisName, fallbackAxis)
             from _ in _motion.GoBackHome(axis)
-            select unit;
+            select axis;
 
         private void DoConnect()
         {
@@ -109,10 +133,8 @@ namespace WinMachine.Services
 
         private void DoHome()
         {
-            const ushort axis = 0;
-
-            _ = HomeFlow(axis).Match(
-                Succ: _ =>
+            _ = StartHomeFlow("X", fallbackAxis: 0).Match(
+                Succ: axis =>
                 {
                     IDisposable? subscription = null;
                     subscription = Observable.Interval(TimeSpan.FromMilliseconds(500), _scheduler)
@@ -147,7 +169,7 @@ namespace WinMachine.Services
 
         private void DoStop()
         {
-            _ = _motion.Stop(0).Match(
+            _ = ResolveAxisOrDefault("X", 0).Bind(a => _motion.Stop(a)).Match(
                 Succ: _ =>
                 {
                     _fsm.Fire(MachineTrigger.Stopped);
