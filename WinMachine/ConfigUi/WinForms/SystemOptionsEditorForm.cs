@@ -3,6 +3,7 @@ using LanguageExt;
 using static LanguageExt.Prelude;
 using Common.Ui;
 using WinMachine.Configuration;
+using WinMachine.ConfigUi.WinForms.Rendering;
 
 namespace WinMachine.ConfigUi.WinForms;
 
@@ -59,7 +60,7 @@ public sealed class SystemOptionsEditorForm : Form
         var spec = SystemOptionsUi.Spec().Run(BuildState.Empty).Value;
         _rendered = _interpreter.Render(spec, _model);
 
-        var host = new Panel { Dock = DockStyle.Fill };
+        var host = new DoubleBufferedPanel { Dock = DockStyle.Fill };
         host.Controls.Add(_rendered.RootControl);
 
         // replace previous
