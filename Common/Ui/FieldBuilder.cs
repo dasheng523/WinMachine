@@ -35,6 +35,12 @@ public sealed class FieldBuilder<TModel, TProp>
         return this;
     }
 
+    public FieldBuilder<TModel, TProp> AsCombo(Func<object, IReadOnlyList<string>> optionsProvider)
+    {
+        _presentation = new FieldPresentation(FieldKind.Combo, OptionsProvider: optionsProvider);
+        return this;
+    }
+
     public FieldBuilder<TModel, TProp> AsUInt16()
     {
         _presentation = new FieldPresentation(FieldKind.UInt16);

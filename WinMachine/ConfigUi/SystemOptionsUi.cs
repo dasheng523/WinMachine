@@ -87,7 +87,20 @@ public static class SystemOptionsUi
                                 valueUi: a =>
                                     UI.Grid(2,
                                         UI.Label("Board"),
-                                        UI.Field<AxisRefOptions, string?>(x => x.Board).AsTextBox(),
+                                        UI.Field<AxisRefOptions, string?>(x => x.Board)
+                                            .AsCombo(root =>
+                                            {
+                                                var sys = (SystemOptions)root;
+                                                var names = (sys.MotionBoards ?? [])
+                                                    .Select(b => b.Name)
+                                                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                                                    .ToList();
+
+                                                // 空字符串表示 Primary/默认板卡
+                                                names.Insert(0, "");
+                                                return names;
+                                            }),
 
                                         UI.Label("Axis"),
                                         UI.Field<AxisRefOptions, ushort>(x => x.Axis).AsUInt16()

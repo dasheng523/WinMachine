@@ -24,8 +24,35 @@ public sealed class WinFormsFormInterpreter
     {
         var bindings = new List<AppliedBinding>();
         var dictionaries = new List<AppliedDictionary>();
-        var root = RenderNode(spec.Root, model, rootModel: model, bindings, dictionaries);
+        var conditionals = new List<ConditionalReg>();
+
+        void RefreshConditionals()
+        {
+            foreach (var c in conditionals)
+            {
+                var target = c.Node.ModelType.IsInstanceOfType(c.Model) ? c.Model : c.RootModel;
+                var shouldShow = c.Node.Predicate(target);
+
+                if (shouldShow && !c.Built)
+                {
+                    c.Built = true;
+                    var (nodes, _, _) = c.Node.Body.Run(BuildState.Empty);
+                    foreach (var n in nodes)
+                    {
+                        var child = RenderNode(n, target, c.RootModel, bindings, dictionaries, conditionals, RefreshConditionals);
+                        child.Dock = DockStyle.Top;
+                        c.Panel.Controls.Add(child);
+                        c.Panel.Controls.SetChildIndex(child, 0);
+                    }
+                }
+
+                c.Panel.Visible = shouldShow;
+            }
+        }
+
+        var root = RenderNode(spec.Root, model, rootModel: model, bindings, dictionaries, conditionals, RefreshConditionals);
         root.Dock = DockStyle.Fill;
+        RefreshConditionals();
         return new RenderedForm(root, bindings, dictionaries);
     }
 
@@ -123,34 +150,46 @@ public sealed class WinFormsFormInterpreter
         }
     }
 
-    private Control RenderNode(Node node, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private sealed record ConditionalReg(Panel Panel, ConditionalNode Node, object Model, object RootModel)
+    {
+        public bool Built { get; set; }
+    }
+
+    private Control RenderNode(
+        Node node,
+        object model,
+        object rootModel,
+        List<AppliedBinding> bindings,
+        List<AppliedDictionary> dictionaries,
+        List<ConditionalReg> conditionals,
+        Action refreshConditionals)
     {
         return node switch
         {
-            PageNode p => WrapPage(p, RenderNode(p.Body, model, rootModel, bindings, dictionaries)),
-            ScrollNode s => WrapScroll(RenderNode(s.Body, model, rootModel, bindings, dictionaries)),
-            TabsNode t => RenderTabs(t, model, rootModel, bindings, dictionaries),
-            SectionNode s => RenderSection(s, model, rootModel, bindings, dictionaries),
-            GridNode g => RenderGrid(g, model, rootModel, bindings, dictionaries),
-            VStackNode v => RenderStack(v.Children, model, rootModel, bindings, dictionaries, flow: FlowDirection.TopDown),
-            HStackNode h => RenderStack(h.Children, model, rootModel, bindings, dictionaries, flow: FlowDirection.LeftToRight),
-            SplitNode sp => RenderSplit(sp, model, rootModel, bindings, dictionaries),
-            ExpanderNode ex => RenderExpander(ex, model, rootModel, bindings, dictionaries),
+            PageNode p => WrapPage(p, RenderNode(p.Body, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals)),
+            ScrollNode s => WrapScroll(RenderNode(s.Body, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals)),
+            TabsNode t => RenderTabs(t, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            SectionNode s => RenderSection(s, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            GridNode g => RenderGrid(g, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            VStackNode v => RenderStack(v.Children, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals, flow: FlowDirection.TopDown),
+            HStackNode h => RenderStack(h.Children, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals, flow: FlowDirection.LeftToRight),
+            SplitNode sp => RenderSplit(sp, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            ExpanderNode ex => RenderExpander(ex, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
             TextNode t => new Label { Text = t.Text, AutoSize = true },
             LabelNode l => new Label { Text = l.Text, AutoSize = true, TextAlign = ContentAlignment.MiddleLeft },
             HelpNode h => new Label { Text = h.Text, AutoSize = true, ForeColor = SystemColors.GrayText },
-            FieldNode f => RenderField(f, model, bindings),
-            ConditionalNode c => RenderConditional(c, model, rootModel, bindings, dictionaries),
-            ListNode l => RenderList(l, model, rootModel, bindings, dictionaries),
-            DictionaryNode d => RenderDictionary(d, model, rootModel, bindings, dictionaries),
+            FieldNode f => RenderField(f, model, rootModel, bindings, refreshConditionals),
+            ConditionalNode c => RenderConditional(c, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            ListNode l => RenderList(l, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            DictionaryNode d => RenderDictionary(d, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
             KeyEditorNode k => RenderKeyEditor(k),
-            ObjectNode o => RenderObject(o, model, rootModel, bindings, dictionaries),
-            OptionalObjectNode o => RenderOptionalObject(o, model, rootModel, bindings, dictionaries),
+            ObjectNode o => RenderObject(o, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
+            OptionalObjectNode o => RenderOptionalObject(o, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals),
             _ => new Panel { AutoSize = true }
         };
     }
 
-    private Control RenderObject(ObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderObject(ObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var current = o.Binding.Get(model);
         if (current is null)
@@ -159,10 +198,10 @@ public sealed class WinFormsFormInterpreter
             o.Binding.Set(model, current);
         }
 
-        return RenderExpander(new ExpanderNode(o.Title, ToBodyNode(o.Body), o.InitiallyExpanded), current, rootModel, bindings, dictionaries);
+        return RenderExpander(new ExpanderNode(o.Title, ToBodyNode(o.Body), o.InitiallyExpanded), current, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
     }
 
-    private Control RenderOptionalObject(OptionalObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderOptionalObject(OptionalObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var container = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
 
@@ -192,7 +231,7 @@ public sealed class WinFormsFormInterpreter
             var (nodes, _, _) = o.Body.Run(BuildState.Empty);
             foreach (var n in nodes)
             {
-                var child = RenderNode(n, target, rootModel, bindings, dictionaries);
+                var child = RenderNode(n, target, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
                 child.Dock = DockStyle.Top;
                 bodyPanel.Controls.Add(child);
                 bodyPanel.Controls.SetChildIndex(child, 0);
@@ -269,14 +308,14 @@ public sealed class WinFormsFormInterpreter
         return panel;
     }
 
-    private Control RenderTabs(TabsNode tabs, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderTabs(TabsNode tabs, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var tc = new TabControl { Dock = DockStyle.Fill };
         foreach (var t in tabs.Tabs)
         {
             var page = new TabPage(t.Title);
             var body = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(12) };
-            var rendered = RenderNode(t.Body, model, rootModel, bindings, dictionaries);
+            var rendered = RenderNode(t.Body, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
             body.Controls.Add(rendered);
             rendered.Dock = DockStyle.Top;
             page.Controls.Add(body);
@@ -286,16 +325,16 @@ public sealed class WinFormsFormInterpreter
         return tc;
     }
 
-    private Control RenderSection(SectionNode sec, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderSection(SectionNode sec, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var gb = new GroupBox { Text = sec.Title, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, Padding = new Padding(10) };
-        var body = RenderNode(sec.Body, model, rootModel, bindings, dictionaries);
+        var body = RenderNode(sec.Body, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
         body.Dock = DockStyle.Top;
         gb.Controls.Add(body);
         return gb;
     }
 
-    private Control RenderGrid(GridNode grid, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderGrid(GridNode grid, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var tlp = new TableLayoutPanel
         {
@@ -318,7 +357,7 @@ public sealed class WinFormsFormInterpreter
         var c = 0;
         foreach (var child in grid.Children)
         {
-            var ctrl = RenderNode(child, model, rootModel, bindings, dictionaries);
+            var ctrl = RenderNode(child, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
             ctrl.Margin = new Padding(6);
             ctrl.Anchor = AnchorStyles.Left | AnchorStyles.Top;
 
@@ -341,7 +380,7 @@ public sealed class WinFormsFormInterpreter
         return tlp;
     }
 
-    private Control RenderStack(IReadOnlyList<Node> children, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, FlowDirection flow)
+    private Control RenderStack(IReadOnlyList<Node> children, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals, FlowDirection flow)
     {
         // FlowLayoutPanel(TopDown) 不会横向拉伸子控件，
         // 在 AutoScroll 容器里容易出现“看似每个 GroupBox 都有滚动条/内容看不全”的错觉。
@@ -360,7 +399,7 @@ public sealed class WinFormsFormInterpreter
             for (var i = 0; i < children.Count; i++)
             {
                 tlp.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-                var ctrl = RenderNode(children[i], model, rootModel, bindings, dictionaries);
+                var ctrl = RenderNode(children[i], model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
                 ctrl.Margin = new Padding(6);
                 ctrl.Dock = DockStyle.Top;
                 ctrl.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
@@ -381,7 +420,7 @@ public sealed class WinFormsFormInterpreter
 
         foreach (var child in children)
         {
-            var ctrl = RenderNode(child, model, rootModel, bindings, dictionaries);
+            var ctrl = RenderNode(child, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
             ctrl.Margin = new Padding(6);
             flp.Controls.Add(ctrl);
         }
@@ -389,7 +428,7 @@ public sealed class WinFormsFormInterpreter
         return flp;
     }
 
-    private Control RenderSplit(SplitNode sp, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderSplit(SplitNode sp, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var sc = new SplitContainer
         {
@@ -397,19 +436,19 @@ public sealed class WinFormsFormInterpreter
             Orientation = sp.Orientation == Common.Ui.Orientation.Horizontal ? System.Windows.Forms.Orientation.Vertical : System.Windows.Forms.Orientation.Horizontal
         };
 
-        sc.Panel1.Controls.Add(RenderNode(sp.First, model, rootModel, bindings, dictionaries));
-        sc.Panel2.Controls.Add(RenderNode(sp.Second, model, rootModel, bindings, dictionaries));
+        sc.Panel1.Controls.Add(RenderNode(sp.First, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals));
+        sc.Panel2.Controls.Add(RenderNode(sp.Second, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals));
         sc.Panel1.Controls[0].Dock = DockStyle.Fill;
         sc.Panel2.Controls[0].Dock = DockStyle.Fill;
         return sc;
     }
 
-    private Control RenderExpander(ExpanderNode ex, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderExpander(ExpanderNode ex, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var container = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
         var toggle = new CheckBox { Text = ex.Title, Checked = ex.InitiallyExpanded, AutoSize = true, Dock = DockStyle.Top };
         var body = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, Padding = new Padding(16, 6, 6, 6) };
-        var inner = RenderNode(ex.Body, model, rootModel, bindings, dictionaries);
+        var inner = RenderNode(ex.Body, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
         inner.Dock = DockStyle.Top;
         body.Controls.Add(inner);
         body.Visible = toggle.Checked;
@@ -420,7 +459,7 @@ public sealed class WinFormsFormInterpreter
         return container;
     }
 
-    private static Control RenderField(FieldNode f, object model, List<AppliedBinding> bindings)
+    private static Control RenderField(FieldNode f, object model, object rootModel, List<AppliedBinding> bindings, Action refreshConditionals)
     {
         var spec = f.Spec;
         Control ctrl = spec.Presentation.Kind switch
@@ -436,47 +475,65 @@ public sealed class WinFormsFormInterpreter
             tb.PlaceholderText = spec.Presentation.Placeholder;
         }
 
-        if (ctrl is ComboBox cb && spec.Presentation.Options is { Count: > 0 } opts)
+        if (ctrl is ComboBox cb)
         {
-            cb.Items.AddRange(opts.Cast<object>().ToArray());
+            var opts = spec.Presentation.OptionsProvider?.Invoke(rootModel) ?? spec.Presentation.Options;
+            if (opts is { Count: > 0 })
+            {
+                cb.Items.AddRange(opts.Cast<object>().ToArray());
+            }
         }
 
         // init
         var v = spec.Get(model);
         WriteControlValue(ctrl, spec.Presentation.Kind, v);
 
+        // keep model in sync (so ConditionalNode can refresh immediately)
+        void Sync()
+        {
+            try
+            {
+                var value = ReadControlValue(ctrl, spec.Presentation.Kind, spec.ValueType);
+                spec.Set(model, value);
+            }
+            catch
+            {
+                // ignore sync errors; validation happens on Save
+            }
+
+            refreshConditionals();
+        }
+
+        switch (ctrl)
+        {
+            case TextBox tb2:
+                tb2.TextChanged += (_, _) => Sync();
+                break;
+            case CheckBox chk:
+                chk.CheckedChanged += (_, _) => Sync();
+                break;
+            case ComboBox combo:
+                combo.SelectedIndexChanged += (_, _) => Sync();
+                combo.TextChanged += (_, _) => Sync();
+                break;
+            case NumericUpDown nud:
+                nud.ValueChanged += (_, _) => Sync();
+                break;
+        }
+
         bindings.Add(new AppliedBinding(model, spec, ctrl));
         return ctrl;
     }
 
-    private Control RenderConditional(ConditionalNode c, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderConditional(ConditionalNode c, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
-        // 条件是针对某个 model 类型；如果当前 model 不是该类型，向上用 rootModel。
-        var target = c.ModelType.IsInstanceOfType(model) ? model : rootModel;
-        var shouldShow = c.Predicate(target);
-
         var panel = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
-        if (!shouldShow)
-        {
-            panel.Visible = false;
-            return panel;
-        }
-
-        var (nodes, bs, _) = c.Body.Run(BuildState.Empty);
-        // 注意：这里会重复构建 body 的节点；但这是纯 spec，接受。
-        // 绑定由子节点在 RenderNode 时注册。
-        foreach (var n in nodes)
-        {
-            var child = RenderNode(n, target, rootModel, bindings, dictionaries);
-            child.Dock = DockStyle.Top;
-            panel.Controls.Add(child);
-            panel.Controls.SetChildIndex(child, 0);
-        }
-
+        conditionals.Add(new ConditionalReg(panel, c, model, rootModel));
+        panel.Visible = false;
         return panel;
     }
 
-    private Control RenderList(ListNode list, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderList(ListNode list, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         // 垂直列表不要用 FlowLayoutPanel：它会忽略子控件的 Dock，导致宽度无法传播，
         // 进而出现“右侧输入控件被挤没/看不全”。
@@ -524,7 +581,7 @@ public sealed class WinFormsFormInterpreter
                 var body = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
                 foreach (var n in nodes)
                 {
-                    var ctrl = RenderNode(n, item, rootModel, bindings, dictionaries);
+                    var ctrl = RenderNode(n, item, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
                     ctrl.Dock = DockStyle.Top;
                     body.Controls.Add(ctrl);
                     body.Controls.SetChildIndex(ctrl, 0);
@@ -550,7 +607,7 @@ public sealed class WinFormsFormInterpreter
         return panel;
     }
 
-    private Control RenderDictionary(DictionaryNode dict, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    private Control RenderDictionary(DictionaryNode dict, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries, List<ConditionalReg> conditionals, Action refreshConditionals)
     {
         var panel = new Panel
         {
@@ -592,7 +649,7 @@ public sealed class WinFormsFormInterpreter
                 Control? keyEditor = null;
                 foreach (var n in keyNodes)
                 {
-                    var ctrl = RenderNode(n, model, rootModel, bindings, dictionaries);
+                    var ctrl = RenderNode(n, model, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
                     keyPanel.Controls.Add(ctrl);
                     keyEditor ??= ctrl;
                 }
@@ -604,7 +661,7 @@ public sealed class WinFormsFormInterpreter
                 var valuePanel = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
                 foreach (var n in valueNodes)
                 {
-                    var ctrl = RenderNode(n, value, rootModel, bindings, dictionaries);
+                    var ctrl = RenderNode(n, value, rootModel, bindings, dictionaries, conditionals, refreshConditionals);
                     ctrl.Dock = DockStyle.Top;
                     valuePanel.Controls.Add(ctrl);
                     valuePanel.Controls.SetChildIndex(ctrl, 0);
@@ -631,7 +688,14 @@ public sealed class WinFormsFormInterpreter
 
         add.Click += (_, _) =>
         {
-            var newKey = "";
+            var baseKey = "NewKey";
+            var newKey = baseKey;
+            var i = 1;
+            while (dictObj.Contains(newKey))
+            {
+                newKey = $"{baseKey}{i++}";
+            }
+
             var newVal = Activator.CreateInstance(dict.Binding.ValueType)!;
             dictObj[newKey] = newVal;
             RenderRows();

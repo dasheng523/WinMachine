@@ -19,7 +19,12 @@ public sealed record FieldSpec(
     Arr<IValidator> Validators
 );
 
-public sealed record FieldPresentation(FieldKind Kind, string? Placeholder = null, IReadOnlyList<string>? Options = null);
+public sealed record FieldPresentation(
+    FieldKind Kind,
+    string? Placeholder = null,
+    IReadOnlyList<string>? Options = null,
+    Func<object, IReadOnlyList<string>>? OptionsProvider = null
+);
 
 public enum FieldKind
 {
