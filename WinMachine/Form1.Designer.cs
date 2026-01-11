@@ -29,6 +29,7 @@
         private void InitializeComponent()
         {
             BtnZController = new Button();
+            BtnSystemOptions = new Button();
             SuspendLayout();
             // 
             // BtnZController
@@ -40,11 +41,21 @@
             BtnZController.Text = "正运动控制";
             BtnZController.UseVisualStyleBackColor = true;
             // 
+            // BtnSystemOptions
+            // 
+            BtnSystemOptions.Location = new Point(547, 157);
+            BtnSystemOptions.Name = "BtnSystemOptions";
+            BtnSystemOptions.Size = new Size(94, 29);
+            BtnSystemOptions.TabIndex = 1;
+            BtnSystemOptions.Text = "系统配置";
+            BtnSystemOptions.UseVisualStyleBackColor = true;
+            // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(BtnSystemOptions);
             Controls.Add(BtnZController);
             Name = "Form1";
             Text = "Form1";
@@ -54,5 +65,6 @@
         #endregion
 
         private Button BtnZController;
+        private Button BtnSystemOptions;
     }
 }

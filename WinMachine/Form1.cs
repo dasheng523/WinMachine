@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
 using WinMachine.Configuration;
 using WinMachine.Services;
+using WinMachine.ConfigUi.WinForms;
 
 namespace WinMachine
 {
@@ -18,15 +19,24 @@ namespace WinMachine
             _options = options.Value;
 
             // 示例：在标题显示当前模式
-            this.Text = $"WinMachine - {(_options.UseSimulator ? "模拟模式" : "在线模式")} ({_options.ControllerType})";
+            var primary = _options.MotionBoards.FirstOrDefault();
+            var controller = primary?.ControllerType ?? (_options.UseSimulator ? "Simulator" : "(未配置)");
+            this.Text = $"WinMachine - {(_options.UseSimulator ? "模拟模式" : "在线模式")} ({controller})";
 
             BtnZController.Click += BtnZController_Click;
+            BtnSystemOptions.Click += BtnSystemOptions_Click;
         }
 
         private void BtnZController_Click(object? sender, EventArgs e)
         {
             var view = Program.ServiceProvider.GetRequiredService<ZControllerView>();
             view.ShowDialog();
+        }
+
+        private void BtnSystemOptions_Click(object? sender, EventArgs e)
+        {
+            var view = Program.ServiceProvider.GetRequiredService<SystemOptionsEditorForm>();
+            view.ShowDialog(this);
         }
     }
 }

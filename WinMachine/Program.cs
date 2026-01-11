@@ -7,6 +7,7 @@ using Devices.Motion.Implementations.Zaux;
 using Devices.Motion.Implementations.Leadshine;
 using Devices.Motion.Implementations.Simulator;
 using WinMachine.Services;
+using WinMachine.ConfigUi.WinForms;
 
 
 namespace WinMachine;
@@ -49,6 +50,7 @@ internal static class Program
         // 注册窗体
         services.AddTransient<Form1>();
         services.AddTransient<ZControllerView>();
+        services.AddTransient<SystemOptionsEditorForm>();
 
         // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)
         services.AddSingleton<IMachineService, MachineManager>();
@@ -68,9 +70,9 @@ internal static class Program
                     new()
                     {
                         Name = "Main",
-                        ControllerType = opt.UseSimulator ? "Simulator" : opt.ControllerType,
-                        DeviceIp = opt.DeviceIp,
-                        DeviceCardNo = opt.DeviceCardNo
+                        ControllerType = opt.UseSimulator ? "Simulator" : "ZMotion",
+                        DeviceIp = "127.0.0.1",
+                        DeviceCardNo = 0
                     }
                 };
 
