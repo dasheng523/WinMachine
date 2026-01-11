@@ -24,7 +24,7 @@ public static class LeadshineInit
 
     private static Fin<LUnit> Apply(ushort cardNo, LeadshineBoardInitOptions options, Func<string, ushort>? axisNameResolver) =>
         from _ in (options.Axes ?? []).Traverse(ax => ApplyAxis(cardNo, ax, axisNameResolver))
-        from __ in ApplyEnable(cardNo, options, axisNameResolver)
+        from __ in ApplyEnableConfiguredAxes(cardNo, options, axisNameResolver)
         select unit;
 
     private static Fin<LUnit> ApplyAxis(ushort cardNo, LeadshineAxisInitOptions axis, Func<string, ushort>? axisNameResolver) =>
@@ -112,41 +112,37 @@ public static class LeadshineInit
                 Check(LTSMC.smc_set_axis_io_map(cardNo, axisNo, m.IoType, m.MapIndex, m.IoNo, m.Logic))));
     }
 
-    private static Fin<LUnit> ApplyEnable(ushort cardNo, LeadshineBoardInitOptions options, Func<string, ushort>? axisNameResolver)
+    private static Fin<LUnit> ApplyEnableConfiguredAxes(ushort cardNo, LeadshineBoardInitOptions options, Func<string, ushort>? axisNameResolver)
     {
-        // 注意：Enable 是通过 IMotionController 的 AxisEnable 暴露的更合适，
-        // 但这里保持与“旧初始化代码”一致，仍然调用雷赛库。
-        // 如果你希望统一走 AxisEnable，可以把它移动到 WinMachine 上层去做。
+        // 轴使能通常应是“运行时策略”，不建议配置化。
+        // 这里采用一个保守策略：如果配置里显式列出了要初始化的轴，则对这些轴统一使能一次。
+        // 若希望全机统一的 Enable 策略，请上移到 WinMachine 层（例如 MachineManager/MotionSystem）。
 
-        if (options.EnableAllAxes)
+        if (options.Axes is null || options.Axes.Count == 0) return FinSucc(unit);
+
+        Fin<Arr<ushort>> axisNosFin = FinSucc(Arr<ushort>.Empty);
+        foreach (var ax in options.Axes)
         {
-            var axes = Enumerable.Range(0, options.AxisCount).Select(i => (ushort)i);
-            return axes.Traverse(ax =>
-                TryFin($"smc_write_sevon_pin(axis={ax})", () =>
-                    Check(LTSMC.smc_write_sevon_pin(cardNo, ax, 1))));
+            axisNosFin =
+                from acc in axisNosFin
+                from axisNo in ResolveAxisNo(ax, axisNameResolver)
+                select acc.Add(axisNo);
         }
 
-        if (options.EnableAxisNames is { Count: > 0 })
+        return axisNosFin.Bind(axisNos =>
         {
-            if (axisNameResolver is null)
+            Fin<LUnit> enabled = FinSucc(unit);
+            foreach (var axisNo in axisNos.Distinct())
             {
-                return FinFail<LUnit>(Error.New("EnableAxisNames 已配置，但未提供 axisNameResolver"));
+                enabled =
+                    from _ in enabled
+                    from __ in TryFin($"smc_write_sevon_pin(axis={axisNo})", () =>
+                        Check(LTSMC.smc_write_sevon_pin(cardNo, axisNo, 1)))
+                    select unit;
             }
 
-            return options.EnableAxisNames
-                .Where(n => !string.IsNullOrWhiteSpace(n))
-                .Traverse(name =>
-                    from ax in TryFinAxisResolve(name, axisNameResolver)
-                    from _ in TryFin($"smc_write_sevon_pin(axis={ax})", () =>
-                        Check(LTSMC.smc_write_sevon_pin(cardNo, ax, 1)))
-                    select unit);
-        }
-
-        if (options.EnableAxes is null || options.EnableAxes.Count == 0) return FinSucc(unit);
-
-        return options.EnableAxes.Traverse(ax =>
-            TryFin($"smc_write_sevon_pin(axis={ax})", () =>
-                Check(LTSMC.smc_write_sevon_pin(cardNo, ax, 1))));
+            return enabled;
+        });
     }
 
     private static Fin<ushort> ResolveAxisNo(LeadshineAxisInitOptions axis, Func<string, ushort>? axisNameResolver)

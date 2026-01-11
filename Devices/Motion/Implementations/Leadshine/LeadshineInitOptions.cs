@@ -9,27 +9,6 @@ namespace Devices.Motion.Implementations.Leadshine;
 public sealed class LeadshineBoardInitOptions
 {
     /// <summary>
-    /// 是否在初始化完成后使能所有轴（0..AxisCount-1）。
-    /// </summary>
-    public bool EnableAllAxes { get; set; }
-
-    /// <summary>
-    /// 使能轴列表（当 EnableAllAxes=false 时使用）。
-    /// </summary>
-    public List<ushort> EnableAxes { get; set; } = [];
-
-    /// <summary>
-    /// 使能轴列表（逻辑轴名，优先级高于 EnableAxes）。
-    /// 例如：X/Y1/Z1 或 L1/RS2 等。
-    /// </summary>
-    public List<string> EnableAxisNames { get; set; } = [];
-
-    /// <summary>
-    /// 当 EnableAllAxes=true 时的轴数量。
-    /// </summary>
-    public ushort AxisCount { get; set; } = 8;
-
-    /// <summary>
     /// 按轴的详细初始化参数。
     /// </summary>
     public List<LeadshineAxisInitOptions> Axes { get; set; } = [];

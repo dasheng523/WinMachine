@@ -3,6 +3,7 @@ using static LanguageExt.Prelude;
 using Common.Ui;
 using WinMachine.Configuration;
 using Devices.Motion.Implementations.Leadshine;
+using WinMachine.ConfigUi;
 
 namespace WinMachine.ConfigUi;
 
@@ -42,31 +43,31 @@ public static class SystemOptionsUi
                                 itemUi: i =>
                                     from _item in UI.Section($"板卡 #{i}",
                                         from _g in UI.Grid(2,
-                                            UI.Label("Name"),
                                             UI.Field<MotionBoardOptions, string>(b => b.Name)
                                                 .AsTextBox()
-                                                .Validate(Validators.NotEmptyFin("Name")),
+                                                .Validate(Validators.NotEmptyFin("Name"))
+                                                .Labeled("Name"),
 
-                                            UI.Label("控制器类型"),
                                             UI.Field<MotionBoardOptions, string>(b => b.ControllerType)
                                                 .AsCombo(ControllerTypes)
-                                                .Validate(Validators.NotEmptyFin("ControllerType")),
+                                                .Validate(Validators.NotEmptyFin("ControllerType"))
+                                                .Labeled("控制器类型"),
 
-                                            UI.Label("IP 地址"),
                                             UI.Field<MotionBoardOptions, string>(b => b.DeviceIp)
                                                 .AsTextBox()
-                                                .Validate(Validators.IpFin),
+                                                .Validate(Validators.IpFin)
+                                                .Labeled("IP 地址"),
 
-                                            UI.Label("卡号/站号"),
                                             UI.Field<MotionBoardOptions, ushort>(b => b.DeviceCardNo)
                                                 .AsUInt16()
+                                                .Labeled("卡号/站号")
                                         )
                                         from _ls in UI.When<MotionBoardOptions>(
                                             b => string.Equals(b.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase),
                                             UI.OptionalObject<MotionBoardOptions, LeadshineBoardInitOptions>(
                                                 b => b.LeadshineInit,
                                                 title: "LeadshineInit",
-                                                body: UI.AutoEditor<LeadshineBoardInitOptions>(),
+                                                body: LeadshineInitUi.Editor(),
                                                 initiallyExpanded: true,
                                                 defaultEnabled: true
                                             )
