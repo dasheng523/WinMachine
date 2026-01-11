@@ -3,7 +3,7 @@ using LanguageExt;
 using LanguageExt.Common;
 using static LanguageExt.Prelude;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public static class Validators
 {

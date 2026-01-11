@@ -1,6 +1,8 @@
 using LanguageExt;
 using static LanguageExt.Prelude;
+using Common.Ui;
 using WinMachine.Configuration;
+using Devices.Motion.Implementations.Leadshine;
 
 namespace WinMachine.ConfigUi;
 
@@ -61,9 +63,10 @@ public static class SystemOptionsUi
                                         )
                                         from _ls in UI.When<MotionBoardOptions>(
                                             b => string.Equals(b.ControllerType, "Leadshine", StringComparison.OrdinalIgnoreCase),
-                                            UI.Expander("LeadshineInit",
-                                                from _t in UI.Text("LeadshineInit 复杂参数：此处先占位，后续用 Editor<> 递归渲染。")
-                                                select unit,
+                                            UI.OptionalObject<MotionBoardOptions, LeadshineBoardInitOptions>(
+                                                b => b.LeadshineInit,
+                                                title: "LeadshineInit",
+                                                body: UI.AutoEditor<LeadshineBoardInitOptions>(),
                                                 initiallyExpanded: false
                                             )
                                         )

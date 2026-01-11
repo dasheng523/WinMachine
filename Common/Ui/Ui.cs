@@ -1,7 +1,7 @@
 using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public readonly record struct Ui<A>(Func<BuildState, (Arr<Node> Nodes, Arr<Binding> Bindings, A Value)> Run)
 {

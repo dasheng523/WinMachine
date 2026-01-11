@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public static partial class UI
 {
@@ -90,6 +90,9 @@ public static partial class UI
     public static Ui<Unit> Label(string text) => Emit(new LabelNode(text));
     public static Ui<Unit> Help(string text) => Emit(new HelpNode(text));
 
+    public static Ui<Unit> Key(string current, IReadOnlyList<string> suggested, bool allowFreeText) =>
+        new(_ => (Arr.create<Node>(new KeyEditorNode(current, suggested, allowFreeText)), Arr<Binding>.Empty, unit));
+
     public static FieldBuilder<TModel, TProp> Field<TModel, TProp>(Expression<Func<TModel, TProp>> expr) =>
         FieldBuilder<TModel, TProp>.Create(expr);
 
@@ -121,6 +124,32 @@ public static partial class UI
             var binding = new DictionaryBinding(id, typeof(TModel), typeof(TValue), getter, setter);
             return (Arr.create<Node>(new DictionaryNode(binding, keyUi, v => valueUi((TValue)v))), Arr<Binding>.Empty, unit);
         });
+
+    public static Ui<Unit> OptionalObject<TModel, TObject>(
+        Expression<Func<TModel, TObject?>> get,
+        string title,
+        Ui<Unit> body,
+        bool initiallyExpanded = true,
+        Func<TObject>? create = null)
+        where TObject : class, new() =>
+        new(_ =>
+        {
+            var (getter, setter) = ExprAccessors.Compile(get);
+            var id = ExprAccessors.Path(get);
+            var binding = new ObjectBinding(
+                Id: id,
+                ModelType: typeof(TModel),
+                ObjectType: typeof(TObject),
+                Get: getter,
+                Set: setter,
+                Create: () => (create is null ? new TObject() : create())
+            );
+
+            return (Arr.create<Node>(new OptionalObjectNode(title, binding, body, InitiallyExpanded: initiallyExpanded)), Arr<Binding>.Empty, unit);
+        });
+
+    public static Ui<Unit> AutoEditor<T>() where T : class, new() =>
+        new(_ => (Arr.create<Node>(AutoEditorBuilder.Build(typeof(T))), Arr<Binding>.Empty, unit));
 
     public static Ui<FormSpec<TModel>> Form<TModel>(Ui<Unit> body) =>
         new(s =>

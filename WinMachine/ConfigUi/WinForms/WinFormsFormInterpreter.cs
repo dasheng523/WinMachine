@@ -1,5 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Globalization;
+using System.Reflection;
+using Common.Ui;
 using LanguageExt;
 using LanguageExt.Common;
 using static LanguageExt.Prelude;
@@ -141,7 +144,110 @@ public sealed class WinFormsFormInterpreter
             ListNode l => RenderList(l, model, rootModel, bindings, dictionaries),
             DictionaryNode d => RenderDictionary(d, model, rootModel, bindings, dictionaries),
             KeyEditorNode k => RenderKeyEditor(k),
+            ObjectNode o => RenderObject(o, model, rootModel, bindings, dictionaries),
+            OptionalObjectNode o => RenderOptionalObject(o, model, rootModel, bindings, dictionaries),
             _ => new Panel { AutoSize = true }
+        };
+    }
+
+    private Control RenderObject(ObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    {
+        var current = o.Binding.Get(model);
+        if (current is null)
+        {
+            current = o.Binding.Create();
+            o.Binding.Set(model, current);
+        }
+
+        return RenderExpander(new ExpanderNode(o.Title, ToBodyNode(o.Body), o.InitiallyExpanded), current, rootModel, bindings, dictionaries);
+    }
+
+    private Control RenderOptionalObject(OptionalObjectNode o, object model, object rootModel, List<AppliedBinding> bindings, List<AppliedDictionary> dictionaries)
+    {
+        var container = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
+
+        var header = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
+        var enable = new CheckBox { Text = $"启用 {o.Title}", AutoSize = true };
+        var expand = new CheckBox { Text = "展开", AutoSize = true, Checked = o.InitiallyExpanded, Left = 180 };
+        header.Controls.Add(enable);
+        header.Controls.Add(expand);
+        enable.Dock = DockStyle.Left;
+        expand.Dock = DockStyle.Left;
+
+        var bodyPanel = new Panel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, Padding = new Padding(16, 6, 6, 6) };
+
+        void ClearBody()
+        {
+            foreach (Control c in bodyPanel.Controls.Cast<Control>().ToArray())
+            {
+                bodyPanel.Controls.Remove(c);
+                c.Dispose();
+            }
+        }
+
+        void EnsureBody(object target)
+        {
+            if (bodyPanel.Controls.Count > 0) return;
+
+            var (nodes, _, _) = o.Body.Run(BuildState.Empty);
+            foreach (var n in nodes)
+            {
+                var child = RenderNode(n, target, rootModel, bindings, dictionaries);
+                child.Dock = DockStyle.Top;
+                bodyPanel.Controls.Add(child);
+                bodyPanel.Controls.SetChildIndex(child, 0);
+            }
+        }
+
+        void Refresh()
+        {
+            var enabled = o.Binding.Get(model) is not null;
+            enable.Checked = enabled;
+            expand.Enabled = enabled;
+            bodyPanel.Visible = enabled && expand.Checked;
+        }
+
+        enable.CheckedChanged += (_, _) =>
+        {
+            if (enable.Checked)
+            {
+                var current = o.Binding.Get(model) ?? o.Binding.Create();
+                o.Binding.Set(model, current);
+                EnsureBody(current);
+            }
+            else
+            {
+                o.Binding.Set(model, null);
+                ClearBody();
+            }
+
+            Refresh();
+        };
+
+        expand.CheckedChanged += (_, _) => Refresh();
+
+        // init state
+        var init = o.Binding.Get(model);
+        if (init is not null)
+        {
+            EnsureBody(init);
+        }
+
+        container.Controls.Add(bodyPanel);
+        container.Controls.Add(header);
+        Refresh();
+
+        return container;
+    }
+
+    private static Node ToBodyNode(Ui<Unit> body)
+    {
+        var (nodes, _, _) = body.Run(BuildState.Empty);
+        return nodes.Count switch
+        {
+            0 => new VStackNode(global::System.Array.Empty<Node>()),
+            1 => nodes[0],
+            _ => new VStackNode(nodes.ToArray())
         };
     }
 
@@ -288,7 +394,7 @@ public sealed class WinFormsFormInterpreter
         var sc = new SplitContainer
         {
             Dock = DockStyle.Fill,
-            Orientation = sp.Orientation == Orientation.Horizontal ? System.Windows.Forms.Orientation.Vertical : System.Windows.Forms.Orientation.Horizontal
+            Orientation = sp.Orientation == Common.Ui.Orientation.Horizontal ? System.Windows.Forms.Orientation.Vertical : System.Windows.Forms.Orientation.Horizontal
         };
 
         sc.Panel1.Controls.Add(RenderNode(sp.First, model, rootModel, bindings, dictionaries));
@@ -571,13 +677,74 @@ public sealed class WinFormsFormInterpreter
             _ => null
         };
 
+        return ConvertToValue(raw, valueType);
+    }
+
+    private static object? ConvertToValue(object? raw, Type valueType)
+    {
+        if (valueType == typeof(object)) return raw;
+
+        // Nullable<T>
+        var underlying = Nullable.GetUnderlyingType(valueType);
+        if (underlying is not null)
+        {
+            if (raw is null) return null;
+            if (raw is string s && string.IsNullOrWhiteSpace(s)) return null;
+            return ConvertToValue(raw, underlying);
+        }
+
+        // ref type null
         if (raw is null) return null;
         if (valueType.IsInstanceOfType(raw)) return raw;
 
-        // convert common cases
+        // enums
+        if (valueType.IsEnum)
+        {
+            var text = raw.ToString() ?? string.Empty;
+            return Enum.Parse(valueType, text, ignoreCase: true);
+        }
+
+        // List<string>/List<ushort> (AutoEditor 简化编辑)
+        if (valueType.IsGenericType && valueType.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            var itemType = valueType.GetGenericArguments()[0];
+            var text = raw.ToString() ?? string.Empty;
+
+            if (itemType == typeof(string))
+            {
+                var parts = text
+                    .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => x.Length > 0)
+                    .ToList();
+                return parts;
+            }
+
+            if (itemType == typeof(ushort))
+            {
+                var parts = text
+                    .Split(new[] { ',', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Trim())
+                    .Where(x => x.Length > 0)
+                    .Select(x => Convert.ToUInt16(x, CultureInfo.InvariantCulture))
+                    .ToList();
+                return parts;
+            }
+        }
+
+        // numeric
         if (valueType == typeof(string)) return raw.ToString();
-        if (valueType == typeof(ushort)) return Convert.ToUInt16(raw);
-        if (valueType == typeof(bool)) return Convert.ToBoolean(raw);
+        if (valueType == typeof(bool)) return Convert.ToBoolean(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(byte)) return Convert.ToByte(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(short)) return Convert.ToInt16(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(int)) return Convert.ToInt32(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(long)) return Convert.ToInt64(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(ushort)) return Convert.ToUInt16(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(uint)) return Convert.ToUInt32(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(ulong)) return Convert.ToUInt64(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(float)) return Convert.ToSingle(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(double)) return Convert.ToDouble(raw, CultureInfo.InvariantCulture);
+        if (valueType == typeof(decimal)) return Convert.ToDecimal(raw, CultureInfo.InvariantCulture);
 
         return raw;
     }
@@ -597,7 +764,20 @@ public sealed class WinFormsFormInterpreter
                 nud.Value = value is null ? 0 : Convert.ToDecimal(value);
                 break;
             default:
-                if (control is TextBox tb) tb.Text = value?.ToString() ?? "";
+                if (control is TextBox tb)
+                {
+                    // List<string>/List<ushort> 简化展示
+                    if (value is System.Collections.IEnumerable e && value is not string)
+                    {
+                        var list = new List<string>();
+                        foreach (var x in e) list.Add(x?.ToString() ?? "");
+                        tb.Text = string.Join(",", list);
+                    }
+                    else
+                    {
+                        tb.Text = value?.ToString() ?? "";
+                    }
+                }
                 break;
         }
     }

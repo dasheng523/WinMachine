@@ -1,10 +1,10 @@
 using LanguageExt;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public sealed record FormSpec<TModel>(Node Root, Arr<Binding> Bindings)
 {
-    public static FormSpec<TModel> Empty { get; } = new(new VStackNode(Array.Empty<Node>()), Arr<Binding>.Empty);
+    public static FormSpec<TModel> Empty { get; } = new(new VStackNode(global::System.Array.Empty<Node>()), Arr<Binding>.Empty);
 }
 
 public abstract record Binding;

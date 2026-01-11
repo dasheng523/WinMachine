@@ -2,7 +2,7 @@ using System.Linq.Expressions;
 using LanguageExt;
 using static LanguageExt.Prelude;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public sealed class FieldBuilder<TModel, TProp>
 {

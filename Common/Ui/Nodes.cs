@@ -1,6 +1,6 @@
 using LanguageExt;
 
-namespace WinMachine.ConfigUi;
+namespace Common.Ui;
 
 public abstract record Node;
 
@@ -25,6 +25,28 @@ public sealed record DictionaryNode(DictionaryBinding Binding, Func<string, Ui<U
 public sealed record FieldNode(FieldSpec Spec) : Node;
 
 public sealed record ConditionalNode(Type ModelType, Func<object, bool> Predicate, Ui<Unit> Body) : Node;
+
+public sealed record KeyEditorNode(string Current, IReadOnlyList<string> Suggested, bool AllowFreeText) : Node;
+
+public sealed record ObjectBinding(
+    string Id,
+    Type ModelType,
+    Type ObjectType,
+    Func<object, object?> Get,
+    Action<object, object?> Set,
+    Func<object> Create
+) : Binding;
+
+/// <summary>
+/// 非可选对象：确保对象存在并递归渲染其 Body。
+/// </summary>
+public sealed record ObjectNode(string Title, ObjectBinding Binding, Ui<Unit> Body, bool InitiallyExpanded = true) : Node;
+
+/// <summary>
+/// 可选对象：通过一个勾选启用/禁用，并在启用时递归渲染其 Body。
+/// 禁用时会把对象设为 null。
+/// </summary>
+public sealed record OptionalObjectNode(string Title, ObjectBinding Binding, Ui<Unit> Body, bool InitiallyExpanded = true) : Node;
 
 public enum Orientation
 {
