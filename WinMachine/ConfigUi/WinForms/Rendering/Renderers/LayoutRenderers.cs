@@ -24,6 +24,12 @@ public sealed class GridRenderer : INodeRenderer
             tlp.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         }
 
+        static bool IsFullRowNode(Node n) =>
+            n is not LabelNode
+            && n is not FieldNode
+            && n is not HelpNode
+            && n is not TextNode;
+
         var r = 0;
         var c = 0;
         foreach (var child in grid.Children)
@@ -31,6 +37,25 @@ public sealed class GridRenderer : INodeRenderer
             var ctrl = ctx.RenderNode(child, model, rootModel);
             ctrl.Margin = new Padding(6);
             ctrl.Anchor = AnchorStyles.Left | AnchorStyles.Top;
+
+            if (IsFullRowNode(child))
+            {
+                // 对“块级节点”做跨列展示：先对齐到新行，再占满全部列。
+                if (c != 0)
+                {
+                    c = 0;
+                    r++;
+                }
+
+                ctrl.Dock = DockStyle.Top;
+                ctrl.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+                tlp.Controls.Add(ctrl, 0, r);
+                tlp.SetColumnSpan(ctrl, tlp.ColumnCount);
+
+                r++;
+                c = 0;
+                continue;
+            }
 
             if (c % 2 == 1)
             {

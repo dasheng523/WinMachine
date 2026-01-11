@@ -67,7 +67,8 @@ public static class SystemOptionsUi
                                                 b => b.LeadshineInit,
                                                 title: "LeadshineInit",
                                                 body: UI.AutoEditor<LeadshineBoardInitOptions>(),
-                                                initiallyExpanded: false
+                                                initiallyExpanded: true,
+                                                defaultEnabled: true
                                             )
                                         )
                                         select unit

@@ -46,7 +46,12 @@ public sealed record ObjectNode(string Title, ObjectBinding Binding, Ui<Unit> Bo
 /// 可选对象：通过一个勾选启用/禁用，并在启用时递归渲染其 Body。
 /// 禁用时会把对象设为 null。
 /// </summary>
-public sealed record OptionalObjectNode(string Title, ObjectBinding Binding, Ui<Unit> Body, bool InitiallyExpanded = true) : Node;
+public sealed record OptionalObjectNode(
+    string Title,
+    ObjectBinding Binding,
+    Ui<Unit> Body,
+    bool InitiallyExpanded = true,
+    bool DefaultEnabled = false) : Node;
 
 public enum Orientation
 {

@@ -44,6 +44,16 @@ public sealed class OptionalObjectRenderer : INodeRenderer
     {
         var o = (OptionalObjectNode)node;
 
+        var currentValue = o.Binding.Get(model);
+        if (o.DefaultEnabled && currentValue is null)
+        {
+            currentValue = o.Binding.Create();
+            o.Binding.Set(model, currentValue);
+            UiDebug.Log($"[UI] OptionalObject auto-enable: title={o.Title}, model={model.GetType().Name}");
+        }
+
+        UiDebug.Log($"[UI] OptionalObject render: title={o.Title}, model={model.GetType().Name}, hasValue={currentValue is not null}");
+
         var container = new DoubleBufferedPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
 
         var header = new DoubleBufferedPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
@@ -61,6 +71,8 @@ public sealed class OptionalObjectRenderer : INodeRenderer
             Dock = DockStyle.Top,
             Padding = new Padding(16, 6, 6, 6)
         };
+
+        var suppressEvents = false;
 
         void ClearBody()
         {
@@ -85,13 +97,24 @@ public sealed class OptionalObjectRenderer : INodeRenderer
         void Refresh()
         {
             var enabled = o.Binding.Get(model) is not null;
-            enable.Checked = enabled;
-            expand.Enabled = enabled;
-            bodyPanel.Visible = enabled && expand.Checked;
+
+            suppressEvents = true;
+            try
+            {
+                enable.Checked = enabled;
+                expand.Enabled = enabled;
+                bodyPanel.Visible = enabled && expand.Checked;
+            }
+            finally
+            {
+                suppressEvents = false;
+            }
         }
 
         enable.CheckedChanged += (_, _) =>
         {
+            if (suppressEvents) return;
+
             if (enable.Checked)
             {
                 var current = o.Binding.Get(model) ?? o.Binding.Create();
@@ -108,12 +131,15 @@ public sealed class OptionalObjectRenderer : INodeRenderer
             ctx.RefreshConditionals();
         };
 
-        expand.CheckedChanged += (_, _) => Refresh();
-
-        var init = o.Binding.Get(model);
-        if (init is not null)
+        expand.CheckedChanged += (_, _) =>
         {
-            EnsureBody(init);
+            if (suppressEvents) return;
+            Refresh();
+        };
+
+        if (currentValue is not null)
+        {
+            EnsureBody(currentValue);
         }
 
         container.Controls.Add(bodyPanel);

@@ -130,6 +130,7 @@ public static partial class UI
         string title,
         Ui<Unit> body,
         bool initiallyExpanded = true,
+        bool defaultEnabled = false,
         Func<TObject>? create = null)
         where TObject : class, new() =>
         new(_ =>
@@ -145,7 +146,7 @@ public static partial class UI
                 Create: () => (create is null ? new TObject() : create())
             );
 
-            return (Arr.create<Node>(new OptionalObjectNode(title, binding, body, InitiallyExpanded: initiallyExpanded)), Arr<Binding>.Empty, unit);
+            return (Arr.create<Node>(new OptionalObjectNode(title, binding, body, InitiallyExpanded: initiallyExpanded, DefaultEnabled: defaultEnabled)), Arr<Binding>.Empty, unit);
         });
 
     public static Ui<Unit> AutoEditor<T>() where T : class, new() =>
