@@ -29,33 +29,36 @@
         private void InitializeComponent()
         {
             groupBoxPens = new GroupBox();
-            BtnLoadPen1Pick = new Button();
-            BtnLoadPen2Pick = new Button();
-            BtnLoadPen1Place = new Button();
-            BtnLoadPen2Place = new Button();
-            BtnUnloadPen1Pick = new Button();
-            BtnUnloadPen2Pick = new Button();
-            BtnUnloadPen1Place = new Button();
             BtnUnloadPen2Place = new Button();
+            BtnUnloadPen1Place = new Button();
+            BtnUnloadPen2Pick = new Button();
+            BtnUnloadPen1Pick = new Button();
+            BtnLoadPen2Place = new Button();
+            BtnLoadPen1Place = new Button();
+            BtnLoadPen2Pick = new Button();
+            BtnLoadPen1Pick = new Button();
             groupBoxTrays = new GroupBox();
-            BtnPickLoadTray = new Button();
-            BtnPickUnloadTray = new Button();
-            BtnPushLoadTray = new Button();
             BtnPushUnloadTray = new Button();
+            BtnPushLoadTray = new Button();
+            BtnPickUnloadTray = new Button();
+            BtnPickLoadTray = new Button();
             groupBoxScanTest = new GroupBox();
-            BtnScanSeat12 = new Button();
-            BtnScanSeat34 = new Button();
-            BtnTestSeat1 = new Button();
-            BtnTestSeat2 = new Button();
-            BtnTestSeat3 = new Button();
             BtnTestSeat4 = new Button();
+            BtnTestSeat3 = new Button();
+            BtnTestSeat2 = new Button();
+            BtnTestSeat1 = new Button();
+            BtnScanSeat34 = new Button();
+            BtnScanSeat12 = new Button();
             groupBoxTransferSlider = new GroupBox();
-            BtnTransferSeat12 = new Button();
-            BtnTransferSeat34 = new Button();
-            BtnSliderLeft = new Button();
             BtnSliderRight = new Button();
+            BtnSliderLeft = new Button();
+            BtnTransferSeat34 = new Button();
+            BtnTransferSeat12 = new Button();
+            groupBoxPens.SuspendLayout();
+            groupBoxTrays.SuspendLayout();
+            groupBoxScanTest.SuspendLayout();
+            groupBoxTransferSlider.SuspendLayout();
             SuspendLayout();
-
             // 
             // groupBoxPens
             // 
@@ -69,84 +72,82 @@
             groupBoxPens.Controls.Add(BtnLoadPen1Pick);
             groupBoxPens.Location = new Point(18, 18);
             groupBoxPens.Name = "groupBoxPens";
-            groupBoxPens.Size = new Size(510, 170);
+            groupBoxPens.Size = new Size(522, 170);
             groupBoxPens.TabIndex = 0;
             groupBoxPens.TabStop = false;
             groupBoxPens.Text = "吸笔 / 取放料";
-
+            // 
+            // BtnUnloadPen2Place
+            // 
+            BtnUnloadPen2Place.Location = new Point(396, 80);
+            BtnUnloadPen2Place.Name = "BtnUnloadPen2Place";
+            BtnUnloadPen2Place.Size = new Size(120, 40);
+            BtnUnloadPen2Place.TabIndex = 7;
+            BtnUnloadPen2Place.Text = "摆盘笔2放料";
+            BtnUnloadPen2Place.UseVisualStyleBackColor = true;
+            // 
+            // BtnUnloadPen1Place
+            // 
+            BtnUnloadPen1Place.Location = new Point(270, 80);
+            BtnUnloadPen1Place.Name = "BtnUnloadPen1Place";
+            BtnUnloadPen1Place.Size = new Size(120, 40);
+            BtnUnloadPen1Place.TabIndex = 6;
+            BtnUnloadPen1Place.Text = "摆盘笔1放料";
+            BtnUnloadPen1Place.UseVisualStyleBackColor = true;
+            // 
+            // BtnUnloadPen2Pick
+            // 
+            BtnUnloadPen2Pick.Location = new Point(144, 80);
+            BtnUnloadPen2Pick.Name = "BtnUnloadPen2Pick";
+            BtnUnloadPen2Pick.Size = new Size(120, 40);
+            BtnUnloadPen2Pick.TabIndex = 5;
+            BtnUnloadPen2Pick.Text = "摆盘笔2取料";
+            BtnUnloadPen2Pick.UseVisualStyleBackColor = true;
+            // 
+            // BtnUnloadPen1Pick
+            // 
+            BtnUnloadPen1Pick.Location = new Point(18, 80);
+            BtnUnloadPen1Pick.Name = "BtnUnloadPen1Pick";
+            BtnUnloadPen1Pick.Size = new Size(120, 40);
+            BtnUnloadPen1Pick.TabIndex = 4;
+            BtnUnloadPen1Pick.Text = "摆盘笔1取料";
+            BtnUnloadPen1Pick.UseVisualStyleBackColor = true;
+            // 
+            // BtnLoadPen2Place
+            // 
+            BtnLoadPen2Place.Location = new Point(396, 34);
+            BtnLoadPen2Place.Name = "BtnLoadPen2Place";
+            BtnLoadPen2Place.Size = new Size(120, 40);
+            BtnLoadPen2Place.TabIndex = 3;
+            BtnLoadPen2Place.Text = "上料笔2放料";
+            BtnLoadPen2Place.UseVisualStyleBackColor = true;
+            // 
+            // BtnLoadPen1Place
+            // 
+            BtnLoadPen1Place.Location = new Point(270, 34);
+            BtnLoadPen1Place.Name = "BtnLoadPen1Place";
+            BtnLoadPen1Place.Size = new Size(120, 40);
+            BtnLoadPen1Place.TabIndex = 2;
+            BtnLoadPen1Place.Text = "上料笔1放料";
+            BtnLoadPen1Place.UseVisualStyleBackColor = true;
+            // 
+            // BtnLoadPen2Pick
+            // 
+            BtnLoadPen2Pick.Location = new Point(144, 34);
+            BtnLoadPen2Pick.Name = "BtnLoadPen2Pick";
+            BtnLoadPen2Pick.Size = new Size(120, 40);
+            BtnLoadPen2Pick.TabIndex = 1;
+            BtnLoadPen2Pick.Text = "上料笔2取料";
+            BtnLoadPen2Pick.UseVisualStyleBackColor = true;
             // 
             // BtnLoadPen1Pick
             // 
             BtnLoadPen1Pick.Location = new Point(18, 34);
             BtnLoadPen1Pick.Name = "BtnLoadPen1Pick";
-            BtnLoadPen1Pick.Size = new Size(150, 40);
+            BtnLoadPen1Pick.Size = new Size(120, 40);
             BtnLoadPen1Pick.TabIndex = 0;
             BtnLoadPen1Pick.Text = "上料笔1取料";
             BtnLoadPen1Pick.UseVisualStyleBackColor = true;
-            // 
-            // BtnLoadPen2Pick
-            // 
-            BtnLoadPen2Pick.Location = new Point(174, 34);
-            BtnLoadPen2Pick.Name = "BtnLoadPen2Pick";
-            BtnLoadPen2Pick.Size = new Size(150, 40);
-            BtnLoadPen2Pick.TabIndex = 1;
-            BtnLoadPen2Pick.Text = "上料笔2取料";
-            BtnLoadPen2Pick.UseVisualStyleBackColor = true;
-            // 
-            // BtnLoadPen1Place
-            // 
-            BtnLoadPen1Place.Location = new Point(330, 34);
-            BtnLoadPen1Place.Name = "BtnLoadPen1Place";
-            BtnLoadPen1Place.Size = new Size(150, 40);
-            BtnLoadPen1Place.TabIndex = 2;
-            BtnLoadPen1Place.Text = "上料笔1放料";
-            BtnLoadPen1Place.UseVisualStyleBackColor = true;
-            // 
-            // BtnLoadPen2Place
-            // 
-            BtnLoadPen2Place.Location = new Point(18, 80);
-            BtnLoadPen2Place.Name = "BtnLoadPen2Place";
-            BtnLoadPen2Place.Size = new Size(150, 40);
-            BtnLoadPen2Place.TabIndex = 3;
-            BtnLoadPen2Place.Text = "上料笔2放料";
-            BtnLoadPen2Place.UseVisualStyleBackColor = true;
-            // 
-            // BtnUnloadPen1Pick
-            // 
-            BtnUnloadPen1Pick.Location = new Point(174, 80);
-            BtnUnloadPen1Pick.Name = "BtnUnloadPen1Pick";
-            BtnUnloadPen1Pick.Size = new Size(150, 40);
-            BtnUnloadPen1Pick.TabIndex = 4;
-            BtnUnloadPen1Pick.Text = "摆盘笔1取料";
-            BtnUnloadPen1Pick.UseVisualStyleBackColor = true;
-            // 
-            // BtnUnloadPen2Pick
-            // 
-            BtnUnloadPen2Pick.Location = new Point(330, 80);
-            BtnUnloadPen2Pick.Name = "BtnUnloadPen2Pick";
-            BtnUnloadPen2Pick.Size = new Size(150, 40);
-            BtnUnloadPen2Pick.TabIndex = 5;
-            BtnUnloadPen2Pick.Text = "摆盘笔2取料";
-            BtnUnloadPen2Pick.UseVisualStyleBackColor = true;
-            // 
-            // BtnUnloadPen1Place
-            // 
-            BtnUnloadPen1Place.Location = new Point(18, 126);
-            BtnUnloadPen1Place.Name = "BtnUnloadPen1Place";
-            BtnUnloadPen1Place.Size = new Size(150, 40);
-            BtnUnloadPen1Place.TabIndex = 6;
-            BtnUnloadPen1Place.Text = "摆盘笔1放料";
-            BtnUnloadPen1Place.UseVisualStyleBackColor = true;
-            // 
-            // BtnUnloadPen2Place
-            // 
-            BtnUnloadPen2Place.Location = new Point(174, 126);
-            BtnUnloadPen2Place.Name = "BtnUnloadPen2Place";
-            BtnUnloadPen2Place.Size = new Size(150, 40);
-            BtnUnloadPen2Place.TabIndex = 7;
-            BtnUnloadPen2Place.Text = "摆盘笔2放料";
-            BtnUnloadPen2Place.UseVisualStyleBackColor = true;
-
             // 
             // groupBoxTrays
             // 
@@ -160,37 +161,6 @@
             groupBoxTrays.TabIndex = 1;
             groupBoxTrays.TabStop = false;
             groupBoxTrays.Text = "料盘";
-
-            // 
-            // BtnPickLoadTray
-            // 
-            BtnPickLoadTray.Location = new Point(18, 34);
-            BtnPickLoadTray.Name = "BtnPickLoadTray";
-            BtnPickLoadTray.Size = new Size(150, 40);
-            BtnPickLoadTray.TabIndex = 0;
-            BtnPickLoadTray.Text = "取上料盘";
-            BtnPickLoadTray.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnPickUnloadTray
-            // 
-            BtnPickUnloadTray.Location = new Point(174, 34);
-            BtnPickUnloadTray.Name = "BtnPickUnloadTray";
-            BtnPickUnloadTray.Size = new Size(150, 40);
-            BtnPickUnloadTray.TabIndex = 1;
-            BtnPickUnloadTray.Text = "取下料盘";
-            BtnPickUnloadTray.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnPushLoadTray
-            // 
-            BtnPushLoadTray.Location = new Point(18, 80);
-            BtnPushLoadTray.Name = "BtnPushLoadTray";
-            BtnPushLoadTray.Size = new Size(150, 40);
-            BtnPushLoadTray.TabIndex = 2;
-            BtnPushLoadTray.Text = "推上料盘";
-            BtnPushLoadTray.UseVisualStyleBackColor = true;
-
             // 
             // BtnPushUnloadTray
             // 
@@ -200,7 +170,33 @@
             BtnPushUnloadTray.TabIndex = 3;
             BtnPushUnloadTray.Text = "推下料盘";
             BtnPushUnloadTray.UseVisualStyleBackColor = true;
-
+            // 
+            // BtnPushLoadTray
+            // 
+            BtnPushLoadTray.Location = new Point(18, 80);
+            BtnPushLoadTray.Name = "BtnPushLoadTray";
+            BtnPushLoadTray.Size = new Size(150, 40);
+            BtnPushLoadTray.TabIndex = 2;
+            BtnPushLoadTray.Text = "推上料盘";
+            BtnPushLoadTray.UseVisualStyleBackColor = true;
+            // 
+            // BtnPickUnloadTray
+            // 
+            BtnPickUnloadTray.Location = new Point(174, 34);
+            BtnPickUnloadTray.Name = "BtnPickUnloadTray";
+            BtnPickUnloadTray.Size = new Size(150, 40);
+            BtnPickUnloadTray.TabIndex = 1;
+            BtnPickUnloadTray.Text = "取下料盘";
+            BtnPickUnloadTray.UseVisualStyleBackColor = true;
+            // 
+            // BtnPickLoadTray
+            // 
+            BtnPickLoadTray.Location = new Point(18, 34);
+            BtnPickLoadTray.Name = "BtnPickLoadTray";
+            BtnPickLoadTray.Size = new Size(150, 40);
+            BtnPickLoadTray.TabIndex = 0;
+            BtnPickLoadTray.Text = "取上料盘";
+            BtnPickLoadTray.UseVisualStyleBackColor = true;
             // 
             // groupBoxScanTest
             // 
@@ -212,61 +208,10 @@
             groupBoxScanTest.Controls.Add(BtnScanSeat12);
             groupBoxScanTest.Location = new Point(18, 200);
             groupBoxScanTest.Name = "groupBoxScanTest";
-            groupBoxScanTest.Size = new Size(510, 210);
+            groupBoxScanTest.Size = new Size(522, 210);
             groupBoxScanTest.TabIndex = 2;
             groupBoxScanTest.TabStop = false;
             groupBoxScanTest.Text = "扫码 / 测试";
-
-            // 
-            // BtnScanSeat12
-            // 
-            BtnScanSeat12.Location = new Point(18, 34);
-            BtnScanSeat12.Name = "BtnScanSeat12";
-            BtnScanSeat12.Size = new Size(150, 40);
-            BtnScanSeat12.TabIndex = 0;
-            BtnScanSeat12.Text = "1,2座扫码";
-            BtnScanSeat12.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnScanSeat34
-            // 
-            BtnScanSeat34.Location = new Point(174, 34);
-            BtnScanSeat34.Name = "BtnScanSeat34";
-            BtnScanSeat34.Size = new Size(150, 40);
-            BtnScanSeat34.TabIndex = 1;
-            BtnScanSeat34.Text = "3,4座扫码";
-            BtnScanSeat34.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnTestSeat1
-            // 
-            BtnTestSeat1.Location = new Point(18, 90);
-            BtnTestSeat1.Name = "BtnTestSeat1";
-            BtnTestSeat1.Size = new Size(150, 40);
-            BtnTestSeat1.TabIndex = 2;
-            BtnTestSeat1.Text = "1号座测试";
-            BtnTestSeat1.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnTestSeat2
-            // 
-            BtnTestSeat2.Location = new Point(174, 90);
-            BtnTestSeat2.Name = "BtnTestSeat2";
-            BtnTestSeat2.Size = new Size(150, 40);
-            BtnTestSeat2.TabIndex = 3;
-            BtnTestSeat2.Text = "2号座测试";
-            BtnTestSeat2.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnTestSeat3
-            // 
-            BtnTestSeat3.Location = new Point(18, 136);
-            BtnTestSeat3.Name = "BtnTestSeat3";
-            BtnTestSeat3.Size = new Size(150, 40);
-            BtnTestSeat3.TabIndex = 4;
-            BtnTestSeat3.Text = "3号座测试";
-            BtnTestSeat3.UseVisualStyleBackColor = true;
-
             // 
             // BtnTestSeat4
             // 
@@ -276,7 +221,51 @@
             BtnTestSeat4.TabIndex = 5;
             BtnTestSeat4.Text = "4号座测试";
             BtnTestSeat4.UseVisualStyleBackColor = true;
-
+            // 
+            // BtnTestSeat3
+            // 
+            BtnTestSeat3.Location = new Point(18, 136);
+            BtnTestSeat3.Name = "BtnTestSeat3";
+            BtnTestSeat3.Size = new Size(150, 40);
+            BtnTestSeat3.TabIndex = 4;
+            BtnTestSeat3.Text = "3号座测试";
+            BtnTestSeat3.UseVisualStyleBackColor = true;
+            // 
+            // BtnTestSeat2
+            // 
+            BtnTestSeat2.Location = new Point(174, 90);
+            BtnTestSeat2.Name = "BtnTestSeat2";
+            BtnTestSeat2.Size = new Size(150, 40);
+            BtnTestSeat2.TabIndex = 3;
+            BtnTestSeat2.Text = "2号座测试";
+            BtnTestSeat2.UseVisualStyleBackColor = true;
+            // 
+            // BtnTestSeat1
+            // 
+            BtnTestSeat1.Location = new Point(18, 90);
+            BtnTestSeat1.Name = "BtnTestSeat1";
+            BtnTestSeat1.Size = new Size(150, 40);
+            BtnTestSeat1.TabIndex = 2;
+            BtnTestSeat1.Text = "1号座测试";
+            BtnTestSeat1.UseVisualStyleBackColor = true;
+            // 
+            // BtnScanSeat34
+            // 
+            BtnScanSeat34.Location = new Point(174, 34);
+            BtnScanSeat34.Name = "BtnScanSeat34";
+            BtnScanSeat34.Size = new Size(150, 40);
+            BtnScanSeat34.TabIndex = 1;
+            BtnScanSeat34.Text = "3,4座扫码";
+            BtnScanSeat34.UseVisualStyleBackColor = true;
+            // 
+            // BtnScanSeat12
+            // 
+            BtnScanSeat12.Location = new Point(18, 34);
+            BtnScanSeat12.Name = "BtnScanSeat12";
+            BtnScanSeat12.Size = new Size(150, 40);
+            BtnScanSeat12.TabIndex = 0;
+            BtnScanSeat12.Text = "1,2座扫码";
+            BtnScanSeat12.UseVisualStyleBackColor = true;
             // 
             // groupBoxTransferSlider
             // 
@@ -290,37 +279,6 @@
             groupBoxTransferSlider.TabIndex = 3;
             groupBoxTransferSlider.TabStop = false;
             groupBoxTransferSlider.Text = "转移 / 滑块";
-
-            // 
-            // BtnTransferSeat12
-            // 
-            BtnTransferSeat12.Location = new Point(18, 34);
-            BtnTransferSeat12.Name = "BtnTransferSeat12";
-            BtnTransferSeat12.Size = new Size(150, 40);
-            BtnTransferSeat12.TabIndex = 0;
-            BtnTransferSeat12.Text = "1,2座转移";
-            BtnTransferSeat12.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnTransferSeat34
-            // 
-            BtnTransferSeat34.Location = new Point(174, 34);
-            BtnTransferSeat34.Name = "BtnTransferSeat34";
-            BtnTransferSeat34.Size = new Size(150, 40);
-            BtnTransferSeat34.TabIndex = 1;
-            BtnTransferSeat34.Text = "3,4座转移";
-            BtnTransferSeat34.UseVisualStyleBackColor = true;
-
-            // 
-            // BtnSliderLeft
-            // 
-            BtnSliderLeft.Location = new Point(18, 90);
-            BtnSliderLeft.Name = "BtnSliderLeft";
-            BtnSliderLeft.Size = new Size(150, 40);
-            BtnSliderLeft.TabIndex = 2;
-            BtnSliderLeft.Text = "左移滑块";
-            BtnSliderLeft.UseVisualStyleBackColor = true;
-
             // 
             // BtnSliderRight
             // 
@@ -330,7 +288,33 @@
             BtnSliderRight.TabIndex = 3;
             BtnSliderRight.Text = "右移滑块";
             BtnSliderRight.UseVisualStyleBackColor = true;
-
+            // 
+            // BtnSliderLeft
+            // 
+            BtnSliderLeft.Location = new Point(18, 90);
+            BtnSliderLeft.Name = "BtnSliderLeft";
+            BtnSliderLeft.Size = new Size(150, 40);
+            BtnSliderLeft.TabIndex = 2;
+            BtnSliderLeft.Text = "左移滑块";
+            BtnSliderLeft.UseVisualStyleBackColor = true;
+            // 
+            // BtnTransferSeat34
+            // 
+            BtnTransferSeat34.Location = new Point(174, 34);
+            BtnTransferSeat34.Name = "BtnTransferSeat34";
+            BtnTransferSeat34.Size = new Size(150, 40);
+            BtnTransferSeat34.TabIndex = 1;
+            BtnTransferSeat34.Text = "3,4座转移";
+            BtnTransferSeat34.UseVisualStyleBackColor = true;
+            // 
+            // BtnTransferSeat12
+            // 
+            BtnTransferSeat12.Location = new Point(18, 34);
+            BtnTransferSeat12.Name = "BtnTransferSeat12";
+            BtnTransferSeat12.Size = new Size(150, 40);
+            BtnTransferSeat12.TabIndex = 0;
+            BtnTransferSeat12.Text = "1,2座转移";
+            BtnTransferSeat12.UseVisualStyleBackColor = true;
             // 
             // SingleStep
             // 
@@ -343,6 +327,10 @@
             Controls.Add(groupBoxPens);
             Name = "SingleStep";
             Text = "单步测试";
+            groupBoxPens.ResumeLayout(false);
+            groupBoxTrays.ResumeLayout(false);
+            groupBoxScanTest.ResumeLayout(false);
+            groupBoxTransferSlider.ResumeLayout(false);
             ResumeLayout(false);
         }
 

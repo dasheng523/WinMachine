@@ -58,6 +58,11 @@ internal static class Program
         // 逻辑轴映射（配置驱动）
         services.AddSingleton<IAxisResolver, AxisResolver>();
 
+        // 逻辑 IO / 气缸 / 硬件 facade
+        services.AddSingleton<IIoResolver, IoResolver>();
+        services.AddSingleton<ICylinderResolver, CylinderResolver>();
+        services.AddSingleton<IHardware, HardwareFacade>();
+
         // MotionSystem：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发
         services.AddSingleton<IMotionSystem>(sp =>
         {
