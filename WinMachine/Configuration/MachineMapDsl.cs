@@ -28,6 +28,7 @@ public sealed class MachineMap
         var @do = new Dictionary<string, IoRefOptions>(_opt.IoMap?.Do ?? [], StringComparer.OrdinalIgnoreCase);
 
         var cyl = new Dictionary<string, SingleSolenoidCylinderOptions>(_opt.CylinderMap ?? [], StringComparer.OrdinalIgnoreCase);
+        var cyl2 = new Dictionary<string, TwoSolenoidCylinderOptions>(_opt.Cylinder2Map ?? [], StringComparer.OrdinalIgnoreCase);
 
         var sensors = new Dictionary<string, SensorOptions>(_opt.SensorMap ?? [], StringComparer.OrdinalIgnoreCase);
 
@@ -39,6 +40,7 @@ public sealed class MachineMap
             AxisMap = axisMap,
             IoMap = new IoMapOptions { Di = di, Do = @do },
             CylinderMap = cyl,
+            Cylinder2Map = cyl2,
             SensorMap = sensors
         };
     }
@@ -51,7 +53,13 @@ public sealed class MachineMap
 
     public SingleSolenoidCylinderBuilder Cylinder1Do(string name) => new(this, name);
 
+    public TwoSolenoidCylinderBuilder Cylinder2Do(string name) => new(this, name);
+
     public BoolSensorBuilder BoolSensor(string name) => new(this, name);
+
+    public DoubleSensorBuilder DoubleSensor(string name) => new(this, name);
+
+    public StringSensorBuilder StringSensor(string name) => new(this, name);
 
     private static Fin<string> RequireName(string kind, string name) =>
         string.IsNullOrWhiteSpace(name)
@@ -77,6 +85,13 @@ public sealed class MachineMap
     {
         var next = ToSystemOptions();
         next.CylinderMap[name] = v;
+        return new MachineMap(next);
+    }
+
+    private MachineMap WithCylinder2(string name, TwoSolenoidCylinderOptions v)
+    {
+        var next = ToSystemOptions();
+        next.Cylinder2Map[name] = v;
         return new MachineMap(next);
     }
 
@@ -195,6 +210,59 @@ public sealed class MachineMap
             });
     }
 
+    public sealed class TwoSolenoidCylinderBuilder
+    {
+        private readonly MachineMap _map;
+        private readonly string _name;
+
+        private string? _extendDo;
+        private string? _retractDo;
+        private string? _extendedSensor;
+        private string? _retractedSensor;
+
+        internal TwoSolenoidCylinderBuilder(MachineMap map, string name)
+        {
+            _map = map;
+            _name = name;
+        }
+
+        public TwoSolenoidCylinderBuilder ExtendDo(string name)
+        {
+            _extendDo = name;
+            return this;
+        }
+
+        public TwoSolenoidCylinderBuilder RetractDo(string name)
+        {
+            _retractDo = name;
+            return this;
+        }
+
+        public TwoSolenoidCylinderBuilder Extended(string? sensorName)
+        {
+            _extendedSensor = sensorName;
+            return this;
+        }
+
+        public TwoSolenoidCylinderBuilder Retracted(string? sensorName)
+        {
+            _retractedSensor = sensorName;
+            return this;
+        }
+
+        public Fin<MachineMap> Commit() =>
+            from n in RequireName("Cylinder", _name)
+            from ed in RequireName("ExtendDo", _extendDo ?? string.Empty)
+            from rd in RequireName("RetractDo", _retractDo ?? string.Empty)
+            select _map.WithCylinder2(n, new TwoSolenoidCylinderOptions
+            {
+                ExtendDo = ed,
+                RetractDo = rd,
+                ExtendedSensor = _extendedSensor,
+                RetractedSensor = _retractedSensor
+            });
+    }
+
     public sealed class BoolSensorBuilder
     {
         private readonly MachineMap _map;
@@ -266,6 +334,139 @@ public sealed class MachineMap
                     SlaveId = _slaveId,
                     Address = address,
                     Count = 1
+                }
+            });
+    }
+
+    public sealed class DoubleSensorBuilder
+    {
+        private readonly MachineMap _map;
+        private readonly string _name;
+
+        internal DoubleSensorBuilder(MachineMap map, string name)
+        {
+            _map = map;
+            _name = name;
+        }
+
+        public ModbusDoubleSensorBuilder FromModbus(string portName, int baudRate) =>
+            new(_map, _name, portName, baudRate);
+    }
+
+    public sealed class ModbusDoubleSensorBuilder
+    {
+        private readonly MachineMap _map;
+        private readonly string _name;
+        private readonly string _portName;
+        private readonly int _baudRate;
+        private byte _slaveId;
+        private ushort _count = 1;
+        private double? _scale;
+        private double? _offset;
+
+        internal ModbusDoubleSensorBuilder(MachineMap map, string name, string portName, int baudRate)
+        {
+            _map = map;
+            _name = name;
+            _portName = portName;
+            _baudRate = baudRate;
+        }
+
+        public ModbusDoubleSensorBuilder Slave(byte slaveId)
+        {
+            _slaveId = slaveId;
+            return this;
+        }
+
+        public ModbusDoubleSensorBuilder Count(ushort count)
+        {
+            _count = count;
+            return this;
+        }
+
+        public ModbusDoubleSensorBuilder Scale(double scale)
+        {
+            _scale = scale;
+            return this;
+        }
+
+        public ModbusDoubleSensorBuilder Offset(double offset)
+        {
+            _offset = offset;
+            return this;
+        }
+
+        /// <summary>
+        /// 保持寄存器地址（Holding Register）。
+        /// 返回 Fin&lt;MachineMap&gt; 以继续 Linq 链。
+        /// </summary>
+        public Fin<MachineMap> HoldingRegister(ushort address) =>
+            from n in RequireName("Sensor", _name)
+            from p in RequireName("PortName", _portName)
+            select _map.WithSensor(n, new SensorOptions
+            {
+                Kind = SensorKind.ModbusHoldingRegister,
+                Modbus = new ModbusSensorOptions
+                {
+                    PortName = p,
+                    BaudRate = _baudRate,
+                    SlaveId = _slaveId,
+                    Address = address,
+                    Count = _count,
+                    Scale = _scale,
+                    Offset = _offset
+                }
+            });
+    }
+
+    public sealed class StringSensorBuilder
+    {
+        private readonly MachineMap _map;
+        private readonly string _name;
+
+        internal StringSensorBuilder(MachineMap map, string name)
+        {
+            _map = map;
+            _name = name;
+        }
+
+        public SerialLineStringSensorBuilder FromSerialLine(string portName, int baudRate) =>
+            new(_map, _name, portName, baudRate);
+    }
+
+    public sealed class SerialLineStringSensorBuilder
+    {
+        private readonly MachineMap _map;
+        private readonly string _name;
+        private readonly string _portName;
+        private readonly int _baudRate;
+        private string? _address;
+
+        internal SerialLineStringSensorBuilder(MachineMap map, string name, string portName, int baudRate)
+        {
+            _map = map;
+            _name = name;
+            _portName = portName;
+            _baudRate = baudRate;
+        }
+
+        public SerialLineStringSensorBuilder Address(string? address)
+        {
+            _address = address;
+            return this;
+        }
+
+        public Fin<MachineMap> Commit() =>
+            from n in RequireName("Sensor", _name)
+            from p in RequireName("PortName", _portName)
+            select _map.WithSensor(n, new SensorOptions
+            {
+                Kind = SensorKind.SerialLine,
+                Serial = new SerialLineSensorOptions
+                {
+                    PortName = p,
+                    BaudRate = _baudRate,
+                    Address = _address
                 }
             });
     }

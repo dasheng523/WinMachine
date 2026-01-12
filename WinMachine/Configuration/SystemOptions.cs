@@ -71,6 +71,12 @@ public class SystemOptions
     public Dictionary<string, SingleSolenoidCylinderOptions> CylinderMap { get; set; } = [];
 
     /// <summary>
+    /// 逻辑气缸映射（双电磁阀，两 DO）。
+    /// 目前主要用于 DSL 外观定型；对应 resolver/执行逻辑可后续补齐。
+    /// </summary>
+    public Dictionary<string, TwoSolenoidCylinderOptions> Cylinder2Map { get; set; } = [];
+
+    /// <summary>
     /// 逻辑传感器映射（来源可为 DI / Modbus / 串口等）。
     /// Key 建议使用层级名，例如："ScanSeat.Extended"、"Vacuum.Ok"、"Scanner.Main"。
     /// 说明：当前主要用于 DSL 外观定型；具体通讯实现可后续接入。
@@ -139,6 +145,17 @@ public sealed class SingleSolenoidCylinderOptions
     public string? HealthOkDi { get; set; }
 }
 
+public sealed class TwoSolenoidCylinderOptions
+{
+    public string ExtendDo { get; set; } = string.Empty;
+
+    public string RetractDo { get; set; } = string.Empty;
+
+    public string? ExtendedSensor { get; set; }
+
+    public string? RetractedSensor { get; set; }
+}
+
 public enum SensorKind
 {
     DiLevel = 0,
@@ -183,6 +200,14 @@ public sealed class ModbusSensorOptions
     /// HoldingRegister 数量（例如 float 可能需要 2）。
     /// </summary>
     public ushort Count { get; set; } = 1;
+
+    /// <summary>
+    /// 可选：对读取到的数值做线性缩放（raw * Scale + Offset）。
+    /// 仅用于外观定型；具体解释/实现可后续完善。
+    /// </summary>
+    public double? Scale { get; set; }
+
+    public double? Offset { get; set; }
 }
 
 public sealed class SerialLineSensorOptions
