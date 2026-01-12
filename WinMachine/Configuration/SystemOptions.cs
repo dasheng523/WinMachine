@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace WinMachine.Configuration;
 
 /// <summary>
@@ -5,10 +7,44 @@ namespace WinMachine.Configuration;
 /// </summary>
 public class SystemOptions
 {
+    public static readonly IReadOnlyList<string> DefaultSuggestedAxisKeys =
+    [
+        "X", "Y1", "Y2", "Z1", "Z2",
+        "P1", "P2",
+        "L1", "L2", "L3", "L4",
+        "R1", "R2",
+        "RS1", "RS2"
+    ];
+
     /// <summary>
     /// 是否使用模拟器
     /// </summary>
     public bool UseSimulator { get; set; }
+
+    /// <summary>
+    /// AxisMap 的 Key 建议列表（仅用于 UI 提示，不影响解析逻辑）。
+    /// </summary>
+    public List<string> SuggestedAxisKeys { get; set; } = DefaultSuggestedAxisKeys.ToList();
+
+    /// <summary>
+    /// 便于在 UI 中编辑 SuggestedAxisKeys 的字符串形式（逗号/分号/换行分隔）。
+    /// 实际保存仍以 SuggestedAxisKeys 为准。
+    /// </summary>
+    [JsonIgnore]
+    public string SuggestedAxisKeysCsv
+    {
+        get => string.Join(",", SuggestedAxisKeys ?? []);
+        set
+        {
+            var parts = (value ?? string.Empty)
+                .Split([',', ';', '\n', '\r', '\t'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            SuggestedAxisKeys = parts.Count == 0 ? DefaultSuggestedAxisKeys.ToList() : parts;
+        }
+    }
 
     /// <summary>
     /// 多板卡配置（可为 1 块、2 块或更多）。

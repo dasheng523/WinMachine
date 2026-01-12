@@ -3,7 +3,6 @@ using static LanguageExt.Prelude;
 using Common.Ui;
 using WinMachine.Configuration;
 using Devices.Motion.Implementations.Leadshine;
-using WinMachine.ConfigUi;
 
 namespace WinMachine.ConfigUi;
 
@@ -11,16 +10,19 @@ public static class SystemOptionsUi
 {
     private static readonly string[] ControllerTypes = ["ZMotion", "Leadshine", "Simulator"];
 
-    private static readonly string[] SuggestedAxisKeys =
-    [
-        "X", "Y1", "Y2", "Z1", "Z2",
-        "P1", "P2",
-        "L1", "L2", "L3", "L4",
-        "R1", "R2",
-        "RS1", "RS2"
-    ];
+    public static Ui<FormSpec<SystemOptions>> Spec(SystemOptions model)
+    {
+        var suggestedAxisKeys = (model.SuggestedAxisKeys ?? SystemOptions.DefaultSuggestedAxisKeys.ToList())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 
-    public static Ui<FormSpec<SystemOptions>> Spec() =>
+        if (suggestedAxisKeys.Count == 0)
+        {
+            suggestedAxisKeys = SystemOptions.DefaultSuggestedAxisKeys.ToList();
+        }
+
+        return
         UI.Form<SystemOptions>(
             from _page in UI.Page("系统配置",
                 UI.Tabs(
@@ -28,7 +30,11 @@ public static class SystemOptionsUi
                         from _sec in UI.Section("运行模式",
                             from _g in UI.Grid(2,
                                 UI.Label("使用模拟器"),
-                                UI.Field<SystemOptions, bool>(m => m.UseSimulator).AsCheckBox()
+                                UI.Field<SystemOptions, bool>(m => m.UseSimulator).AsCheckBox(),
+                                
+                                UI.Label("轴名称列表"),
+                                UI.Field<SystemOptions, string>(m => m.SuggestedAxisKeysCsv)
+                                    .AsTextBox("X,Y1,Y2,Z1,Z2,P1,P2,L1,L2,L3,L4,R1,R2,RS1,RS2")
                             )
                             select unit
                         )
@@ -82,10 +88,10 @@ public static class SystemOptionsUi
                     ),
                     UI.Tab("轴映射",
                         from _sec in UI.Section("AxisMap",
-                            from _help in UI.Help("Key 建议使用：X/Y1/Y2/Z1/Z2/P1/P2/L1..L4/R1/R2/RS1/RS2")
+                            from _help in UI.Help("Key 建议使用：X/Y1/Y2/Z1/Z2/P1/P2/L1..L4/R1/R2/RS1/RS2（可在上方自定义）")
                             from _map in UI.Dictionary<SystemOptions, AxisRefOptions>(
                                 get: m => m.AxisMap,
-                                keyUi: key => UI.Key(current: key, suggested: SuggestedAxisKeys, allowFreeText: true),
+                                keyUi: key => UI.Key(current: key, suggested: suggestedAxisKeys, allowFreeText: true),
                                 valueUi: a =>
                                     UI.Grid(2,
                                         UI.Label("Board"),
@@ -116,4 +122,5 @@ public static class SystemOptionsUi
             )
             select unit
         );
+    }
 }

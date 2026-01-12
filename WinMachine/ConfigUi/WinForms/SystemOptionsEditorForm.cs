@@ -57,7 +57,7 @@ public sealed class SystemOptionsEditorForm : Form
             _model.MotionBoards.Add(new MotionBoardOptions());
         }
 
-        var spec = SystemOptionsUi.Spec().Run(BuildState.Empty).Value;
+        var spec = SystemOptionsUi.Spec(_model).Run(BuildState.Empty).Value;
         _rendered = _interpreter.Render(spec, _model);
 
         var host = new DoubleBufferedPanel { Dock = DockStyle.Fill };
@@ -113,6 +113,7 @@ public sealed class SystemOptionsEditorForm : Form
         return new SystemOptions
         {
             UseSimulator = src.UseSimulator,
+            SuggestedAxisKeys = src.SuggestedAxisKeys?.ToList() ?? SystemOptions.DefaultSuggestedAxisKeys.ToList(),
             MotionBoards = src.MotionBoards?.Select(b => new MotionBoardOptions
             {
                 Name = b.Name,

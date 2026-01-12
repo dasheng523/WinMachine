@@ -40,6 +40,17 @@ public sealed class OptionalObjectRenderer : INodeRenderer
 {
     public bool CanRender(Node node) => node is OptionalObjectNode;
 
+    private static Node ToBodyNode(Ui<Unit> body)
+    {
+        var (nodes, _, _) = body.Run(BuildState.Empty);
+        return nodes.Count switch
+        {
+            0 => new VStackNode(global::System.Array.Empty<Node>()),
+            1 => nodes[0],
+            _ => new VStackNode(nodes.ToArray())
+        };
+    }
+
     public Control Render(RenderContext ctx, Node node, object model, object rootModel)
     {
         var o = (OptionalObjectNode)node;
@@ -54,23 +65,42 @@ public sealed class OptionalObjectRenderer : INodeRenderer
 
         UiDebug.Log($"[UI] OptionalObject render: title={o.Title}, model={model.GetType().Name}, hasValue={currentValue is not null}");
 
-        var container = new DoubleBufferedPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
+        // 注意：Panel 的 AutoSize/PreferredSize 在 TableLayoutPanel 中不稳定（尤其搭配 Dock）。
+        // 这里用 TableLayoutPanel/FlowLayoutPanel 作为“可测量”的容器，避免 OptionalObject 头部/整体高度为 0 导致不显示。
+        var container = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Top
+        };
+        container.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
-        var header = new DoubleBufferedPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top };
-        var enable = new CheckBox { Text = $"启用 {o.Title}", AutoSize = true };
-        var expand = new CheckBox { Text = "展开", AutoSize = true, Checked = o.InitiallyExpanded, Left = 180 };
-        header.Controls.Add(enable);
-        header.Controls.Add(expand);
-        enable.Dock = DockStyle.Left;
-        expand.Dock = DockStyle.Left;
-
-        var bodyPanel = new DoubleBufferedPanel
+        var header = new FlowLayoutPanel
         {
             AutoSize = true,
             AutoSizeMode = AutoSizeMode.GrowAndShrink,
             Dock = DockStyle.Top,
-            Padding = new Padding(16, 6, 6, 6)
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Margin = new Padding(0)
         };
+
+        var enable = new CheckBox { Text = $"启用 {o.Title}", AutoSize = true };
+        var expand = new CheckBox { Text = "展开", AutoSize = true, Checked = o.InitiallyExpanded };
+        header.Controls.Add(enable);
+        header.Controls.Add(expand);
+
+        var bodyPanel = new TableLayoutPanel
+        {
+            ColumnCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Top,
+            Padding = new Padding(16, 6, 6, 6),
+            Margin = new Padding(0)
+        };
+        bodyPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
 
         var suppressEvents = false;
 
@@ -84,14 +114,12 @@ public sealed class OptionalObjectRenderer : INodeRenderer
         {
             if (bodyPanel.Controls.Count > 0) return;
 
-            var (nodes, _, _) = o.Body.Run(BuildState.Empty);
-            foreach (var n in nodes)
-            {
-                var child = ctx.RenderNode(n, target, rootModel);
-                child.Dock = DockStyle.Top;
-                bodyPanel.Controls.Add(child);
-                bodyPanel.Controls.SetChildIndex(child, 0);
-            }
+            var bodyNode = ToBodyNode(o.Body);
+            var child = ctx.RenderNode(bodyNode, target, rootModel);
+            child.Dock = DockStyle.Top;
+            child.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Top;
+            bodyPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            bodyPanel.Controls.Add(child, 0, 0);
         }
 
         void Refresh()
@@ -142,8 +170,10 @@ public sealed class OptionalObjectRenderer : INodeRenderer
             EnsureBody(currentValue);
         }
 
-        container.Controls.Add(bodyPanel);
-        container.Controls.Add(header);
+        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        container.Controls.Add(header, 0, 0);
+        container.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        container.Controls.Add(bodyPanel, 0, 1);
         Refresh();
 
         return container;
