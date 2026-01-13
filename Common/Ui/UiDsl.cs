@@ -149,9 +149,6 @@ public static partial class UI
             return (Arr.create<Node>(new OptionalObjectNode(title, binding, body, InitiallyExpanded: initiallyExpanded, DefaultEnabled: defaultEnabled)), Arr<Binding>.Empty, unit);
         });
 
-    public static Ui<Unit> AutoEditor<T>() where T : class, new() =>
-        new(_ => (Arr.create<Node>(AutoEditorBuilder.Build(typeof(T))), Arr<Binding>.Empty, unit));
-
     public static Ui<FormSpec<TModel>> Form<TModel>(Ui<Unit> body) =>
         new(s =>
         {
