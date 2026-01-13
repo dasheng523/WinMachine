@@ -17,6 +17,8 @@
   <ItemGroup>
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
     <PackageReference Include="System.Reactive" Version="6.1.0" />
+    <PackageReference Include="NModbus4" Version="3.0.0-alpha2" />
+    <PackageReference Include="System.IO.Ports" Version="10.0.0" />
   </ItemGroup>
 
   <ItemGroup>

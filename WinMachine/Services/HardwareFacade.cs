@@ -29,15 +29,18 @@ public sealed class HardwareFacade : IHardware
         IAxisResolver axisResolver,
         IMotionSystem motionSystem,
         IIoResolver io,
-        ICylinderResolver cylinders)
+        ICylinderResolver cylinders,
+        IResolver<ISensor<Common.Core.Level>> levelSensors,
+        IResolver<ISensor<double>> doubleSensors,
+        IResolver<ISensor<string>> stringSensors)
     {
         Axes = new AxisAsHardwareResolver(axisResolver, motionSystem);
         DIs = new DiAsHardwareResolver(io);
         DOs = new DoAsHardwareResolver(io);
-        LevelSensors = new DiLevelSensorResolver(io);
+        LevelSensors = levelSensors;
         Cylinders = new CylinderAsHardwareResolver(cylinders);
-        DoubleSensors = new NotSupportedSensorResolver<double>("DoubleSensors 需要先实现 Modbus/串口等来源");
-        StringSensors = new NotSupportedSensorResolver<string>("StringSensors 需要先实现串口扫码器等来源");
+        DoubleSensors = doubleSensors;
+        StringSensors = stringSensors;
     }
 
     public IResolver<IAxis> Axes { get; }
@@ -111,17 +114,6 @@ public sealed class HardwareFacade : IHardware
         public Fin<IDigitalOutput> Resolve(string logicalName) => _io.ResolveDo(logicalName);
     }
 
-    private sealed class DiLevelSensorResolver : IResolver<ISensor<Common.Core.Level>>
-    {
-        private readonly IIoResolver _io;
-
-        public DiLevelSensorResolver(IIoResolver io) => _io = io;
-
-        public Fin<ISensor<Common.Core.Level>> Resolve(string logicalName) =>
-            _io.ResolveDi(logicalName)
-                .Map(di => (ISensor<Common.Core.Level>)new DigitalInputSensor(logicalName, di));
-    }
-
     private sealed class CylinderAsHardwareResolver : IResolver<ISingleSolenoidCylinder>
     {
         private readonly ICylinderResolver _cylinders;
@@ -131,13 +123,4 @@ public sealed class HardwareFacade : IHardware
         public Fin<ISingleSolenoidCylinder> Resolve(string logicalName) => _cylinders.Resolve(logicalName);
     }
 
-    private sealed class NotSupportedSensorResolver<T> : IResolver<ISensor<T>>
-    {
-        private readonly string _message;
-
-        public NotSupportedSensorResolver(string message) => _message = message;
-
-        public Fin<ISensor<T>> Resolve(string logicalName) =>
-            FinFail<ISensor<T>>(Error.New($"{_message}，logicalName={logicalName}"));
-    }
 }

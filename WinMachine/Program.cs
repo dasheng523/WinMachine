@@ -1,11 +1,14 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Common.Hardware;
 using WinMachine.Configuration;
 using Devices.Motion.Abstractions;
 using Devices.Motion.Implementations.Zaux;
 using Devices.Motion.Implementations.Leadshine;
 using Devices.Motion.Implementations.Simulator;
+using Devices.Sensors.Modbus;
+using Devices.Sensors.Serial;
 using WinMachine.Services;
 using WinMachine.ConfigUi.WinForms;
 
@@ -61,6 +64,16 @@ internal static class Program
         // 逻辑 IO / 气缸 / 硬件 facade
         services.AddSingleton<IIoResolver, IoResolver>();
         services.AddSingleton<ICylinderResolver, CylinderResolver>();
+
+        // 设备通讯资源池（Devices 层）
+        services.AddSingleton<IModbusRtuMasterPool, NModbusRtuMasterPool>();
+        services.AddSingleton<ISerialPortPool, SerialPortPool>();
+
+        // 配置驱动的传感器解析（SensorMap）
+        services.AddSingleton<IResolver<ISensor<Common.Core.Level>>, SensorMapLevelResolver>();
+        services.AddSingleton<IResolver<ISensor<double>>, SensorMapDoubleResolver>();
+        services.AddSingleton<IResolver<ISensor<string>>, SensorMapStringResolver>();
+
         services.AddSingleton<IHardware, HardwareFacade>();
 
         // MotionSystem：DI 只负责构造(纯)，初始化(效果)由 MachineManager 触发

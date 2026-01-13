@@ -4,6 +4,8 @@ using System.Reflection;
 using Common.Core;
 using Common.Hardware;
 using Devices.Motion.Implementations.Simulator;
+using Devices.Sensors.Modbus;
+using Devices.Sensors.Serial;
 using FluentAssertions;
 using LanguageExt;
 using Microsoft.Extensions.Options;
@@ -40,7 +42,12 @@ public class HardwareDslTests
         var io = new IoResolver(motionSystem, opt);
         var cylinders = new CylinderResolver(io, opt);
         var axes = new AxisResolver(motionSystem, opt);
-        var hw = new HardwareFacade(axes, motionSystem, io, cylinders);
+        using var modbus = new NModbusRtuMasterPool();
+        using var serial = new SerialPortPool();
+        var levelSensors = new SensorMapLevelResolver(io, opt, modbus);
+        var doubleSensors = new SensorMapDoubleResolver(opt, modbus);
+        var stringSensors = new SensorMapStringResolver(opt, serial);
+        var hw = new HardwareFacade(axes, motionSystem, io, cylinders, levelSensors, doubleSensors, stringSensors);
 
         Fin<Unit> flow =
             from cyl in hw.Cylinders.Resolve("ScanSeat.Cyl")
@@ -95,7 +102,12 @@ public class HardwareDslTests
         var io = new IoResolver(motionSystem, opt);
         var cylinders = new CylinderResolver(io, opt);
         var axes = new AxisResolver(motionSystem, opt);
-        var hw = new HardwareFacade(axes, motionSystem, io, cylinders);
+        using var modbus = new NModbusRtuMasterPool();
+        using var serial = new SerialPortPool();
+        var levelSensors = new SensorMapLevelResolver(io, opt, modbus);
+        var doubleSensors = new SensorMapDoubleResolver(opt, modbus);
+        var stringSensors = new SensorMapStringResolver(opt, serial);
+        var hw = new HardwareFacade(axes, motionSystem, io, cylinders, levelSensors, doubleSensors, stringSensors);
 
         Fin<Unit> flow =
             from cyl in hw.Cylinders.Resolve("ScanSeat.Cyl")
