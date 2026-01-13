@@ -1,6 +1,7 @@
 <Solution>
   <Project Path="Common/Common.csproj" />
   <Project Path="Devices/Devices.csproj" />
+  <Project Path="Devices.Sample/Devices.Sample.csproj" />
   <Project Path="WinMachine/WinMachine.csproj" />
   <Project Path="tests/Common.Tests/Common.Tests.csproj" />
   <Project Path="tests/Devices.Tests/Devices.Tests.csproj" />

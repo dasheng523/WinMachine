@@ -30,6 +30,7 @@
         {
             BtnZController = new Button();
             BtnSystemOptions = new Button();
+            BtnSingleStep = new Button();
             SuspendLayout();
             // 
             // BtnZController
@@ -49,12 +50,23 @@
             BtnSystemOptions.TabIndex = 1;
             BtnSystemOptions.Text = "系统配置";
             BtnSystemOptions.UseVisualStyleBackColor = true;
+
+            // 
+            // BtnSingleStep
+            // 
+            BtnSingleStep.Location = new Point(547, 206);
+            BtnSingleStep.Name = "BtnSingleStep";
+            BtnSingleStep.Size = new Size(94, 29);
+            BtnSingleStep.TabIndex = 2;
+            BtnSingleStep.Text = "单步测试";
+            BtnSingleStep.UseVisualStyleBackColor = true;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(9F, 20F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(800, 450);
+            Controls.Add(BtnSingleStep);
             Controls.Add(BtnSystemOptions);
             Controls.Add(BtnZController);
             Name = "Form1";
@@ -66,5 +78,6 @@
 
         private Button BtnZController;
         private Button BtnSystemOptions;
+        private Button BtnSingleStep;
     }
 }

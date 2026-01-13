@@ -49,10 +49,12 @@ internal static class Program
     {
         // 绑定配置
         services.Configure<SystemOptions>(config.GetSection("System"));
+        services.Configure<SingleStepOptions>(config.GetSection("SingleStep"));
 
         // 注册窗体
         services.AddTransient<Form1>();
         services.AddTransient<ZControllerView>();
+        services.AddTransient<SingleStep>();
         services.AddTransient<SystemOptionsEditorForm>();
 
         // 注册机器管理服务 (单例，因为整台机器通常只有一个 lifecycle)

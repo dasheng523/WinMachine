@@ -25,6 +25,7 @@ namespace WinMachine
 
             BtnZController.Click += BtnZController_Click;
             BtnSystemOptions.Click += BtnSystemOptions_Click;
+            BtnSingleStep.Click += BtnSingleStep_Click;
         }
 
         private void BtnZController_Click(object? sender, EventArgs e)
@@ -36,6 +37,12 @@ namespace WinMachine
         private void BtnSystemOptions_Click(object? sender, EventArgs e)
         {
             var view = Program.ServiceProvider.GetRequiredService<SystemOptionsEditorForm>();
+            view.ShowDialog(this);
+        }
+
+        private void BtnSingleStep_Click(object? sender, EventArgs e)
+        {
+            var view = Program.ServiceProvider.GetRequiredService<SingleStep>();
             view.ShowDialog(this);
         }
     }
