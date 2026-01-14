@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 using LanguageExt;
 using LanguageExt.Common;
 using WinMachine.ConfigUi.WinForms.Rendering;
@@ -88,12 +88,12 @@ public sealed class WinFormsFormInterpreter
                 var key = ReadKeyValue(row.KeyControl);
                 if (string.IsNullOrWhiteSpace(key))
                 {
-                    return FinFail<Unit>(Error.New("AxisMap 的 Key 不能为空"));
+                    return FinFail<Unit>(Error.New("AxisMap �?Key 不能为空"));
                 }
 
                 if (newDict.Contains(key))
                 {
-                    return FinFail<Unit>(Error.New($"AxisMap 的 Key 重复: {key}"));
+                    return FinFail<Unit>(Error.New($"AxisMap �?Key 重复: {key}"));
                 }
 
                 newDict[key] = row.Value;
@@ -176,3 +176,5 @@ public sealed class WinFormsFormInterpreter
         };
     }
 }
+
+

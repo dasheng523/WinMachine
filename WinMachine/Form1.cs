@@ -1,8 +1,9 @@
-using Devices.Motion.Abstractions;
+using Machine.Framework.Devices.Motion.Abstractions;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.DependencyInjection;
-using WinMachine.Configuration;
+using Machine.Framework.Configuration;
 using WinMachine.Services;
+using Machine.Framework.Runtime;
 using WinMachine.ConfigUi.WinForms;
 
 namespace WinMachine
@@ -20,7 +21,7 @@ namespace WinMachine
 
             // 示例：在标题显示当前模式
             var primary = _options.MotionBoards.FirstOrDefault();
-            var controller = primary?.ControllerType ?? (_options.UseSimulator ? "Simulator" : "(未配置)");
+            var controller = primary?.ControllerType ?? (_options.UseSimulator ? "Simulator" : "(未配�?");
             this.Text = $"WinMachine - {(_options.UseSimulator ? "模拟模式" : "在线模式")} ({controller})";
 
             BtnZController.Click += BtnZController_Click;
@@ -47,3 +48,5 @@ namespace WinMachine
         }
     }
 }
+
+

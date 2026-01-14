@@ -1,4 +1,4 @@
-Ôªønamespace WinMachine
+namespace WinMachine
 {
     partial class SingleStep
     {
@@ -75,7 +75,7 @@
             groupBoxPens.Size = new Size(522, 170);
             groupBoxPens.TabIndex = 0;
             groupBoxPens.TabStop = false;
-            groupBoxPens.Text = "Âê∏Á¨î / ÂèñÊîæÊñô";
+            groupBoxPens.Text = "Œ¸±  / »°∑≈¡œ";
             // 
             // BtnUnloadPen2Place
             // 
@@ -83,7 +83,7 @@
             BtnUnloadPen2Place.Name = "BtnUnloadPen2Place";
             BtnUnloadPen2Place.Size = new Size(120, 40);
             BtnUnloadPen2Place.TabIndex = 7;
-            BtnUnloadPen2Place.Text = "ÊëÜÁõòÁ¨î2ÊîæÊñô";
+            BtnUnloadPen2Place.Text = "∞⁄≈Ã± 2∑≈¡œ";
             BtnUnloadPen2Place.UseVisualStyleBackColor = true;
             // 
             // BtnUnloadPen1Place
@@ -92,7 +92,7 @@
             BtnUnloadPen1Place.Name = "BtnUnloadPen1Place";
             BtnUnloadPen1Place.Size = new Size(120, 40);
             BtnUnloadPen1Place.TabIndex = 6;
-            BtnUnloadPen1Place.Text = "ÊëÜÁõòÁ¨î1ÊîæÊñô";
+            BtnUnloadPen1Place.Text = "∞⁄≈Ã± 1∑≈¡œ";
             BtnUnloadPen1Place.UseVisualStyleBackColor = true;
             // 
             // BtnUnloadPen2Pick
@@ -101,7 +101,7 @@
             BtnUnloadPen2Pick.Name = "BtnUnloadPen2Pick";
             BtnUnloadPen2Pick.Size = new Size(120, 40);
             BtnUnloadPen2Pick.TabIndex = 5;
-            BtnUnloadPen2Pick.Text = "ÊëÜÁõòÁ¨î2ÂèñÊñô";
+            BtnUnloadPen2Pick.Text = "∞⁄≈Ã± 2»°¡œ";
             BtnUnloadPen2Pick.UseVisualStyleBackColor = true;
             // 
             // BtnUnloadPen1Pick
@@ -110,7 +110,7 @@
             BtnUnloadPen1Pick.Name = "BtnUnloadPen1Pick";
             BtnUnloadPen1Pick.Size = new Size(120, 40);
             BtnUnloadPen1Pick.TabIndex = 4;
-            BtnUnloadPen1Pick.Text = "ÊëÜÁõòÁ¨î1ÂèñÊñô";
+            BtnUnloadPen1Pick.Text = "∞⁄≈Ã± 1»°¡œ";
             BtnUnloadPen1Pick.UseVisualStyleBackColor = true;
             // 
             // BtnLoadPen2Place
@@ -119,7 +119,7 @@
             BtnLoadPen2Place.Name = "BtnLoadPen2Place";
             BtnLoadPen2Place.Size = new Size(120, 40);
             BtnLoadPen2Place.TabIndex = 3;
-            BtnLoadPen2Place.Text = "‰∏äÊñôÁ¨î2ÊîæÊñô";
+            BtnLoadPen2Place.Text = "…œ¡œ± 2∑≈¡œ";
             BtnLoadPen2Place.UseVisualStyleBackColor = true;
             // 
             // BtnLoadPen1Place
@@ -128,7 +128,7 @@
             BtnLoadPen1Place.Name = "BtnLoadPen1Place";
             BtnLoadPen1Place.Size = new Size(120, 40);
             BtnLoadPen1Place.TabIndex = 2;
-            BtnLoadPen1Place.Text = "‰∏äÊñôÁ¨î1ÊîæÊñô";
+            BtnLoadPen1Place.Text = "…œ¡œ± 1∑≈¡œ";
             BtnLoadPen1Place.UseVisualStyleBackColor = true;
             // 
             // BtnLoadPen2Pick
@@ -137,7 +137,7 @@
             BtnLoadPen2Pick.Name = "BtnLoadPen2Pick";
             BtnLoadPen2Pick.Size = new Size(120, 40);
             BtnLoadPen2Pick.TabIndex = 1;
-            BtnLoadPen2Pick.Text = "‰∏äÊñôÁ¨î2ÂèñÊñô";
+            BtnLoadPen2Pick.Text = "…œ¡œ± 2»°¡œ";
             BtnLoadPen2Pick.UseVisualStyleBackColor = true;
             // 
             // BtnLoadPen1Pick
@@ -146,7 +146,7 @@
             BtnLoadPen1Pick.Name = "BtnLoadPen1Pick";
             BtnLoadPen1Pick.Size = new Size(120, 40);
             BtnLoadPen1Pick.TabIndex = 0;
-            BtnLoadPen1Pick.Text = "‰∏äÊñôÁ¨î1ÂèñÊñô";
+            BtnLoadPen1Pick.Text = "…œ¡œ± 1»°¡œ";
             BtnLoadPen1Pick.UseVisualStyleBackColor = true;
             // 
             // groupBoxTrays
@@ -160,7 +160,7 @@
             groupBoxTrays.Size = new Size(340, 170);
             groupBoxTrays.TabIndex = 1;
             groupBoxTrays.TabStop = false;
-            groupBoxTrays.Text = "ÊñôÁõò";
+            groupBoxTrays.Text = "¡œ≈Ã";
             // 
             // BtnPushUnloadTray
             // 
@@ -168,7 +168,7 @@
             BtnPushUnloadTray.Name = "BtnPushUnloadTray";
             BtnPushUnloadTray.Size = new Size(150, 40);
             BtnPushUnloadTray.TabIndex = 3;
-            BtnPushUnloadTray.Text = "Êé®‰∏ãÊñôÁõò";
+            BtnPushUnloadTray.Text = "Õ∆œ¬¡œ≈Ã";
             BtnPushUnloadTray.UseVisualStyleBackColor = true;
             // 
             // BtnPushLoadTray
@@ -177,7 +177,7 @@
             BtnPushLoadTray.Name = "BtnPushLoadTray";
             BtnPushLoadTray.Size = new Size(150, 40);
             BtnPushLoadTray.TabIndex = 2;
-            BtnPushLoadTray.Text = "Êé®‰∏äÊñôÁõò";
+            BtnPushLoadTray.Text = "Õ∆…œ¡œ≈Ã";
             BtnPushLoadTray.UseVisualStyleBackColor = true;
             // 
             // BtnPickUnloadTray
@@ -186,7 +186,7 @@
             BtnPickUnloadTray.Name = "BtnPickUnloadTray";
             BtnPickUnloadTray.Size = new Size(150, 40);
             BtnPickUnloadTray.TabIndex = 1;
-            BtnPickUnloadTray.Text = "Âèñ‰∏ãÊñôÁõò";
+            BtnPickUnloadTray.Text = "»°œ¬¡œ≈Ã";
             BtnPickUnloadTray.UseVisualStyleBackColor = true;
             // 
             // BtnPickLoadTray
@@ -195,7 +195,7 @@
             BtnPickLoadTray.Name = "BtnPickLoadTray";
             BtnPickLoadTray.Size = new Size(150, 40);
             BtnPickLoadTray.TabIndex = 0;
-            BtnPickLoadTray.Text = "Âèñ‰∏äÊñôÁõò";
+            BtnPickLoadTray.Text = "»°…œ¡œ≈Ã";
             BtnPickLoadTray.UseVisualStyleBackColor = true;
             // 
             // groupBoxScanTest
@@ -211,7 +211,7 @@
             groupBoxScanTest.Size = new Size(522, 210);
             groupBoxScanTest.TabIndex = 2;
             groupBoxScanTest.TabStop = false;
-            groupBoxScanTest.Text = "Êâ´Á†Å / ÊµãËØï";
+            groupBoxScanTest.Text = "…®¬Î / ≤‚ ‘";
             // 
             // BtnTestSeat4
             // 
@@ -219,7 +219,7 @@
             BtnTestSeat4.Name = "BtnTestSeat4";
             BtnTestSeat4.Size = new Size(150, 40);
             BtnTestSeat4.TabIndex = 5;
-            BtnTestSeat4.Text = "4Âè∑Â∫ßÊµãËØï";
+            BtnTestSeat4.Text = "4∫≈◊˘≤‚ ‘";
             BtnTestSeat4.UseVisualStyleBackColor = true;
             // 
             // BtnTestSeat3
@@ -228,7 +228,7 @@
             BtnTestSeat3.Name = "BtnTestSeat3";
             BtnTestSeat3.Size = new Size(150, 40);
             BtnTestSeat3.TabIndex = 4;
-            BtnTestSeat3.Text = "3Âè∑Â∫ßÊµãËØï";
+            BtnTestSeat3.Text = "3∫≈◊˘≤‚ ‘";
             BtnTestSeat3.UseVisualStyleBackColor = true;
             // 
             // BtnTestSeat2
@@ -237,7 +237,7 @@
             BtnTestSeat2.Name = "BtnTestSeat2";
             BtnTestSeat2.Size = new Size(150, 40);
             BtnTestSeat2.TabIndex = 3;
-            BtnTestSeat2.Text = "2Âè∑Â∫ßÊµãËØï";
+            BtnTestSeat2.Text = "2∫≈◊˘≤‚ ‘";
             BtnTestSeat2.UseVisualStyleBackColor = true;
             // 
             // BtnTestSeat1
@@ -246,7 +246,7 @@
             BtnTestSeat1.Name = "BtnTestSeat1";
             BtnTestSeat1.Size = new Size(150, 40);
             BtnTestSeat1.TabIndex = 2;
-            BtnTestSeat1.Text = "1Âè∑Â∫ßÊµãËØï";
+            BtnTestSeat1.Text = "1∫≈◊˘≤‚ ‘";
             BtnTestSeat1.UseVisualStyleBackColor = true;
             // 
             // BtnScanSeat34
@@ -255,7 +255,7 @@
             BtnScanSeat34.Name = "BtnScanSeat34";
             BtnScanSeat34.Size = new Size(150, 40);
             BtnScanSeat34.TabIndex = 1;
-            BtnScanSeat34.Text = "3,4Â∫ßÊâ´Á†Å";
+            BtnScanSeat34.Text = "3,4◊˘…®¬Î";
             BtnScanSeat34.UseVisualStyleBackColor = true;
             // 
             // BtnScanSeat12
@@ -264,7 +264,7 @@
             BtnScanSeat12.Name = "BtnScanSeat12";
             BtnScanSeat12.Size = new Size(150, 40);
             BtnScanSeat12.TabIndex = 0;
-            BtnScanSeat12.Text = "1,2Â∫ßÊâ´Á†Å";
+            BtnScanSeat12.Text = "1,2◊˘…®¬Î";
             BtnScanSeat12.UseVisualStyleBackColor = true;
             // 
             // groupBoxTransferSlider
@@ -278,7 +278,7 @@
             groupBoxTransferSlider.Size = new Size(340, 210);
             groupBoxTransferSlider.TabIndex = 3;
             groupBoxTransferSlider.TabStop = false;
-            groupBoxTransferSlider.Text = "ËΩ¨Áßª / ÊªëÂùó";
+            groupBoxTransferSlider.Text = "◊™“∆ / ª¨øÈ";
             // 
             // BtnSliderRight
             // 
@@ -286,7 +286,7 @@
             BtnSliderRight.Name = "BtnSliderRight";
             BtnSliderRight.Size = new Size(150, 40);
             BtnSliderRight.TabIndex = 3;
-            BtnSliderRight.Text = "Âè≥ÁßªÊªëÂùó";
+            BtnSliderRight.Text = "”““∆ª¨øÈ";
             BtnSliderRight.UseVisualStyleBackColor = true;
             // 
             // BtnSliderLeft
@@ -295,7 +295,7 @@
             BtnSliderLeft.Name = "BtnSliderLeft";
             BtnSliderLeft.Size = new Size(150, 40);
             BtnSliderLeft.TabIndex = 2;
-            BtnSliderLeft.Text = "Â∑¶ÁßªÊªëÂùó";
+            BtnSliderLeft.Text = "◊Û“∆ª¨øÈ";
             BtnSliderLeft.UseVisualStyleBackColor = true;
             // 
             // BtnTransferSeat34
@@ -304,7 +304,7 @@
             BtnTransferSeat34.Name = "BtnTransferSeat34";
             BtnTransferSeat34.Size = new Size(150, 40);
             BtnTransferSeat34.TabIndex = 1;
-            BtnTransferSeat34.Text = "3,4Â∫ßËΩ¨Áßª";
+            BtnTransferSeat34.Text = "3,4◊˘◊™“∆";
             BtnTransferSeat34.UseVisualStyleBackColor = true;
             // 
             // BtnTransferSeat12
@@ -313,7 +313,7 @@
             BtnTransferSeat12.Name = "BtnTransferSeat12";
             BtnTransferSeat12.Size = new Size(150, 40);
             BtnTransferSeat12.TabIndex = 0;
-            BtnTransferSeat12.Text = "1,2Â∫ßËΩ¨Áßª";
+            BtnTransferSeat12.Text = "1,2◊˘◊™“∆";
             BtnTransferSeat12.UseVisualStyleBackColor = true;
             // 
             // SingleStep
@@ -326,7 +326,7 @@
             Controls.Add(groupBoxTrays);
             Controls.Add(groupBoxPens);
             Name = "SingleStep";
-            Text = "ÂçïÊ≠•ÊµãËØï";
+            Text = "µ•≤Ω≤‚ ‘";
             groupBoxPens.ResumeLayout(false);
             groupBoxTrays.ResumeLayout(false);
             groupBoxScanTest.ResumeLayout(false);
@@ -367,3 +367,4 @@
         private Button BtnSliderRight;
     }
 }
+

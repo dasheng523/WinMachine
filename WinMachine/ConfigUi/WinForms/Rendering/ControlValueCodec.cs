@@ -1,5 +1,5 @@
 using System.Globalization;
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering;
 
@@ -113,3 +113,5 @@ public static class ControlValueCodec
         return raw;
     }
 }
+
+

@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering.Renderers;
 
@@ -25,3 +25,5 @@ public sealed class KeyEditorRenderer : INodeRenderer
         return new TextBox { Width = 120, Text = k.Current };
     }
 }
+
+

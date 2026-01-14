@@ -1,9 +1,5 @@
 <Solution>
-  <Project Path="Common/Common.csproj" />
-  <Project Path="Devices/Devices.csproj" />
-  <Project Path="Devices.Sample/Devices.Sample.csproj" />
+  <Project Path="Machine.Framework/Machine.Framework.csproj" />
   <Project Path="WinMachine/WinMachine.csproj" />
-  <Project Path="tests/Common.Tests/Common.Tests.csproj" />
-  <Project Path="tests/Devices.Tests/Devices.Tests.csproj" />
-  <Project Path="tests/WinMachine.Tests/WinMachine.Tests.csproj" />
+  <Project Path="tests/Machine.Framework.Tests/Machine.Framework.Tests.csproj" />
 </Solution>

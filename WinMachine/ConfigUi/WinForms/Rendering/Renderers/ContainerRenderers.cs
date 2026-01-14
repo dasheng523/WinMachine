@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering.Renderers;
 
@@ -92,7 +92,7 @@ public sealed class SplitRenderer : INodeRenderer
         var sc = new SplitContainer
         {
             Dock = DockStyle.Fill,
-            Orientation = sp.Orientation == Common.Ui.Orientation.Horizontal
+            Orientation = sp.Orientation == Machine.Framework.Core.Ui.Orientation.Horizontal
                 ? System.Windows.Forms.Orientation.Vertical
                 : System.Windows.Forms.Orientation.Horizontal
         };
@@ -134,3 +134,5 @@ public sealed class ExpanderRenderer : INodeRenderer
         return container;
     }
 }
+
+

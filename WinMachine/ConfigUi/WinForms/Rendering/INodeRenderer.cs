@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering;
 
@@ -8,3 +8,5 @@ public interface INodeRenderer
 
     Control Render(RenderContext ctx, Node node, object model, object rootModel);
 }
+
+

@@ -1,12 +1,13 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
-using Devices.Motion.Abstractions;
-using Common.Core;
+using Machine.Framework.Devices.Motion.Abstractions;
+using Machine.Framework.Core.Core;
 using LanguageExt;
 using static LanguageExt.Prelude;
 using LUnit = LanguageExt.Unit;
 using WinMachine.Services;
+using Machine.Framework.Runtime;
 
 namespace WinMachine
 {
@@ -102,7 +103,7 @@ namespace WinMachine
             _ = _motion.GetInput(inputBit).Match(
                 Succ: inLevel =>
                 {
-                    lblInStatus.Text = inLevel == Level.On ? "状态: 高电平 [ON]" : "状态: 低电平 [OFF]";
+                    lblInStatus.Text = inLevel == Level.On ? "状�? 高电�?[ON]" : "状�? 低电�?[OFF]";
                     lblInStatus.ForeColor = inLevel == Level.On ? Color.Red : Color.Black;
                     return unit;
                 },
@@ -110,3 +111,5 @@ namespace WinMachine
         }
     }
 }
+
+

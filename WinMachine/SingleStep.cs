@@ -1,15 +1,16 @@
-ï»¿using System;
+using System;
 using System.Diagnostics;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
-using Common.Core;
-using Common.Hardware;
-using Common.Steps;
+using Machine.Framework.Core.Core;
+using Machine.Framework.Core.Hardware;
+using Machine.Framework.Core.Steps;
 using LanguageExt;
 using Microsoft.Extensions.Options;
-using WinMachine.Configuration;
+using Machine.Framework.Configuration;
 using WinMachine.Services;
+using Machine.Framework.Runtime;
 using static LanguageExt.Prelude;
 
 namespace WinMachine
@@ -52,11 +53,11 @@ namespace WinMachine
                         {
                             if (outcome.Status == StepStatus.Succeeded)
                             {
-                                MessageBox.Show(this, "ä¸Šæ–™ç¬”1å–æ–™ï¼šæˆåŠŸ", "å•æ­¥æµ‹è¯•");
+                                MessageBox.Show(this, "ÉÏÁÏ±Ê1È¡ÁÏ£º³É¹¦", "µ¥²½²âÊÔ");
                             }
                             else if (outcome.Status == StepStatus.Skipped)
                             {
-                                MessageBox.Show(this, "ä¸Šæ–™ç¬”1å–æ–™ï¼šå·²è·³è¿‡ï¼ˆæŒ‰å†³ç­–ï¼‰", "å•æ­¥æµ‹è¯•");
+                                MessageBox.Show(this, "ÉÏÁÏ±Ê1È¡ÁÏ£ºÒÑÌø¹ı£¨°´¾ö²ß£©", "µ¥²½²âÊÔ");
                             }
 
                             return unit;
@@ -65,9 +66,9 @@ namespace WinMachine
                         {
                             var title = outcome.Status switch
                             {
-                                StepStatus.Aborted => "ä¸Šæ–™ç¬”1å–æ–™ï¼šå·²ä¸­æ­¢",
-                                StepStatus.Failed => "ä¸Šæ–™ç¬”1å–æ–™ï¼šå¤±è´¥",
-                                _ => "ä¸Šæ–™ç¬”1å–æ–™ï¼šå¤±è´¥"
+                                StepStatus.Aborted => "ÉÏÁÏ±Ê1È¡ÁÏ£ºÒÑÖĞÖ¹",
+                                StepStatus.Failed => "ÉÏÁÏ±Ê1È¡ÁÏ£ºÊ§°Ü",
+                                _ => "ÉÏÁÏ±Ê1È¡ÁÏ£ºÊ§°Ü"
                             };
 
                             MessageBox.Show(this, e.Message, title);
@@ -81,7 +82,7 @@ namespace WinMachine
             var speedXY = o.SpeedXY.ToAxisSpeed();
             var speedZ = o.SpeedZ.ToAxisSpeed();
 
-            return Step.Named("ä¸Šæ–™ç¬”1å–æ–™",
+            return Step.Named("ÉÏÁÏ±Ê1È¡ÁÏ",
                 from _ in MoveAbsAndWait("X", o.XPos, speedXY, o.MoveTimeoutMs, o.PollMs)
                 from __ in MoveAbsAndWait("Y2", o.Y2Pos, speedXY, o.MoveTimeoutMs, o.PollMs)
                 from ___ in MoveAbsAndWait("Z1", o.Z1DownPos, speedZ, o.MoveTimeoutMs, o.PollMs)
@@ -91,9 +92,9 @@ namespace WinMachine
                 select unit);
         }
 
-        private Step<Unit> MoveAbsAndWait(string axisName, double pos, Devices.Motion.Abstractions.AxisSpeed speed, int timeoutMs, int pollMs)
+        private Step<Unit> MoveAbsAndWait(string axisName, double pos, Machine.Framework.Devices.Motion.Abstractions.AxisSpeed speed, int timeoutMs, int pollMs)
         {
-            return Step.Named($"è½´ {axisName} -> {pos}",
+            return Step.Named($"Öá {axisName} -> {pos}",
                 from _ in Effect($"SetSpeed({axisName})", () =>
                     _axes.Resolve(axisName)
                         .Bind(t => t.Controller.SetSpeed(t.Axis, speed)))
@@ -109,12 +110,12 @@ namespace WinMachine
                 _hw.DOs.Resolve(doName).Bind(@do => @do.Write(level)));
 
         private Step<Unit> EnsureSensorOn(string sensorName) =>
-            Effect($"æ£€æŸ¥ {sensorName} = ON", () =>
+            Effect($"¼ì²é {sensorName} = ON", () =>
                 _hw.LevelSensors.Resolve(sensorName)
                     .Bind(s => s.Read())
                     .Bind(l => l == Level.On
                         ? FinSucc(unit)
-                        : FinFail<Unit>(LanguageExt.Common.Error.New($"ä¼ æ„Ÿå™¨ {sensorName} æœªåˆ°é«˜ç”µå¹³ï¼ˆå½“å‰={l}ï¼‰"))));
+                        : FinFail<Unit>(LanguageExt.Machine.Framework.Core.Error.New($"´«¸ĞÆ÷ {sensorName} Î´µ½¸ßµçÆ½£¨µ±Ç°={l}£©"))));
 
         private Step<Unit> Effect(string name, Func<Fin<Unit>> f) =>
             Step.Effect(name, _ => Observable.Start(f, Scheduler.Default));
@@ -128,7 +129,7 @@ namespace WinMachine
                     .Bind(t => t.Controller.CheckDone(t.Axis));
 
                 var fin = r.Match(
-                    Succ: done => done ? FinSucc(unit) : FinFail<Unit>(LanguageExt.Common.Error.New("NOT_DONE")),
+                    Succ: done => done ? FinSucc(unit) : FinFail<Unit>(LanguageExt.Machine.Framework.Core.Error.New("NOT_DONE")),
                     Fail: e => FinFail<Unit>(e));
 
                 if (fin.IsSucc)
@@ -136,7 +137,7 @@ namespace WinMachine
                     return fin;
                 }
 
-                // NOT_DONE ç»§ç»­ç­‰å¾…ï¼›å…¶ä»–é”™è¯¯ç›´æ¥è¿”å›ã€‚
+                // NOT_DONE ¼ÌĞøµÈ´ı£»ÆäËû´íÎóÖ±½Ó·µ»Ø¡£
                 if (fin.IsFail && fin.Match(Succ: _ => false, Fail: e => e.Message != "NOT_DONE"))
                 {
                     return fin;
@@ -145,7 +146,7 @@ namespace WinMachine
                 Thread.Sleep(pollMs);
             }
 
-            return FinFail<Unit>(LanguageExt.Common.Error.New($"ç­‰å¾…è½´ {axisName} å®Œæˆè¶…æ—¶ï¼ˆ{timeoutMs}msï¼‰"));
+            return FinFail<Unit>(LanguageExt.Machine.Framework.Core.Error.New($"µÈ´ıÖá {axisName} Íê³É³¬Ê±£¨{timeoutMs}ms£©"));
         }
 
         private sealed class WinFormsDecisionProvider : IStepDecisionProvider
@@ -161,13 +162,13 @@ namespace WinMachine
                     var canRetry = failure.OnError.CanRetry;
                     var canSkip = failure.OnError.CanSkip;
 
-                    var msg = $"æ­¥éª¤å¤±è´¥ï¼š{failure.Name}\n\né”™è¯¯ï¼š{failure.Error.Message}\n\nç¬¬ {failure.Attempt} æ¬¡å°è¯•\n\n" +
-                              $"å¯é€‰ï¼š{(canRetry ? "é‡è¯• " : string.Empty)}{(canSkip ? "è·³è¿‡ " : string.Empty)}ä¸­æ­¢";
+                    var msg = $"²½ÖèÊ§°Ü£º{failure.Name}\n\n´íÎó£º{failure.Error.Message}\n\nµÚ {failure.Attempt} ´Î³¢ÊÔ\n\n" +
+                              $"¿ÉÑ¡£º{(canRetry ? "ÖØÊÔ " : string.Empty)}{(canSkip ? "Ìø¹ı " : string.Empty)}ÖĞÖ¹";
 
-                    // è¿™é‡Œç”¨æœ€æœ´ç´ çš„ä¸‰é€‰ä¸€ï¼šYes=Retry, No=Skip, Cancel=Abortã€‚
-                    // è‹¥æŸä¸ªé€‰é¡¹ä¸å…è®¸ï¼Œåˆ™è‡ªåŠ¨è½åˆ° Abortã€‚
+                    // ÕâÀïÓÃ×îÆÓËØµÄÈıÑ¡Ò»£ºYes=Retry, No=Skip, Cancel=Abort¡£
+                    // ÈôÄ³¸öÑ¡Ïî²»ÔÊĞí£¬Ôò×Ô¶¯Âäµ½ Abort¡£
                     var buttons = MessageBoxButtons.YesNoCancel;
-                    var dr = MessageBox.Show(_owner, msg, "å•æ­¥æµ‹è¯• - å†³ç­–", buttons, MessageBoxIcon.Warning);
+                    var dr = MessageBox.Show(_owner, msg, "µ¥²½²âÊÔ - ¾ö²ß", buttons, MessageBoxIcon.Warning);
 
                     return dr switch
                     {
@@ -180,3 +181,5 @@ namespace WinMachine
         }
     }
 }
+
+

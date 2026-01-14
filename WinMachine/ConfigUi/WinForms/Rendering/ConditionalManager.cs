@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 using WinMachine.ConfigUi.WinForms.Rendering;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering;
@@ -60,3 +60,5 @@ public sealed class ConditionalManager
         public bool Built { get; set; }
     }
 }
+
+

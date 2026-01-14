@@ -24,8 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Devices\Devices.csproj" />
-    <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\Machine.Framework\Machine.Framework.csproj" />
   </ItemGroup>
 
 </Project>

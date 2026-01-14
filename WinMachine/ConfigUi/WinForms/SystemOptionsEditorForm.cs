@@ -1,8 +1,8 @@
 using Microsoft.Extensions.Options;
 using LanguageExt;
 using static LanguageExt.Prelude;
-using Common.Ui;
-using WinMachine.Configuration;
+using Machine.Framework.Core.Ui;
+using Machine.Framework.Configuration;
 using WinMachine.ConfigUi.WinForms.Rendering;
 
 namespace WinMachine.ConfigUi.WinForms;
@@ -86,7 +86,7 @@ public sealed class SystemOptionsEditorForm : Form
                 r.Match(
                     Succ: _ =>
                     {
-                        MessageBox.Show(this, "已写入 appsettings.json（需要重启应用生效）", "保存成功", MessageBoxButtons.OK,
+                        MessageBox.Show(this, "已写�?appsettings.json（需要重启应用生效）", "保存成功", MessageBoxButtons.OK,
                             MessageBoxIcon.Information);
                         return unit;
                     },
@@ -109,7 +109,7 @@ public sealed class SystemOptionsEditorForm : Form
 
     private static SystemOptions Clone(SystemOptions src)
     {
-        // 简单 clone：避免直接改 IOptions 的实例
+        // 简�?clone：避免直接改 IOptions 的实�?
         return new SystemOptions
         {
             UseSimulator = src.UseSimulator,
@@ -130,3 +130,5 @@ public sealed class SystemOptionsEditorForm : Form
         };
     }
 }
+
+

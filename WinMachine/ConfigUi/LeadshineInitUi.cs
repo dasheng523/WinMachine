@@ -1,8 +1,8 @@
 using System;
-using Devices.Motion.Implementations.Leadshine;
+using Machine.Framework.Devices.Motion.Implementations.Leadshine;
 using LanguageExt;
 using static LanguageExt.Prelude;
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi;
 
@@ -26,11 +26,11 @@ public static class LeadshineInitUi
                 .Labeled("Axis"),
 
             UI.Field<LeadshineAxisInitOptions, string?>(x => x.AxisName)
-                .AsTextBox("逻辑轴名，可空")
+                .AsTextBox("逻辑轴名，可�?)
                 .Labeled("AxisName"),
 
             UI.Field<LeadshineAxisInitOptions, double?>(x => x.Equiv)
-                .AsTextBox("脉冲当量，可空")
+                .AsTextBox("脉冲当量，可�?)
                 .Labeled("Equiv")
         )
         from _optional in UI.VStack(
@@ -174,3 +174,5 @@ public static class LeadshineInitUi
         )
         select unit;
 }
+
+

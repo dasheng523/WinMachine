@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering.Renderers;
 
@@ -34,3 +34,5 @@ public sealed class HelpRenderer : INodeRenderer
         return new Label { Text = h.Text, AutoSize = true, ForeColor = SystemColors.GrayText };
     }
 }
+
+

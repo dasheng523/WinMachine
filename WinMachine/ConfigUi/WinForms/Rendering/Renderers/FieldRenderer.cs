@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 using WinMachine.ConfigUi.WinForms.Rendering;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering.Renderers;
@@ -73,3 +73,5 @@ public sealed class FieldRenderer : INodeRenderer
         return ctrl;
     }
 }
+
+

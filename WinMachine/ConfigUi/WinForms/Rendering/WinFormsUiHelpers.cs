@@ -35,3 +35,5 @@ public sealed class DoubleBufferedPanel : Panel
         UpdateStyles();
     }
 }
+
+

@@ -2,8 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
-using Devices.Motion.Abstractions;
-using Common.Core;
+using Machine.Framework.Devices.Motion.Abstractions;
+using Machine.Framework.Core.Core;
 
 namespace WinMachine
 {
@@ -69,7 +69,7 @@ namespace WinMachine
             groupBoxAxis.Size = new Size(360, 150);
             groupBoxAxis.TabIndex = 0;
             groupBoxAxis.TabStop = false;
-            groupBoxAxis.Text = "轴 0 控制 (JOG)";
+            groupBoxAxis.Text = "�?0 控制 (JOG)";
 
             // btnJogPos
             btnJogPos.Location = new Point(130, 90);
@@ -129,13 +129,13 @@ namespace WinMachine
             // lblOutIndex
             lblOutIndex.AutoSize = true;
             lblOutIndex.Location = new Point(20, 37);
-            lblOutIndex.Text = "输出口索引:";
+            lblOutIndex.Text = "输出口索�?";
 
             // btnSetOutput
             btnSetOutput.Location = new Point(200, 32);
             btnSetOutput.Name = "btnSetOutput";
             btnSetOutput.Size = new Size(130, 35);
-            btnSetOutput.Text = "切换高/低电平";
+            btnSetOutput.Text = "切换�?低电�?;
             btnSetOutput.Click += (s, e) => OnToggleOutput();
 
             // numInputIndex
@@ -146,13 +146,13 @@ namespace WinMachine
             // lblInIndex
             lblInIndex.AutoSize = true;
             lblInIndex.Location = new Point(20, 97);
-            lblInIndex.Text = "输入口索引:";
+            lblInIndex.Text = "输入口索�?";
 
             // lblInStatus
             lblInStatus.AutoSize = true;
             lblInStatus.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             lblInStatus.Location = new Point(200, 96);
-            lblInStatus.Text = "状态: 低电平";
+            lblInStatus.Text = "状�? 低电�?;
 
             // timerStatus
             timerStatus.Enabled = true;
@@ -169,7 +169,7 @@ namespace WinMachine
             MaximizeBox = false;
             Name = "ZControllerView";
             StartPosition = FormStartPosition.CenterParent;
-            Text = "针对轴 0 的调试控制器";
+            Text = "针对�?0 的调试控制器";
             groupBoxAxis.ResumeLayout(false);
             groupBoxAxis.PerformLayout();
             groupBoxIO.ResumeLayout(false);
@@ -180,3 +180,5 @@ namespace WinMachine
         }
     }
 }
+
+

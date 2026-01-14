@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering;
 
@@ -21,3 +21,5 @@ public sealed class RendererRegistry
         throw new NotSupportedException($"No renderer for node type: {node.GetType().Name}");
     }
 }
+
+

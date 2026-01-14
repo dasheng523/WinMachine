@@ -1,4 +1,4 @@
-using Common.Ui;
+using Machine.Framework.Core.Ui;
 
 namespace WinMachine.ConfigUi.WinForms.Rendering;
 
@@ -13,3 +13,5 @@ public sealed record RenderContext(
     public Control RenderNode(Node node, object model, object rootModel) =>
         Registry.Resolve(node).Render(this, node, model, rootModel);
 }
+
+

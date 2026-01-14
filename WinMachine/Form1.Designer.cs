@@ -1,4 +1,4 @@
-Ôªønamespace WinMachine
+namespace WinMachine
 {
     partial class Form1
     {
@@ -39,7 +39,7 @@
             BtnZController.Name = "BtnZController";
             BtnZController.Size = new Size(94, 29);
             BtnZController.TabIndex = 0;
-            BtnZController.Text = "Ê≠£ËøêÂä®ÊéßÂà∂";
+            BtnZController.Text = "’˝‘À∂Øøÿ÷∆";
             BtnZController.UseVisualStyleBackColor = true;
             // 
             // BtnSystemOptions
@@ -48,7 +48,7 @@
             BtnSystemOptions.Name = "BtnSystemOptions";
             BtnSystemOptions.Size = new Size(94, 29);
             BtnSystemOptions.TabIndex = 1;
-            BtnSystemOptions.Text = "Á≥ªÁªüÈÖçÁΩÆ";
+            BtnSystemOptions.Text = "œµÕ≥≈‰÷√";
             BtnSystemOptions.UseVisualStyleBackColor = true;
 
             // 
@@ -58,7 +58,7 @@
             BtnSingleStep.Name = "BtnSingleStep";
             BtnSingleStep.Size = new Size(94, 29);
             BtnSingleStep.TabIndex = 2;
-            BtnSingleStep.Text = "ÂçïÊ≠•ÊµãËØï";
+            BtnSingleStep.Text = "µ•≤Ω≤‚ ‘";
             BtnSingleStep.UseVisualStyleBackColor = true;
             // 
             // Form1
@@ -81,3 +81,5 @@
         private Button BtnSingleStep;
     }
 }
+
+
