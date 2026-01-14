@@ -10,4 +10,9 @@ public interface IModbusRtuMasterPool
     /// 返回对象生命周期由 Pool 管理。
     /// </summary>
     Fin<IModbusSerialMaster> GetOrCreate(ModbusRtuConnectionOptions options);
+
+    /// <summary>
+    /// 获取该连接对应的互斥锁对象，用于保证一条读写序列原子。
+    /// </summary>
+    object GetLock(ModbusRtuConnectionOptions options);
 }

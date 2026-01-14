@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.IO.Ports;
+using Devices.Sensors.Core;
 
 namespace Devices.Sensors.Serial;
 
@@ -20,6 +21,10 @@ public sealed class SerialPortPool : ISerialPortPool
 
     private readonly ConcurrentDictionary<string, Entry> _cache = new(StringComparer.OrdinalIgnoreCase);
 
+    /// <summary>
+    /// 获取 (或创建) 一个原生的 System.IO.Ports.SerialPort 对象。
+    /// 该对象由连接池管理，请勿手动 Dispose。
+    /// </summary>
     public SerialPort GetOrCreate(SerialLineCommandOptions options)
     {
         if (string.IsNullOrWhiteSpace(options.PortName))
@@ -33,6 +38,19 @@ public sealed class SerialPortPool : ISerialPortPool
         return entry.Port;
     }
 
+    /// <summary>
+    /// 获取 ITextLinePort 包装器，用于便捷的 ReadLine/WriteLine 操作。
+    /// </summary>
+    public ITextLinePort GetOrCreateTextLinePort(SerialLineCommandOptions options)
+    {
+        var port = GetOrCreate(options);
+        return new SerialPortTextLinePort(port);
+    }
+
+    /// <summary>
+    /// 获取与该串口配置对应的线程锁对象。
+    /// 在进行连续的读写操作 (如先发命令再读响应) 时，应锁定该对象以保证原子性。
+    /// </summary>
     public object GetLock(SerialLineCommandOptions options)
     {
         var key = BuildKey(options);

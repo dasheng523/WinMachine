@@ -17,10 +17,12 @@ public sealed class NModbusRtuMasterPool : IModbusRtuMasterPool, IDisposable
         {
             Port = port;
             Master = master;
+            Gate = new object();
         }
 
         public SerialPort Port { get; }
         public IModbusSerialMaster Master { get; }
+        public object Gate { get; }
     }
 
     private readonly ConcurrentDictionary<string, Entry> _cache = new(StringComparer.OrdinalIgnoreCase);
@@ -43,6 +45,13 @@ public sealed class NModbusRtuMasterPool : IModbusRtuMasterPool, IDisposable
         {
             return FinFail<IModbusSerialMaster>(Error.New(new Exception($"创建/获取 Modbus RTU Master 失败: {ex.Message}", ex)));
         }
+    }
+
+    public object GetLock(ModbusRtuConnectionOptions options)
+    {
+        var key = BuildKey(options);
+        var entry = _cache.GetOrAdd(key, _ => CreateEntry(options));
+        return entry.Gate;
     }
 
     private static string BuildKey(ModbusRtuConnectionOptions o) =>
