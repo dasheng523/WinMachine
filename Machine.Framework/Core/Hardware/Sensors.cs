@@ -1,40 +1,43 @@
 using LanguageExt;
+using Machine.Framework.Core.Core;
+using static LanguageExt.Prelude;
 
-namespace Machine.Framework.Core.Hardware;
-
-public sealed class CoercedSensor<T> : ISensor<T>
+namespace Machine.Framework.Core.Hardware
 {
-    private readonly IRawSensor _raw;
-    private readonly IValueCoercer _coercer;
-
-    public CoercedSensor(string name, IRawSensor raw, IValueCoercer coercer)
+    public interface IRawSensor 
     {
-        Name = name;
-        _raw = raw;
-        _coercer = coercer;
+         string Name { get; }
+         Fin<object?> ReadRaw();
     }
 
-    public string Name { get; }
-
-    public Fin<T> Read() =>
-        _raw.ReadRaw().Bind(_coercer.Coerce<T>);
-}
-
-public sealed class DigitalInputSensor : ISensor<Machine.Framework.Core.Core.Level>, IRawSensor
-{
-    private readonly IDigitalInput _input;
-
-    public DigitalInputSensor(string name, IDigitalInput input)
+    public sealed class CoercedSensor<T> : ISensor<T>
     {
-        Name = name;
-        _input = input;
+        private readonly IRawSensor _raw;
+        private readonly IValueCoercer _coercer;
+
+        public CoercedSensor(IRawSensor raw, IValueCoercer coercer)
+        {
+            _raw = raw;
+            _coercer = coercer;
+        }
+
+        public Fin<T> Read() => 
+            _raw.ReadRaw().Bind(val => _coercer.Coerce<T>(val));
     }
-
-    public string Name { get; }
-
-    public Fin<Machine.Framework.Core.Core.Level> Read() => _input.Read();
-
-    public Fin<object?> ReadRaw() => Read().Map(x => (object?)x);
+    
+    public sealed class DigitalInputSensor : ISensor<Level>, IRawSensor
+    {
+         public string Name { get; }
+         private readonly IDigitalInput _input;
+         
+         public DigitalInputSensor(string name, IDigitalInput input)
+         {
+             Name = name;
+             _input = input;
+         }
+         
+         public Fin<Level> Read() => _input.Read();
+         
+         public Fin<object?> ReadRaw() => Read().Map(l => (object?)l);
+    }
 }
-
-

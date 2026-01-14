@@ -8,103 +8,84 @@ using LanguageExt.Common;
 using Microsoft.Extensions.Options;
 using Machine.Framework.Configuration;
 using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Runtime;
-
-public interface IIoResolver
+namespace Machine.Framework.Runtime
 {
-    Fin<IDigitalInput> ResolveDi(string name);
-
-    Fin<IDigitalOutput> ResolveDo(string name);
-}
-
-public sealed class IoResolver : IIoResolver
-{
-    private readonly IMotionSystem _motionSystem;
-    private readonly IOptions<SystemOptions> _options;
-
-    public IoResolver(IMotionSystem motionSystem, IOptions<SystemOptions> options)
+    public class IoResolver : IIoResolver
     {
-        _motionSystem = motionSystem ?? throw new ArgumentNullException(nameof(motionSystem));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-    }
+        private readonly IMotionSystem _motionSystem;
+        private readonly SystemOptions _options;
 
-    public Fin<IDigitalInput> ResolveDi(string name) =>
-        ResolveIo(_options.Value.IoMap?.Di, name)
-            .Bind(t => ResolveBoard(t.Board).Map(c => (Controller: c, Bit: t.Bit)))
-            .Map(t => (IDigitalInput)new MotionDigitalInput(name, t.Controller, t.Bit));
-
-    public Fin<IDigitalOutput> ResolveDo(string name) =>
-        ResolveIo(_options.Value.IoMap?.Do, name)
-            .Bind(t => ResolveBoard(t.Board).Map(c => (Controller: c, Bit: t.Bit)))
-            .Map(t => (IDigitalOutput)new MotionDigitalOutput(name, t.Controller, t.Bit));
-
-    private Fin<IMotionController<ushort, ushort, ushort>> ResolveBoard(string? board) =>
-        string.IsNullOrWhiteSpace(board)
-            ? FinSucc(_motionSystem.Primary)
-            : _motionSystem.GetBoard(board);
-
-    private static Fin<(string? Board, ushort Bit)> ResolveIo(
-        System.Collections.Generic.Dictionary<string, IoRefOptions>? map,
-        string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
+        public IoResolver(IMotionSystem motionSystem, IOptions<SystemOptions> options)
         {
-            return FinFail<(string?, ushort)>(Error.New("IO 名称不能为空"));
+            _motionSystem = motionSystem;
+            _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
-        if (map is null || map.Count == 0)
+        public Fin<IDigitalInput> ResolveDi(string name)
         {
-            return FinFail<(string?, ushort)>(Error.New("未配�?System.IoMap"));
+             return ResolveIo(name, false)
+                .Map(t => (IDigitalInput)new MotionDigitalInput(name, t.Controller, (ushort)t.Channel));
         }
 
-        if (map.TryGetValue(name, out var hit))
+        public Fin<IDigitalOutput> ResolveDo(string name)
         {
-            return FinSucc((hit.Board, hit.Bit));
+             return ResolveIo(name, true)
+                .Map(t => (IDigitalOutput)new MotionDigitalOutput(name, t.Controller, (ushort)t.Channel));
         }
 
-        var v = map.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
-        if (v is null)
+        private Fin<(IMotionController<ushort, ushort, ushort> Controller, int Channel)> ResolveIo(string name, bool isOutput)
         {
-            return FinFail<(string?, ushort)>(Error.New($"未找�?IO 映射: {name}"));
+            if (string.IsNullOrWhiteSpace(name))
+                return FinFail<(IMotionController<ushort, ushort, ushort>, int)>(Error.New("IO name cannot be empty"));
+
+            var hit = _options.Ios?.FirstOrDefault(a => a.Name.Equals(name, StringComparison.OrdinalIgnoreCase) && a.IsOutput == isOutput);
+
+            if (hit == null)
+            {
+                 return FinFail<(IMotionController<ushort, ushort, ushort>, int)>(Error.New($"IO mapping not found for: {name}"));
+            }
+
+            if (string.IsNullOrWhiteSpace(hit.Board))
+            {
+                return FinSucc((_motionSystem.Primary, hit.Channel));
+            }
+
+            return _motionSystem.GetBoard(hit.Board)
+                .Map(ctrl => (ctrl, hit.Channel));
         }
 
-        return FinSucc((v.Board, v.Bit));
-    }
-
-    private sealed class MotionDigitalInput : IDigitalInput
-    {
-        private readonly IMotionController<ushort, ushort, ushort> _controller;
-        private readonly ushort _bit;
-
-        public MotionDigitalInput(string name, IMotionController<ushort, ushort, ushort> controller, ushort bit)
+        private class MotionDigitalInput : IDigitalInput
         {
-            Name = name;
-            _controller = controller;
-            _bit = bit;
+            private readonly string _name;
+            private readonly IMotionController<ushort, ushort, ushort> _controller;
+            private readonly ushort _bit;
+
+            public MotionDigitalInput(string name, IMotionController<ushort, ushort, ushort> controller, ushort bit)
+            {
+                _name = name;
+                _controller = controller;
+                _bit = bit;
+            }
+
+            public Fin<Level> Read() => _controller.GetInput(_bit);
         }
 
-        public string Name { get; }
-
-        public Fin<Level> Read() => _controller.GetInput(_bit);
-    }
-
-    private sealed class MotionDigitalOutput : IDigitalOutput
-    {
-        private readonly IMotionController<ushort, ushort, ushort> _controller;
-        private readonly ushort _bit;
-
-        public MotionDigitalOutput(string name, IMotionController<ushort, ushort, ushort> controller, ushort bit)
+        private class MotionDigitalOutput : IDigitalOutput
         {
-            Name = name;
-            _controller = controller;
-            _bit = bit;
+            private readonly string _name;
+            private readonly IMotionController<ushort, ushort, ushort> _controller;
+            private readonly ushort _bit;
+
+            public MotionDigitalOutput(string name, IMotionController<ushort, ushort, ushort> controller, ushort bit)
+            {
+                _name = name;
+                _controller = controller;
+                _bit = bit;
+            }
+
+            public Fin<LUnit> Write(Level level) => _controller.SetOutput(_bit, level);
         }
-
-        public string Name { get; }
-
-        public Fin<Unit> Write(Level level) => _controller.SetOutput(_bit, level);
     }
 }
-
-

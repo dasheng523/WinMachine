@@ -4,6 +4,7 @@ trigger: always_on
 
 该项目使用 .net 10
 使用中文
+要确保编译通过
 
 ## WinMachine 架构治理准则
 DSL 契约优先： 复杂逻辑开发前，须先对 DSL 的 LINQ 外观进行原型论证，确保语义表达符合用户预期。

@@ -1,85 +1,71 @@
-using Machine.Framework.Core.Core;
 using LanguageExt;
+using Machine.Framework.Core.Core;
+using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Core.Hardware;
-
-public interface IAxis
+namespace Machine.Framework.Core.Hardware
 {
-    string Name { get; }
+    public interface IAxis
+    {
+        string Name { get; }
+        Fin<double> GetCommandPos();
+        Fin<double> GetEncoderPos();
+        Fin<LUnit> MoveAbs(double pos);
+        Fin<LUnit> Stop();
+    }
 
-    Fin<double> GetCommandPos();
+    public interface IDigitalInput 
+    {
+        Fin<Level> Read(); 
+    }
+    
+    public static class DiExtensions
+    {
+        public static Fin<bool> ReadActive(this IDigitalInput input) =>
+            input.Read().Map(l => l == Level.On);
+    }
 
-    Fin<double> GetEncoderPos();
+    public interface IDigitalOutput 
+    {
+        Fin<LUnit> Write(Level level);
+    }
+    
+    public interface ISensor<T> 
+    {
+        Fin<T> Read();
+    }
+    
+    public interface ISingleSolenoidCylinder 
+    {
+        Fin<LUnit> Set(Level level);
+        Fin<Level> Get();
+    }
 
-    Fin<Unit> MoveAbs(double pos);
+    public interface IResolver<T>
+    {
+        Fin<T> Resolve(string name);
+    }
 
-    Fin<Unit> Stop();
+    // Specialized resolvers used in HardwareFacade
+    public interface IAxisResolver
+    {
+         Fin<(Machine.Framework.Devices.Motion.Abstractions.IMotionController<ushort, ushort, ushort> Controller, ushort Axis)> Resolve(string name);
+         Fin<ushort> ResolveOnPrimary(string name);
+    }
+
+    public interface IIoResolver 
+    {
+         Fin<IDigitalInput> ResolveDi(string name);
+         Fin<IDigitalOutput> ResolveDo(string name);
+    }
+
+    public interface ICylinderResolver 
+    {
+        Fin<ISingleSolenoidCylinder> Resolve(string name);
+    }
+
+    public interface IValueCoercer
+    {
+         Fin<T> Coerce<T>(object? raw);
+    }
 }
-
-public interface IDigitalInput
-{
-    string Name { get; }
-
-    /// <summary>
-    /// 读取数字量输入（Off/On）�?
-    /// 约定：高有效（On 表示有效）�?
-    /// </summary>
-    Fin<Level> Read();
-}
-
-public interface IDigitalOutput
-{
-    string Name { get; }
-
-    /// <summary>
-    /// 写数字量输出（Off/On）�?
-    /// </summary>
-    Fin<Unit> Write(Level level);
-}
-
-public interface ISensor<T>
-{
-    string Name { get; }
-
-    Fin<T> Read();
-}
-
-/// <summary>
-/// 传感器原始值来源（DI / 串口 / Modbus 等）�?
-/// </summary>
-public interface IRawSensor
-{
-    string Name { get; }
-
-    Fin<object?> ReadRaw();
-}
-
-/// <summary>
-/// 容错转换器：�?Raw 值转为业务类型�?
-/// </summary>
-public interface IValueCoercer
-{
-    Fin<T> Coerce<T>(object? raw);
-}
-
-public interface IResolver<T>
-{
-    Fin<T> Resolve(string logicalName);
-}
-
-public static class SensorExtensions
-{
-    /// <summary>
-    /// 高有效：On => true�?
-    /// </summary>
-    public static Fin<bool> ReadActive(this ISensor<Level> sensor) =>
-        sensor.Read().Map(l => l == Level.On);
-
-    /// <summary>
-    /// 高有效：On => true�?
-    /// </summary>
-    public static Fin<bool> ReadActive(this IDigitalInput input) =>
-        input.Read().Map(l => l == Level.On);
-}
-
-

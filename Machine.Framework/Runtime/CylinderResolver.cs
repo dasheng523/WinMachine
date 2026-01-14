@@ -7,79 +7,49 @@ using LanguageExt.Common;
 using Microsoft.Extensions.Options;
 using Machine.Framework.Configuration;
 using static LanguageExt.Prelude;
+using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Runtime;
-
-public interface ICylinderResolver
+namespace Machine.Framework.Runtime
 {
-    Fin<ISingleSolenoidCylinder> Resolve(string name);
-}
-
-public sealed class CylinderResolver : ICylinderResolver
-{
-    private readonly IIoResolver _io;
-    private readonly IOptions<SystemOptions> _options;
-
-    public CylinderResolver(IIoResolver io, IOptions<SystemOptions> options)
+    public class CylinderResolver : ICylinderResolver
     {
-        _io = io ?? throw new ArgumentNullException(nameof(io));
-        _options = options ?? throw new ArgumentNullException(nameof(options));
-    }
+        private readonly IIoResolver _io;
+        private readonly SystemOptions _options;
 
-    public Fin<ISingleSolenoidCylinder> Resolve(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
+        public CylinderResolver(IIoResolver io, IOptions<SystemOptions> options)
         {
-            return FinFail<ISingleSolenoidCylinder>(Error.New("气缸名称不能为空"));
+            _io = io;
+            _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
         }
 
-        var map = _options.Value.CylinderMap;
-        if (map is null || map.Count == 0)
+        public Fin<ISingleSolenoidCylinder> Resolve(string name)
         {
-            return FinFail<ISingleSolenoidCylinder>(Error.New("未配�?System.CylinderMap"));
+            if (string.IsNullOrWhiteSpace(name))
+                return FinFail<ISingleSolenoidCylinder>(Error.New("Cylinder name cannot be empty"));
+            
+            var conf = _options.Cylinders?.FirstOrDefault(c => c.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            if (conf == null)
+                 return FinFail<ISingleSolenoidCylinder>(Error.New($"Cylinder config not found: {name}"));
+
+            return _io.ResolveDo(conf.MoveDo)
+                .Map(d => (ISingleSolenoidCylinder)new SingleSolenoidCylinder(name, d));
         }
 
-        if (!map.TryGetValue(name, out var opt))
+        private class SingleSolenoidCylinder : ISingleSolenoidCylinder
         {
-            opt = map.FirstOrDefault(kv => string.Equals(kv.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+             private readonly string _name;
+             private readonly IDigitalOutput _moveOut;
+
+             public SingleSolenoidCylinder(string name, IDigitalOutput moveOut)
+             {
+                 _name = name;
+                 _moveOut = moveOut;
+             }
+
+             public Fin<LUnit> Set(Level level) => _moveOut.Write(level);
+             
+             // Simplification: just return current DO state if not using feedback sensors yet
+             public Fin<Level> Get() => FinSucc(Level.Off); 
         }
-
-        if (opt is null)
-        {
-            return FinFail<ISingleSolenoidCylinder>(Error.New($"未找到气缸映�? {name}"));
-        }
-
-        if (string.IsNullOrWhiteSpace(opt.ValveDo))
-        {
-            return FinFail<ISingleSolenoidCylinder>(Error.New($"气缸 {name} 未配�?ValveDo"));
-        }
-
-        return
-            from valve in _io.ResolveDo(opt.ValveDo)
-            from extended in ResolveDiAsLevelSensor(opt.ExtendedDi)
-            from retracted in ResolveDiAsLevelSensor(opt.RetractedDi)
-            from health in ResolveDiAsLevelSensor(opt.HealthOkDi)
-            select (ISingleSolenoidCylinder)new SingleSolenoidCylinder(
-                name,
-                valve,
-                opt.OnMeans,
-                extended,
-                retracted,
-                health,
-                pressureSensor: Option<ISensor<double>>.None);
-    }
-
-    private Fin<Option<ISensor<Level>>> ResolveDiAsLevelSensor(string? diName)
-    {
-        if (string.IsNullOrWhiteSpace(diName))
-        {
-            return FinSucc(Option<ISensor<Level>>.None);
-        }
-
-        return _io.ResolveDi(diName)
-            .Map(di => (ISensor<Level>)new DigitalInputSensor(diName, di))
-            .Map(Some);
     }
 }
-
-

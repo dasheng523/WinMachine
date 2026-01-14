@@ -1,3 +1,4 @@
+using System;
 using System.Net;
 using LanguageExt;
 using LanguageExt.Common;
@@ -15,7 +16,5 @@ public static class Validators
     public static Fin<Unit> IpFin(string ip) =>
         IPAddress.TryParse(ip, out _)
             ? FinSucc(unit)
-            : FinFail<Unit>(Error.New("IP 地址格式不正�?));
+            : FinFail<Unit>(Error.New("IP 地址格式不正确"));
 }
-
-

@@ -1,69 +1,48 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Machine.Framework.Core.Core;
-using Machine.Framework.Devices.Motion.Abstractions;
 using LanguageExt;
 using LanguageExt.Common;
+using Machine.Framework.Devices.Motion.Abstractions;
 using static LanguageExt.Prelude;
-using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Runtime;
-
-public record MotionBoard(string Name, IMotionController<ushort, ushort, ushort> Controller);
-
-public interface IMotionSystem : IDisposable
+namespace Machine.Framework.Runtime
 {
-    IReadOnlyList<MotionBoard> Boards { get; }
-
-    IMotionController<ushort, ushort, ushort> Primary { get; }
-
-    Fin<LUnit> Initialization();
-
-    Fin<IMotionController<ushort, ushort, ushort>> GetBoard(string name);
-}
-
-public sealed class MotionSystem : IMotionSystem
-{
-    public MotionSystem(IEnumerable<MotionBoard> boards)
+    public class MotionBoard
     {
-        Boards = boards?.ToList() ?? throw new ArgumentNullException(nameof(boards));
-        if (Boards.Count == 0)
-        {
-            throw new ArgumentException("MotionSystem 至少需要一块板�?, nameof(boards));
-        }
+        public string Name { get; set; }
+        public IMotionController<ushort, ushort, ushort> Controller { get; set; }
     }
 
-    public IReadOnlyList<MotionBoard> Boards { get; }
-
-    public IMotionController<ushort, ushort, ushort> Primary => Boards[0].Controller;
-
-    public Fin<LUnit> Initialization() =>
-        Boards.Traverse(b => b.Controller.Initialization());
-
-    public Fin<IMotionController<ushort, ushort, ushort>> GetBoard(string name)
+    public class MotionSystem : IMotionSystem
     {
-        if (string.IsNullOrWhiteSpace(name))
+        private readonly List<MotionBoard> _boards;
+
+        public MotionSystem(IEnumerable<MotionBoard> boards)
         {
-            return FinFail<IMotionController<ushort, ushort, ushort>>(Error.New("Board name 不能为空"));
+            _boards = boards?.ToList() ?? new List<MotionBoard>();
         }
 
-        var board = Boards.FirstOrDefault(b => string.Equals(b.Name, name, StringComparison.OrdinalIgnoreCase));
-        if (board is null)
+        public IMotionController<ushort, ushort, ushort> Primary => 
+            _boards.FirstOrDefault()?.Controller ?? throw new InvalidOperationException("No boards configured");
+
+        public Fin<IMotionController<ushort, ushort, ushort>> GetBoard(string name)
         {
-            return FinFail<IMotionController<ushort, ushort, ushort>>(Error.New($"未找到板�? {name}"));
+            if (string.IsNullOrWhiteSpace(name))
+                return FinFail<IMotionController<ushort, ushort, ushort>>(Error.New("Board name cannot be empty"));
+
+            var board = _boards.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+            return board != null
+                ? FinSucc(board.Controller)
+                : FinFail<IMotionController<ushort, ushort, ushort>>(Error.New($"Board '{name}' not found"));
         }
 
-        return FinSucc(board.Controller);
-    }
-
-    public void Dispose()
-    {
-        foreach (var board in Boards)
+        public void Dispose()
         {
-            board.Controller.Dispose();
+            foreach (var b in _boards)
+            {
+                b.Controller.Dispose();
+            }
         }
     }
 }
-
-
