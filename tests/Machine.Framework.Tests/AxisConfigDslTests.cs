@@ -208,7 +208,7 @@ namespace Machine.Framework.Tests
             // 验证多态鉴别器是否存在
             Assert.Contains("$type", json); 
 
-            var loaded = MachineConfig.FromJson(json);
+            var loaded = DslExtensions.FromJson(json);
             Assert.NotNull(loaded);
             Assert.Single(loaded.BoardConfigs);
             Assert.Single(loaded.DeviceConfigs);

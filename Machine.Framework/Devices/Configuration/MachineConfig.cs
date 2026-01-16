@@ -48,15 +48,5 @@ namespace Machine.Framework.Devices.Configuration
             return this;
         }
 
-        public string ToJson()
-        {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            return JsonSerializer.Serialize(this, options);
-        }
-
-        public static MachineConfig? FromJson(string json)
-        {
-            return JsonSerializer.Deserialize<MachineConfig>(json);
-        }
     }
 }
