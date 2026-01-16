@@ -3,6 +3,7 @@ trigger: always_on
 ---
 
 该项目使用 .net 10
+用户的编程环境是 windows
 使用中文
 要确保编译通过
 

@@ -382,7 +382,7 @@ namespace Machine.Framework.Devices.Configuration
     public class ZMotionConfig : BaseBoardConfig
     {
         public ZMotionModel ModelType { get; set; }
-        public string Ip { get; set; }
+        public string Ip { get; set; } = string.Empty;
         public Dictionary<Enum, int> AxisMappings { get; } = new Dictionary<Enum, int>();
 
         public ZMotionConfig(string name) : base(name) { }
@@ -409,7 +409,7 @@ namespace Machine.Framework.Devices.Configuration
     public class SerialConfig
     {
         public string Name { get; set; }
-        public string PortName { get; set; }
+        public string PortName { get; set; } = string.Empty;
         public int BaudRateVal { get; set; }
         public SerialProtocol ProtocolVal { get; set; }
         public Dictionary<Enum, int> FeatureMappings { get; } = new Dictionary<Enum, int>();
@@ -444,7 +444,7 @@ namespace Machine.Framework.Devices.Configuration
     public class TcpConfig
     {
         public string Name { get; set; }
-        public string IpVal { get; set; }
+        public string IpVal { get; set; } = string.Empty;
         public int PortVal { get; set; }
 
         public TcpConfig(string name) { Name = name; }
@@ -464,8 +464,8 @@ namespace Machine.Framework.Devices.Configuration
 
     public class BusConfig
     {
-        public string Name { get; set; }
-        public SerialConfig ProtocolConfig { get; set; }
+        public required string Name { get; set; }
+        public SerialConfig? ProtocolConfig { get; set; }
         public List<BusNodeConfig> Nodes { get; } = new List<BusNodeConfig>();
     }
 

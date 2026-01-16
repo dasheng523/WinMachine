@@ -92,7 +92,7 @@ namespace Machine.Framework.Tests
             Assert.NotNull(config);
             Assert.Equal(2, config.BoardConfigs.Count);
             Assert.Equal(2, config.DeviceConfigs.Count);
-            Assert.Equal(1, config.BusConfigs.Count);
+            Assert.Single(config.BusConfigs);
 
             // 验证详细属性
             var leadshine = config.BoardConfigs[0] as LeadshineConfig;

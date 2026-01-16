@@ -31,14 +31,17 @@ namespace Machine.Framework.Devices.Motion.Implementations.Simulator.Rendering
             this.UpdateStyles();
 
             var syncContext = SynchronizationContext.Current;
-            _subscription = _axis.StateStream
-                .Sample(TimeSpan.FromMilliseconds(33)) // ~30 FPS
-                .ObserveOn(syncContext ?? SynchronizationContext.Current)
-                .Subscribe(state => 
-                {
-                    _lastState = state;
-                    this.Invalidate(); 
-                });
+            if (syncContext != null)
+            {
+                _subscription = _axis.StateStream
+                    .Sample(TimeSpan.FromMilliseconds(33)) // ~30 FPS
+                    .ObserveOn(syncContext)
+                    .Subscribe(state => 
+                    {
+                        _lastState = state;
+                        this.Invalidate(); 
+                    });
+            }
         }
 
         protected override void OnPaint(PaintEventArgs e)

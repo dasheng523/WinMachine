@@ -43,9 +43,11 @@ namespace Machine.Framework.Devices.Motion.Implementations.Simulator.Visuals
             {
                 var syncContext = SynchronizationContext.Current;
                 
-                axis.StateStream
-                    .Sample(TimeSpan.FromMilliseconds(33))
-                    .ObserveOn(syncContext ?? SynchronizationContext.Current)
+                if (syncContext != null)
+                {
+                    axis.StateStream
+                        .Sample(TimeSpan.FromMilliseconds(33))
+                        .ObserveOn(syncContext)
                     .Subscribe(state =>
                     {
                         // 计算滑块在 Panel 内的像素位置
@@ -56,6 +58,7 @@ namespace Machine.Framework.Devices.Motion.Implementations.Simulator.Visuals
                             UpdateAttachmentPosition(att, pixelPos, panel, config.Direction);
                         }
                     });
+                }
             }
         }
 
@@ -150,7 +153,7 @@ namespace Machine.Framework.Devices.Motion.Implementations.Simulator.Visuals
 
     public class AttachmentConfig
     {
-        public Panel ChildPanel { get; set; }
+        public required Panel ChildPanel { get; set; }
         public int OffsetX { get; set; }
         public int OffsetY { get; set; }
 

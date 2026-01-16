@@ -12,25 +12,25 @@ namespace Machine.Framework.Configuration
 
     public class AxisConfig
     {
-        public string Name { get; set; }
-        public string Board { get; set; }
+        public required string Name { get; set; }
+        public required string Board { get; set; }
         public ushort Axis { get; set; }
     }
 
     public class IoRefOptions
     {
-         public string Name { get; set; }
-         public string Board { get; set; }
+         public required string Name { get; set; }
+         public required string Board { get; set; }
          public int Channel { get; set; }
          public bool IsOutput { get; set; }
     }
 
     public class CylinderConfig
     {
-        public string Name { get; set; }
-        public string MoveDo { get; set; }
-        public string ExtendedDi { get; set; }
-        public string RetractedDi { get; set; }
+        public required string Name { get; set; }
+        public required string MoveDo { get; set; }
+        public required string ExtendedDi { get; set; }
+        public required string RetractedDi { get; set; }
         public int MoveTime { get; set; } = 1000;
     }
 }

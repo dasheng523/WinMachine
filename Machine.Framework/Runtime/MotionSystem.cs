@@ -10,8 +10,8 @@ namespace Machine.Framework.Runtime
 {
     public class MotionBoard
     {
-        public string Name { get; set; }
-        public IMotionController<ushort, ushort, ushort> Controller { get; set; }
+        public required string Name { get; set; }
+        public required IMotionController<ushort, ushort, ushort> Controller { get; set; }
     }
 
     public class MotionSystem : IMotionSystem

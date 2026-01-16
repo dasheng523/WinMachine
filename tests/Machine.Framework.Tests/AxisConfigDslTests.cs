@@ -99,7 +99,9 @@ namespace Machine.Framework.Tests
             var l1Config = leadshine.AxisConfigs[Axis_B.L1];
             Assert.Equal(PulseOutputMode.PulseDir_High_PosLow, l1Config.PulseOutput); // 1
             Assert.Equal(EncoderInputMode.AbPhase_4x, l1Config.EncoderInput); // 3
+            Assert.NotNull(l1Config.Homing);
             Assert.Equal(HomeMode.Twice, l1Config.Homing.ModeVal); // 2
+            Assert.NotNull(l1Config.HardLimits);
             Assert.Equal(ActiveLevel.High, l1Config.HardLimits.LogicLevel); // 1
             Assert.Equal(StopAction.Immediate, l1Config.HardLimits.StopActionVal); // 0
         }
