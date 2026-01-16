@@ -132,7 +132,7 @@ namespace Machine.Framework.Devices.Motion.Implementations.Simulator.Visuals
             return this;
         }
 
-        public AxisVisualConfig AttachChild(Panel child, Action<AttachmentConfig> attachAction = null)
+        public AxisVisualConfig AttachChild(Panel child, Action<AttachmentConfig>? attachAction = null)
         {
             var att = new AttachmentConfig { ChildPanel = child };
             attachAction?.Invoke(att);
