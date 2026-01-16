@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xunit;
+using Machine.Framework.Configuration;
 using Machine.Framework.Configuration.Models;
 
 // 命名空间调整为 Tests

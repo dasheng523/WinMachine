@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Machine.Framework.Core.Flow
+namespace Machine.Framework.Flow.Models
 {
     // ----------------------------------------------------------------
     // 1. 核心定义 (AST - Abstract Syntax Tree)

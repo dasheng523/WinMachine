@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using Xunit;
-using Machine.Framework.Core.Flow;
-using static Machine.Framework.Core.Flow.FlowBuilders;
-using static Machine.Framework.Core.Flow.Step;
+using Machine.Framework.Flow.Models;
+using static Machine.Framework.Flow.Models.FlowBuilders;
+using static Machine.Framework.Flow.Models.Step;
 
 namespace Machine.Framework.Tests
 {
@@ -109,6 +109,7 @@ namespace Machine.Framework.Tests
             // 由于 SelectMany 是左结合的，最外层的 Sequence 的 First 实际上包含了前面的所有步骤。
             // 它是 ((Name -> Fire) -> Read) -> Branch
             
+            Assert.NotNull(seq);
             Assert.NotNull(seq.First);
             // 只要确认 NextFactory 存在，就证明了 Lambda (包含 if/else 逻辑) 被正确捕获了
             Assert.NotNull(seq.NextFactory);

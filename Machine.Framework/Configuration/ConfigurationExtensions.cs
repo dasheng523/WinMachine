@@ -2,10 +2,10 @@ using System;
 using Machine.Framework.Configuration.Models;
 using Machine.Framework.Configuration.Interpreters;
 
-namespace Machine.Framework
+namespace Machine.Framework.Configuration
 {
-    // 这个文件位于更上层，可以同时看到 Config 和 Interpreters
-    public static class DslExtensions
+    // 这个文件位于 Configuration 模块根目录，作为便捷扩展入口
+    public static class ConfigurationExtensions
     {
         public static string ToJson(this MachineConfig config, bool indented = true)
         {

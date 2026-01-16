@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Machine.Framework.Configuration;
 using Machine.Framework.Configuration.Models;
 using Xunit;
 using Assert = Xunit.Assert;
@@ -208,7 +209,7 @@ namespace Machine.Framework.Tests
             // 验证多态鉴别器是否存在
             Assert.Contains("$type", json); 
 
-            var loaded = DslExtensions.FromJson(json);
+            var loaded = ConfigurationExtensions.FromJson(json);
             Assert.NotNull(loaded);
             Assert.Single(loaded.BoardConfigs);
             Assert.Single(loaded.DeviceConfigs);
