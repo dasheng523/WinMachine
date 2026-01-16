@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 
 namespace Machine.Framework.Devices.Configuration
 {
     public class MachineConfig
     {
-        public List<object> BoardConfigs { get; private set; } = new List<object>();
-        public List<object> DeviceConfigs { get; private set; } = new List<object>();
-        public List<object> BusConfigs { get; private set; } = new List<object>();
+        public List<BaseBoardConfig> BoardConfigs { get; set; } = new List<BaseBoardConfig>();
+        public List<BaseDeviceConfig> DeviceConfigs { get; set; } = new List<BaseDeviceConfig>();
+        public List<BusConfig> BusConfigs { get; set; } = new List<BusConfig>();
 
         public static MachineConfig Create()
         {
@@ -45,6 +46,17 @@ namespace Machine.Framework.Devices.Configuration
                 BusConfigs.Add(builder.Config);
             }
             return this;
+        }
+
+        public string ToJson()
+        {
+            var options = new JsonSerializerOptions { WriteIndented = true };
+            return JsonSerializer.Serialize(this, options);
+        }
+
+        public static MachineConfig? FromJson(string json)
+        {
+            return JsonSerializer.Deserialize<MachineConfig>(json);
         }
     }
 }

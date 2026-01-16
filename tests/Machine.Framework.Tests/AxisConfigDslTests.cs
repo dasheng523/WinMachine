@@ -96,7 +96,7 @@ namespace Machine.Framework.Tests
             Assert.NotNull(leadshine);
             
             // 验证 L1 的配置
-            var l1Config = leadshine.AxisConfigs[Axis_B.L1];
+            var l1Config = leadshine.AxisConfigs[Axis_B.L1.ToString()];
             Assert.Equal(PulseOutputMode.PulseDir_High_PosLow, l1Config.PulseOutput); // 1
             Assert.Equal(EncoderInputMode.AbPhase_4x, l1Config.EncoderInput); // 3
             Assert.NotNull(l1Config.Homing);
@@ -186,6 +186,47 @@ namespace Machine.Framework.Tests
                 .SetPulseOutput(PulseOutputMode.PulseDir_Low_PosLow) // User: 3
                 .SetEquivalency(1000)
                 .SetEncInput(EncoderInputMode.AbPhase_4x);
+        }
+
+        [Fact]
+        public void Verify_DSL_Serialization()
+        {
+            // 验证 DSL -> JSON -> DSL 的无损还原
+            var config = MachineConfig.Create()
+                .AddControlBoard("MotionA", b => b
+                    .UseLeadshine(l => l
+                        .Model(LeadshineModel.DMC3000)
+                        .ConfigAxis(TestSystemAxis.X, a => a.SetPulseOutput(PulseOutputMode.PulseDir_High_PosHigh))
+                    )
+                )
+                .AddDevice("Serial1", d => d
+                    .UseSerialDevice(s => s.Port("COM1").BaudRate(9600))
+                );
+
+            string json = config.ToJson();
+            Assert.False(string.IsNullOrWhiteSpace(json));
+            // 验证多态鉴别器是否存在
+            Assert.Contains("$type", json); 
+
+            var loaded = MachineConfig.FromJson(json);
+            Assert.NotNull(loaded);
+            Assert.Single(loaded.BoardConfigs);
+            Assert.Single(loaded.DeviceConfigs);
+
+            var board = loaded.BoardConfigs[0] as LeadshineConfig;
+            Assert.NotNull(board);
+            Assert.Equal("MotionA", board.Name);
+            Assert.Equal(LeadshineModel.DMC3000, board.ModelType);
+            
+            // 验证字典键是否正确序列化为字符串
+            Assert.True(board.AxisConfigs.ContainsKey(TestSystemAxis.X.ToString()));
+            var axis = board.AxisConfigs[TestSystemAxis.X.ToString()];
+            Assert.Equal(PulseOutputMode.PulseDir_High_PosHigh, axis.PulseOutput);
+
+            var device = loaded.DeviceConfigs[0] as SerialConfig;
+            Assert.NotNull(device);
+            Assert.Equal("Serial1", device.Name);
+            Assert.Equal("COM1", device.PortName);
         }
 
         public enum TestSystemAxis { X, Y1, Z1, Z2, Y2 }

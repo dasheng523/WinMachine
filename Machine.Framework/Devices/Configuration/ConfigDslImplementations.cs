@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace Machine.Framework.Devices.Configuration
 {
@@ -10,7 +11,7 @@ namespace Machine.Framework.Devices.Configuration
     public class BoardBuilder
     {
         public string Name { get; }
-        public object? Config { get; private set; }
+        public BaseBoardConfig? Config { get; private set; }
 
         public BoardBuilder(string name)
         {
@@ -37,7 +38,7 @@ namespace Machine.Framework.Devices.Configuration
     public class DeviceBuilder
     {
         public string Name { get; }
-        public object? Config { get; private set; }
+        public BaseDeviceConfig? Config { get; private set; }
 
         public DeviceBuilder(string name)
         {
@@ -93,10 +94,22 @@ namespace Machine.Framework.Devices.Configuration
     // Configuration Models
     // =========================================================================================
 
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [JsonDerivedType(typeof(LeadshineConfig), typeDiscriminator: "Leadshine")]
+    [JsonDerivedType(typeof(ZMotionConfig), typeDiscriminator: "ZMotion")]
     public class BaseBoardConfig
     {
         public string Name { get; set; }
         public BaseBoardConfig(string name) { Name = name; }
+    }
+
+    [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
+    [JsonDerivedType(typeof(SerialConfig), typeDiscriminator: "Serial")]
+    [JsonDerivedType(typeof(TcpConfig), typeDiscriminator: "Tcp")]
+    public abstract class BaseDeviceConfig
+    {
+        public string Name { get; set; }
+        protected BaseDeviceConfig(string name) { Name = name; }
     }
 
     public class LeadshineConfig : BaseBoardConfig
@@ -104,10 +117,10 @@ namespace Machine.Framework.Devices.Configuration
         public LeadshineModel ModelType { get; set; }
         public int BoardId { get; set; }
         public PulseOutputMode PulseModeVal { get; set; }
-        public Dictionary<Enum, int> AxisMappings { get; } = new Dictionary<Enum, int>();
-        public Dictionary<Enum, int> InputMappings { get; } = new Dictionary<Enum, int>();
-        public Dictionary<Enum, int> OutputMappings { get; } = new Dictionary<Enum, int>();
-        public Dictionary<Enum, AxisConfig> AxisConfigs { get; } = new Dictionary<Enum, AxisConfig>();
+        public Dictionary<string, int> AxisMappings { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> InputMappings { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, int> OutputMappings { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, AxisConfig> AxisConfigs { get; set; } = new Dictionary<string, AxisConfig>();
 
         public LeadshineConfig(string name) : base(name) { }
 
@@ -131,19 +144,19 @@ namespace Machine.Framework.Devices.Configuration
 
         public LeadshineConfig MapAxis(Enum axis, int physicalIndex)
         {
-            AxisMappings[axis] = physicalIndex;
+            AxisMappings[axis.ToString()] = physicalIndex;
             return this;
         }
 
         public LeadshineConfig MapInput(Enum di, int port)
         {
-            InputMappings[di] = port;
+            InputMappings[di.ToString()] = port;
             return this;
         }
 
         public LeadshineConfig MapOutput(Enum doo, int port)
         {
-            OutputMappings[doo] = port;
+            OutputMappings[doo.ToString()] = port;
             return this;
         }
 
@@ -151,7 +164,7 @@ namespace Machine.Framework.Devices.Configuration
         {
             var builder = new AxisConfigBuilder();
             configure(builder);
-            AxisConfigs[axis] = builder.Build();
+            AxisConfigs[axis.ToString()] = builder.Build();
             return this;
         }
     }
@@ -383,7 +396,7 @@ namespace Machine.Framework.Devices.Configuration
     {
         public ZMotionModel ModelType { get; set; }
         public string Ip { get; set; } = string.Empty;
-        public Dictionary<Enum, int> AxisMappings { get; } = new Dictionary<Enum, int>();
+        public Dictionary<string, int> AxisMappings { get; set; } = new Dictionary<string, int>();
 
         public ZMotionConfig(string name) : base(name) { }
 
@@ -401,20 +414,20 @@ namespace Machine.Framework.Devices.Configuration
 
         public ZMotionConfig SelectAxis(Enum axis, int physicalIndex)
         {
-            AxisMappings[axis] = physicalIndex;
+            AxisMappings[axis.ToString()] = physicalIndex;
             return this;
         }
     }
 
-    public class SerialConfig
+    public class SerialConfig : BaseDeviceConfig
     {
-        public string Name { get; set; }
+        // Name is in BaseDeviceConfig
         public string PortName { get; set; } = string.Empty;
         public int BaudRateVal { get; set; }
         public SerialProtocol ProtocolVal { get; set; }
-        public Dictionary<Enum, int> FeatureMappings { get; } = new Dictionary<Enum, int>();
+        public Dictionary<string, int> FeatureMappings { get; set; } = new Dictionary<string, int>();
 
-        public SerialConfig(string name) { Name = name; }
+        public SerialConfig(string name) : base(name) { }
 
         public SerialConfig Port(string port)
         {
@@ -436,18 +449,18 @@ namespace Machine.Framework.Devices.Configuration
 
         public SerialConfig MapFeature(Enum feature, int registerAddress)
         {
-            FeatureMappings[feature] = registerAddress;
+            FeatureMappings[feature.ToString()] = registerAddress;
             return this;
         }
     }
 
-    public class TcpConfig
+    public class TcpConfig : BaseDeviceConfig
     {
-        public string Name { get; set; }
+        // Name is in BaseDeviceConfig
         public string IpVal { get; set; } = string.Empty;
         public int PortVal { get; set; }
 
-        public TcpConfig(string name) { Name = name; }
+        public TcpConfig(string name) : base(name) { }
 
         public TcpConfig Ip(string ip)
         {
@@ -473,7 +486,7 @@ namespace Machine.Framework.Devices.Configuration
     {
         public string Name { get; set; }
         public int StationIdVal { get; set; }
-        public Dictionary<Enum, int> FeatureMappings { get; } = new Dictionary<Enum, int>();
+        public Dictionary<string, int> FeatureMappings { get; set; } = new Dictionary<string, int>();
 
         public BusNodeConfig(string name) { Name = name; }
 
@@ -485,7 +498,7 @@ namespace Machine.Framework.Devices.Configuration
 
         public BusNodeConfig MapFeature(Enum feature, int registerAddress)
         {
-            FeatureMappings[feature] = registerAddress;
+            FeatureMappings[feature.ToString()] = registerAddress;
             return this;
         }
     }
