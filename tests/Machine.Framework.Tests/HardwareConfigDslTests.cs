@@ -22,7 +22,7 @@ namespace Machine.Framework.Tests
                     .UseLeadshine(c => c
                         .Model(LeadshineModel.DMC3000)
                         .CardId(0)
-                        .PulseMode(PulseMode.PulseDir)
+                        .PulseMode(PulseOutputMode.PulseDir_High_PosHigh)
 
                         // --- 资源映射 (Mapping) ---
                         .MapAxis(SystemAxis.X, physicalIndex: 0)
@@ -37,7 +37,7 @@ namespace Machine.Framework.Tests
                 // --- 板卡 2: 辅助板卡 (正运动) ---
                 .AddControlBoard("AuxMotion", board => board
                     .UseZMotion(c => c
-                        .Model(ZMotionModel.ZMC406)
+                        .Model(ZMotionModel.ZMC432)
                         .IpAddress("192.168.0.11")
                         .SelectAxis(SystemAxis.Y1, physicalIndex: 0)
                     )
