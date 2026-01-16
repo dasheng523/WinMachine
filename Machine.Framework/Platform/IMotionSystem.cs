@@ -2,7 +2,7 @@ using System;
 using LanguageExt;
 using Machine.Framework.Devices.Motion.Abstractions;
 
-namespace Machine.Framework.Runtime
+namespace Machine.Framework.Platform
 {
     public interface IMotionSystem : IDisposable
     {

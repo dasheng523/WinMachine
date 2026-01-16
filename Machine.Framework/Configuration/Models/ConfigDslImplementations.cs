@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace Machine.Framework.Core.Configuration
+namespace Machine.Framework.Configuration.Models
 {
     // =========================================================================================
     // Builders

@@ -5,11 +5,11 @@ using Machine.Framework.Core.Hardware;
 using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.Extensions.Options;
-using Machine.Framework.Core.Configuration;
+using Machine.Framework.Configuration.Models;
 using static LanguageExt.Prelude;
 using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Runtime
+namespace Machine.Framework.Platform
 {
     public class CylinderResolver : ICylinderResolver
     {

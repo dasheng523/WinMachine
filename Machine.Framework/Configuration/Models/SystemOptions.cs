@@ -1,7 +1,7 @@
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
-namespace Machine.Framework.Core.Configuration
+namespace Machine.Framework.Configuration.Models
 {
     public class SystemOptions
     {

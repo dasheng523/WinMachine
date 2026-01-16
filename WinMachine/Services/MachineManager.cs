@@ -1,5 +1,5 @@
-using Machine.Framework.Core.Configuration;
-using Machine.Framework.Runtime;
+using Machine.Framework.Configuration.Models;
+using Machine.Framework.Platform;
 using System;
 using Machine.Framework.Devices.Motion.Abstractions;
 using LanguageExt;

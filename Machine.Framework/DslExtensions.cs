@@ -1,6 +1,6 @@
 using System;
-using Machine.Framework.Core.Configuration;
-using Machine.Framework.Interpreters;
+using Machine.Framework.Configuration.Models;
+using Machine.Framework.Configuration.Interpreters;
 
 namespace Machine.Framework
 {

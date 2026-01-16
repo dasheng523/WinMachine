@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
-namespace Machine.Framework.Core.Configuration
+namespace Machine.Framework.Configuration.Models
 {
     public class MachineConfig
     {

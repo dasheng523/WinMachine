@@ -1,7 +1,7 @@
 using System;
-using Machine.Framework.Core.Configuration;
+using Machine.Framework.Configuration.Models;
 
-namespace Machine.Framework.Core.Configuration
+namespace Machine.Framework.Configuration
 {
     /// <summary>
     /// DSL 解释器契约

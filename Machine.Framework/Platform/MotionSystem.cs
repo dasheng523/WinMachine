@@ -6,7 +6,7 @@ using LanguageExt.Common;
 using Machine.Framework.Devices.Motion.Abstractions;
 using static LanguageExt.Prelude;
 
-namespace Machine.Framework.Runtime
+namespace Machine.Framework.Platform
 {
     public class MotionBoard
     {

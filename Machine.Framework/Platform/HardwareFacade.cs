@@ -6,7 +6,7 @@ using static LanguageExt.Prelude;
 using Machine.Framework.Devices.Motion.Abstractions;
 using LUnit = LanguageExt.Unit;
 
-namespace Machine.Framework.Runtime
+namespace Machine.Framework.Platform
 {
     public interface IHardware
     {

@@ -1,4 +1,4 @@
-namespace Machine.Framework.Core.Configuration
+namespace Machine.Framework.Configuration.Models
 {
     // ===========================================
     // Universal / DSL Enums (Vendor Agnostic)

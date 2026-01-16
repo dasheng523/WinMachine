@@ -7,7 +7,7 @@ using Machine.Framework.Devices.Sensors.Serial;
 using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.Extensions.Options;
-using Machine.Framework.Core.Configuration;
+using Machine.Framework.Configuration.Models;
 using static LanguageExt.Prelude;
 
 namespace WinMachine.Services
