@@ -1,5 +1,5 @@
 using System;
-using Machine.Framework.Devices.Configuration;
+using Machine.Framework.Core.Configuration;
 using Machine.Framework.Interpreters;
 
 namespace Machine.Framework

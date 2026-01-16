@@ -1,6 +1,6 @@
 using Machine.Framework.Devices.Motion.Abstractions;
 
-namespace Machine.Framework.Configuration
+namespace Machine.Framework.Core.Configuration
 {
     public sealed class SingleStepOptions
     {

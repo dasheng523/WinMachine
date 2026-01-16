@@ -1,7 +1,6 @@
 using System;
 using System.Text.Json;
-using Machine.Framework.Core;
-using Machine.Framework.Devices.Configuration;
+using Machine.Framework.Core.Configuration;
 
 namespace Machine.Framework.Interpreters
 {

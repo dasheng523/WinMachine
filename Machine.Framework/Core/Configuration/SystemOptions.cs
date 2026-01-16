@@ -1,16 +1,16 @@
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 
-namespace Machine.Framework.Configuration
+namespace Machine.Framework.Core.Configuration
 {
     public class SystemOptions
     {
-        public List<AxisConfig> Axes { get; set; } = [];
+        public List<AxisRefOptions> Axes { get; set; } = [];
         public List<IoRefOptions> Ios { get; set; } = [];
         public List<CylinderConfig> Cylinders { get; set; } = [];
     }
 
-    public class AxisConfig
+    public class AxisRefOptions
     {
         public required string Name { get; set; }
         public required string Board { get; set; }

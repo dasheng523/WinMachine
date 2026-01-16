@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Xunit;
-using Machine.Framework.Devices.Configuration;
+using Machine.Framework.Core.Configuration;
 
 // 命名空间调整为 Tests
 namespace Machine.Framework.Tests

@@ -6,7 +6,7 @@ using Machine.Framework.Devices.Motion.Abstractions;
 using LanguageExt;
 using LanguageExt.Common;
 using Microsoft.Extensions.Options;
-using Machine.Framework.Configuration;
+using Machine.Framework.Core.Configuration;
 using static LanguageExt.Prelude;
 using LUnit = LanguageExt.Unit;
 
