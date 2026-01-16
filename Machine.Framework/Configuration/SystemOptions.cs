@@ -5,9 +5,9 @@ namespace Machine.Framework.Configuration
 {
     public class SystemOptions
     {
-        public List<AxisConfig> Axes { get; set; } = new();
-        public List<IoRefOptions> Ios { get; set; } = new();
-        public List<CylinderConfig> Cylinders { get; set; } = new();
+        public List<AxisConfig> Axes { get; set; } = [];
+        public List<IoRefOptions> Ios { get; set; } = [];
+        public List<CylinderConfig> Cylinders { get; set; } = [];
     }
 
     public class AxisConfig
