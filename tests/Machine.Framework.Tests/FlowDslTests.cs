@@ -5,6 +5,8 @@ using Machine.Framework.Core.Flow.Dsl;
 using Machine.Framework.Core.Flow.Steps;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 using static Machine.Framework.Core.Flow.Dsl.Step;
+using Machine.Framework.Interpreters.Flow;
+using System.Threading.Tasks;
 
 namespace Machine.Framework.Tests
 {
@@ -124,6 +126,53 @@ namespace Machine.Framework.Tests
             // 我们无法在这里完整模拟运行时值传递，因为那需要真正的 Monad 绑定。
             // 但我们可以断言 NextFactory 存在，代表 Lambda 被正确封装。
             Assert.NotNull(seq.NextFactory);
+        }
+
+        [Fact]
+        public async Task Test_SimpleLogInterpreter_Execution()
+        {
+            // 1. 定义流程
+            var flow = 
+                from start in Name("开始测试")
+                from val in Sensor("Pressure1").ReadAnalog()
+                from result in val > 50.0 
+                    ? Motion("Z1").MoveTo(0).Select(_ => "OK")
+                    : Motion("Z1").MoveTo(-10).Select(_ => "NG")
+                select result;
+
+            // 2. 运行解释器
+            var interpreter = new SimpleLogInterpreter();
+            var finalResult = await interpreter.RunAsync(flow.Definition);
+
+            // 3. 验证结果 (SimpleLogInterpreter 中的 ReadAnalog 模拟返回 55.5)
+            Assert.Equal("OK", finalResult);
+        }
+
+        [Fact]
+        public async Task Test_Complex_Flow_With_Branching_And_Scope()
+        {
+            // 1. 定义一个可复用的子流程逻辑
+            Func<string, Step<bool>> CheckSensor = (id) =>
+                from val in Sensor(id).ReadAnalog()
+                select val > 50.0;
+
+            // 2. 主流程
+            var mainFlow = 
+                from _ in Name("主流程开始")
+                // 使用子流程
+                from isOk in Scope("子流程：传感器检查", CheckSensor("Sensor1"))
+                // 根据子流程结果分支
+                from status in isOk 
+                    ? Motion("X").MoveTo(100).Select(_ => "COMPLETED")
+                    : Step.Throw<string>("传感器数值异常")
+                select status;
+
+            // 3. 运行
+            var interpreter = new SimpleLogInterpreter();
+            var result = await interpreter.RunAsync(mainFlow.Definition);
+            
+            // 4. 断言
+            Assert.Equal("COMPLETED", result);
         }
     }
 }

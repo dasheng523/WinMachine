@@ -59,7 +59,15 @@ namespace Machine.Framework.Core.Flow.Dsl
     public class SequenceStepDesc : StepDesc
     {
         public required StepDesc First { get; set; }
-        public required Func<object, StepDesc> NextFactory { get; set; } // 惰性构造下一不
+        public required Func<object, StepDesc> NextFactory { get; set; }
+        public required Func<object, object, object> ResultSelector { get; set; }
+    }
+
+    // 映射操作 (由 Select 产生)
+    public class MapStepDesc : StepDesc
+    {
+        public required StepDesc Source { get; set; }
+        public required Func<object, object> Mapper { get; set; }
     }
 
     // ----------------------------------------------------------------
@@ -168,21 +176,14 @@ namespace Machine.Framework.Core.Flow.Dsl
             {
                 Name = "Sequence",
                 First = source.Definition,
-                // 下面这个 Lambda 在 Config 阶段无法被完全展开，
-                // 除非我们提供一个 Mock 上下文。
-                // *这是解释器模式的关键*：Definition 本身可能包含 Lambda。
                 NextFactory = (obj) => 
                 {
                     var typedObj = (TSource)obj;
                     var nextStep = collectionSelector(typedObj);
                     return nextStep.Definition; 
-                }
+                },
+                ResultSelector = (s, c) => resultSelector((TSource)s, (TCollection)c)
             };
-            
-            // 对于结果选择器，我们也需要封装。
-            // 但为了简化 DSL AST，我们暂时返回 nextStep 的类型作为 Step<TResult>
-            // 实际上 ResultSelector 的结果通常只影响返回值，不影响副作用。
-            // 这是一个简化实现，用于演示结构。
             
             return new Step<TResult>(seq);
         }
@@ -192,10 +193,13 @@ namespace Machine.Framework.Core.Flow.Dsl
             this Step<TSource> source,
             Func<TSource, TResult> selector)
         {
-            // Select 在步骤流中通常意味着映射结果，不产生新步骤
-            // 我们可以包装一个 MapStepDesc，或者忽略它（如果结果不重要）
-            // 为了演示，直接返回包装。
-            return new Step<TResult>(source.Definition); 
+            var map = new MapStepDesc
+            {
+                Name = "Map",
+                Source = source.Definition,
+                Mapper = (obj) => selector((TSource)obj)
+            };
+            return new Step<TResult>(map); 
         }
     }
 }
