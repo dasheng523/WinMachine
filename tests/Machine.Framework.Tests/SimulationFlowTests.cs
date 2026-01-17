@@ -162,6 +162,44 @@ namespace Machine.Framework.Tests
             Assert.Equal(5.5, (double)result!);
         }
 
+        [Fact]
+        public async Task Test_Blueprint_Driven_Flow_Z1_Linkage()
+        {
+            // 1. 获取物理蓝图 (定义已移至专门的场景类中，避免 LINQ 冲突)
+            var blueprint = BlueprintScenarios.WinMachineWithDifferentialZ1();
+
+            // 2. 转换逻辑外部化
+            var config = BlueprintInterpreter.ToConfig(blueprint);
+            var context = new FlowContext(config);
+            var interpreter = new SimulationFlowInterpreter();
+
+            // 3. 执行业务流
+            var flow = from _ in Name("移动Z1").Next(Motion("Z1_Axis").MoveToAndWait(10.0))
+                       select new Unit();
+
+            await interpreter.RunAsync(flow.Definition, context);
+
+            // 4. 物理验证
+            Assert.Equal(10.0, context.GetDevice<SimulatorAxis>("Z1_Axis").CurrentState.Position);
+        }
+
+        [Fact]
+        public async Task Test_Blueprint_Driven_Flow_Cylinder_Safety()
+        {
+            var blueprint = BlueprintScenarios.SimpleCylinderWithFeedback();
+
+            var config = BlueprintInterpreter.ToConfig(blueprint);
+            var context = new FlowContext(config);
+            var interpreter = new SimulationFlowInterpreter();
+
+            var flow = from _ in Name("夹紧").Next(Cylinder("Clamp").FireAndWait(true))
+                       select new Unit();
+
+            await interpreter.RunAsync(flow.Definition, context);
+
+            Assert.NotNull(context.GetDevice<CylinderConfig>("Clamp"));
+        }
+
         public enum TestSide { Left, Right }
         private enum MyAxis { X, Y, Z, Rotate }
     }
