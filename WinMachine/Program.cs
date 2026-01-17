@@ -1,6 +1,6 @@
 using System;
 using System.Windows.Forms;
-using Machine.Framework.Devices.Motion.Implementations.Simulator;
+using Machine.Framework.Devices.Implementations.Simulator;
 
 namespace WinMachine;
 

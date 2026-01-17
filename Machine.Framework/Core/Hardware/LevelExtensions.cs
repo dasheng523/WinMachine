@@ -1,4 +1,4 @@
-using Machine.Framework.Core.Core;
+using Machine.Framework.Core.Primitives;
 
 namespace Machine.Framework.Core.Hardware;
 

@@ -2,7 +2,7 @@ using System;
 using LanguageExt;
 using LanguageExt.Common;
 using static LanguageExt.Prelude;
-using Machine.Framework.Core.Hardware;
+using Machine.Framework.Core.Hardware.Interfaces;
 
 namespace Machine.Framework.Core.Hardware
 {

@@ -1,5 +1,6 @@
 using LanguageExt;
-using Machine.Framework.Core.Core;
+using Machine.Framework.Core.Primitives;
+using Machine.Framework.Core.Hardware.Interfaces;
 using static LanguageExt.Prelude;
 
 namespace Machine.Framework.Core.Hardware

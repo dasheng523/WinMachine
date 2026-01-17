@@ -1,4 +1,5 @@
-using Machine.Framework.Devices.Motion.Abstractions;
+using Machine.Framework.Core.Hardware.Interfaces;
+using Machine.Framework.Core.Hardware.Models;
 
 namespace Machine.Framework.Core.Configuration.Models
 {

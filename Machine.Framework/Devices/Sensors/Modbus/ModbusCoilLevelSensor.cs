@@ -1,6 +1,7 @@
 using System;
-using Machine.Framework.Core.Core;
+using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Hardware;
+using Machine.Framework.Core.Hardware.Interfaces;
 using Machine.Framework.Devices.Sensors.Core;
 using Machine.Framework.Devices.Sensors.Runners;
 using LanguageExt;

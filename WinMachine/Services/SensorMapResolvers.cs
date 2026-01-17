@@ -1,7 +1,8 @@
 using System;
 using System.Linq;
-using Machine.Framework.Core.Core;
+using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Hardware;
+using Machine.Framework.Core.Hardware.Interfaces;
 using Machine.Framework.Devices.Sensors.Modbus;
 using Machine.Framework.Devices.Sensors.Serial;
 using LanguageExt;

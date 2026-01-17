@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Machine.Framework.Core.Configuration;
 using Machine.Framework.Core.Configuration.Models;
+using Machine.Framework.Interpreters.Configuration;
 using Xunit;
 using Assert = Xunit.Assert;
 

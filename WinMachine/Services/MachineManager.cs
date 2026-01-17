@@ -1,7 +1,8 @@
 using Machine.Framework.Core.Configuration.Models;
-using Machine.Framework.Platform;
+using Machine.Framework.Interpreters.Resolvers;
 using System;
-using Machine.Framework.Devices.Motion.Abstractions;
+using Machine.Framework.Core.Hardware.Interfaces;
+using Machine.Framework.Core.Hardware.Models;
 using LanguageExt;
 using static LanguageExt.Prelude;
 

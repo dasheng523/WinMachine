@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Machine.Framework.Core.Flow.Models;
+using Machine.Framework.Core.Flow.Dsl;
 using LanguageExt;
 
 namespace Machine.Framework.Core.Flow
