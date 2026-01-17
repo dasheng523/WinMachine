@@ -155,4 +155,57 @@ namespace Machine.Framework.Core.Simulation
             return new object(); // SimulationRuntime
         }
     }
+
+    // --- 视觉绑定与踪迹流相关的契约 ---
+
+    public enum StepStatus { Ready, Running, Completed, Error }
+
+    public record ActiveStepUpdate(string TargetDevice, string Name, StepStatus Status);
+
+    /// <summary>
+    /// 可视化流程解释器，支持 Rx.NET 踪迹流
+    /// </summary>
+    public interface IVisualFlowInterpreter : Machine.Framework.Core.Flow.IFlowInterpreter
+    {
+        IObservable<ActiveStepUpdate> TraceStream { get; }
+    }
+
+    /// <summary>
+    /// UI 绑定器 DSL 接口
+    /// </summary>
+    public interface IUIVisualizer
+    {
+        IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter);
+        IUIVisualizer AutoHighlight(object panel, string deviceId);
+        IBindingBuilder Bind(object panel);
+    }
+
+    public interface IBindingBuilder
+    {
+        IBindingBuilder ToAxis(string axisId);
+        IBindingBuilder Vertical();
+        IBindingBuilder Horizontal();
+        IBindingBuilder Map(Func<double, object> mapper);
+    }
+
+    public static class UI
+    {
+        public static IUIVisualizer Link(object form) => new StubUIVisualizer();
+    }
+
+    // --- Stub 实现 ---
+    internal class StubUIVisualizer : IUIVisualizer
+    {
+        public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter) => this;
+        public IUIVisualizer AutoHighlight(object panel, string deviceId) => this;
+        public IBindingBuilder Bind(object panel) => new StubBindingBuilder();
+    }
+
+    internal class StubBindingBuilder : IBindingBuilder
+    {
+        public IBindingBuilder ToAxis(string axisId) => this;
+        public IBindingBuilder Vertical() => this;
+        public IBindingBuilder Horizontal() => this;
+        public IBindingBuilder Map(Func<double, object> mapper) => this;
+    }
 }
