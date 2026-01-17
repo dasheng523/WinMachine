@@ -25,12 +25,4 @@ namespace Machine.Framework.Core.Configuration.Models
          public bool IsOutput { get; set; }
     }
 
-    public class CylinderConfig
-    {
-        public required string Name { get; set; }
-        public required string MoveDo { get; set; }
-        public required string ExtendedDi { get; set; }
-        public required string RetractedDi { get; set; }
-        public int MoveTime { get; set; } = 1000;
-    }
 }

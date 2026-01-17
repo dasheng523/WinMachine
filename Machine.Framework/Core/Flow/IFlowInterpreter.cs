@@ -14,6 +14,6 @@ namespace Machine.Framework.Core.Flow
         /// <param name="definition">步骤的抽象语法树描述</param>
         /// <param name="context">执行上下文，包含设备映射、配置和取消令牌</param>
         /// <returns>流程生成的结果对象 (对于 Unit 流程通常返回 Machine.Framework.Core.Flow.Dsl.Unit)</returns>
-        Task<object> RunAsync(StepDesc definition, FlowContext context);
+        Task<object?> RunAsync(StepDesc definition, FlowContext context);
     }
 }

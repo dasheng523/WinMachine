@@ -9,6 +9,7 @@ namespace Machine.Framework.Core.Configuration.Models
         public List<BaseBoardConfig> BoardConfigs { get; set; } = new List<BaseBoardConfig>();
         public List<BaseDeviceConfig> DeviceConfigs { get; set; } = new List<BaseDeviceConfig>();
         public List<BusConfig> BusConfigs { get; set; } = new List<BusConfig>();
+        public List<CylinderConfig> CylinderConfigs { get; set; } = new List<CylinderConfig>();
 
         public static MachineConfig Create()
         {
@@ -48,5 +49,12 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
+        public MachineConfig AddCylinder(string name, Action<CylinderConfig> configure)
+        {
+            var config = new CylinderConfig(name);
+            configure(config);
+            CylinderConfigs.Add(config);
+            return this;
+        }
     }
 }

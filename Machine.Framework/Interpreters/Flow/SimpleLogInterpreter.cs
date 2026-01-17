@@ -14,7 +14,7 @@ namespace Machine.Framework.Interpreters.Flow
     {
         private int _indent = 0;
 
-        public async Task<object> RunAsync(StepDesc definition, FlowContext context)
+        public async Task<object?> RunAsync(StepDesc definition, FlowContext context)
         {
             if (definition == null) return null;
             if (context == null) throw new ArgumentNullException(nameof(context));
@@ -23,7 +23,7 @@ namespace Machine.Framework.Interpreters.Flow
             Console.WriteLine($"{indentStr}[Step: {definition.Name}] Starting...");
 
             _indent++;
-            object result = null;
+            object? result = null;
 
             try
             {
@@ -55,7 +55,7 @@ namespace Machine.Framework.Interpreters.Flow
             return result;
         }
 
-        private async Task<object> ExecuteActionAsync(ActionStepDesc action, string indent, FlowContext context)
+        private async Task<object?> ExecuteActionAsync(ActionStepDesc action, string indent, FlowContext context)
         {
             Console.WriteLine($"{indent}  -> EXEC: {action.Operation} on Device '{action.TargetDevice}'");
             if (action.Args != null && action.Args.Length > 0)
@@ -83,7 +83,7 @@ namespace Machine.Framework.Interpreters.Flow
             return new Unit();
         }
 
-        private async Task<object> ExecuteSequenceAsync(SequenceStepDesc sequence, FlowContext context)
+        private async Task<object?> ExecuteSequenceAsync(SequenceStepDesc sequence, FlowContext context)
         {
             // 执行第一部分
             var firstResult = await RunAsync(sequence.First, context);
@@ -98,13 +98,13 @@ namespace Machine.Framework.Interpreters.Flow
             return sequence.ResultSelector(firstResult, secondResult);
         }
 
-        private async Task<object> ExecuteMapAsync(MapStepDesc map, FlowContext context)
+        private async Task<object?> ExecuteMapAsync(MapStepDesc map, FlowContext context)
         {
             var sourceResult = await RunAsync(map.Source, context);
             return map.Mapper(sourceResult);
         }
 
-        private async Task<object> ExecuteScopeAsync(ScopeStepDesc scope, FlowContext context)
+        private async Task<object?> ExecuteScopeAsync(ScopeStepDesc scope, FlowContext context)
         {
             // Scope 目前只是一个包装
             return await RunAsync(scope.InnerStep, context);
