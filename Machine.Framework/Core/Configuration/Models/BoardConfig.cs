@@ -7,10 +7,36 @@ namespace Machine.Framework.Core.Configuration.Models
     [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
     [JsonDerivedType(typeof(LeadshineConfig), typeDiscriminator: "Leadshine")]
     [JsonDerivedType(typeof(ZMotionConfig), typeDiscriminator: "ZMotion")]
+    [JsonDerivedType(typeof(SimulatorBoardConfig), typeDiscriminator: "Simulator")]
     public class BaseBoardConfig
     {
         public string Name { get; set; }
         public BaseBoardConfig(string name) { Name = name; }
+    }
+
+    /// <summary>
+    /// 纯仿真板卡配置
+    /// </summary>
+    public class SimulatorBoardConfig : BaseBoardConfig
+    {
+        public Dictionary<string, int> AxisMappings { get; set; } = new Dictionary<string, int>();
+        public Dictionary<string, AxisConfig> AxisConfigs { get; set; } = new Dictionary<string, AxisConfig>();
+
+        public SimulatorBoardConfig(string name) : base(name) { }
+
+        public SimulatorBoardConfig MapAxis(Enum axis, int physicalIndex)
+        {
+            AxisMappings[axis.ToString()] = physicalIndex;
+            return this;
+        }
+
+        public SimulatorBoardConfig ConfigAxis(Enum axis, Action<AxisConfigBuilder> configure)
+        {
+            var builder = new AxisConfigBuilder();
+            configure(builder);
+            AxisConfigs[axis.ToString()] = builder.Build();
+            return this;
+        }
     }
 
     public class LeadshineConfig : BaseBoardConfig

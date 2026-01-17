@@ -20,6 +20,14 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
+        public BoardBuilder UseSimulator(Action<SimulatorBoardConfig> configure)
+        {
+            var config = new SimulatorBoardConfig(Name);
+            configure(config);
+            Config = config;
+            return this;
+        }
+
         public BoardBuilder UseZMotion(Action<ZMotionConfig> configure)
         {
             var config = new ZMotionConfig(Name);

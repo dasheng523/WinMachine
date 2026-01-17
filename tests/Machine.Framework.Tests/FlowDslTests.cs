@@ -6,6 +6,8 @@ using Machine.Framework.Core.Flow.Steps;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 using static Machine.Framework.Core.Flow.Dsl.Step;
 using Machine.Framework.Interpreters.Flow;
+using Machine.Framework.Core.Flow;
+using Machine.Framework.Core.Configuration.Models;
 using System.Threading.Tasks;
 
 namespace Machine.Framework.Tests
@@ -141,8 +143,9 @@ namespace Machine.Framework.Tests
                 select result;
 
             // 2. 运行解释器
+            var context = new FlowContext(MachineConfig.Create());
             var interpreter = new SimpleLogInterpreter();
-            var finalResult = await interpreter.RunAsync(flow.Definition);
+            var finalResult = await interpreter.RunAsync(flow.Definition, context);
 
             // 3. 验证结果 (SimpleLogInterpreter 中的 ReadAnalog 模拟返回 55.5)
             Assert.Equal("OK", finalResult);
@@ -168,8 +171,9 @@ namespace Machine.Framework.Tests
                 select status;
 
             // 3. 运行
+            var context = new FlowContext(MachineConfig.Create());
             var interpreter = new SimpleLogInterpreter();
-            var result = await interpreter.RunAsync(mainFlow.Definition);
+            var result = await interpreter.RunAsync(mainFlow.Definition, context);
             
             // 4. 断言
             Assert.Equal("COMPLETED", result);
