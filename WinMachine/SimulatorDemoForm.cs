@@ -4,7 +4,6 @@ using System.Windows.Forms;
 using Machine.Framework.Core.Hardware.Interfaces;
 using Machine.Framework.Core.Hardware.Models;
 using Machine.Framework.Devices.Implementations.Simulator;
-using Machine.Framework.Devices.Implementations.Simulator.Visuals;
 
 namespace WinMachine
 {
