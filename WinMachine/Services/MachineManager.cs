@@ -1,4 +1,4 @@
-using Machine.Framework.Configuration.Models;
+using Machine.Framework.Core.Configuration.Models;
 using Machine.Framework.Platform;
 using System;
 using Machine.Framework.Devices.Motion.Abstractions;

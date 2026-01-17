@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using Machine.Framework.Configuration;
-using Machine.Framework.Configuration.Models;
+using Machine.Framework.Core.Configuration;
+using Machine.Framework.Core.Configuration.Models;
 using Xunit;
 using Assert = Xunit.Assert;
 

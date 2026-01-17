@@ -1,8 +1,8 @@
 using System;
-using Machine.Framework.Configuration.Models;
-using Machine.Framework.Configuration.Interpreters;
+using Machine.Framework.Core.Configuration.Models;
+using Machine.Framework.Interpreters.Configuration;
 
-namespace Machine.Framework.Configuration
+namespace Machine.Framework.Core.Configuration
 {
     // 这个文件位于 Configuration 模块根目录，作为便捷扩展入口
     public static class ConfigurationExtensions

@@ -1,9 +1,9 @@
 using System;
 using System.Text.Json;
-using Machine.Framework.Configuration.Models;
-using Machine.Framework.Configuration;
+using Machine.Framework.Core.Configuration.Models;
+using Machine.Framework.Core.Configuration;
 
-namespace Machine.Framework.Configuration.Interpreters
+namespace Machine.Framework.Interpreters.Configuration
 {
     /// <summary>
     /// JSON 导出解释器

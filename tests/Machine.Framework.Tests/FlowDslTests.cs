@@ -1,9 +1,9 @@
 using System;
 using System.Linq;
 using Xunit;
-using Machine.Framework.Flow.Models;
-using static Machine.Framework.Flow.Models.FlowBuilders;
-using static Machine.Framework.Flow.Models.Step;
+using Machine.Framework.Core.Flow.Models;
+using static Machine.Framework.Core.Flow.Models.FlowBuilders;
+using static Machine.Framework.Core.Flow.Models.Step;
 
 namespace Machine.Framework.Tests
 {
