@@ -3,7 +3,6 @@ using System.Linq;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Hardware;
 using Machine.Framework.Core.Hardware.Interfaces;
-using Machine.Framework.Core.Hardware.Interfaces;
 using Machine.Framework.Core.Hardware.Models;
 using LanguageExt;
 using LanguageExt.Common;

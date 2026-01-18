@@ -99,7 +99,7 @@ namespace Machine.Framework.Core.Flow
         /// <summary>
         /// 获取或注册一个设备
         /// </summary>
-        public T GetDevice<T>(string id) where T : class
+        public T? GetDevice<T>(string id) where T : class
         {
             if (Devices.TryGetValue(id, out var device))
             {

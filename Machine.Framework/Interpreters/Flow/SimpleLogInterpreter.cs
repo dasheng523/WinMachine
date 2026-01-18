@@ -89,19 +89,19 @@ namespace Machine.Framework.Interpreters.Flow
             var firstResult = await RunAsync(sequence.First, context);
             
             // 使用第一部分的结果构造后续步骤
-            var nextStepDef = sequence.NextFactory(firstResult);
+            var nextStepDef = sequence.NextFactory(firstResult!);
             
             // 执行后续步骤
             var secondResult = await RunAsync(nextStepDef, context);
 
             // 合并结果 (SelectMany 的最终 resultSelector)
-            return sequence.ResultSelector(firstResult, secondResult);
+            return sequence.ResultSelector(firstResult!, secondResult!);
         }
 
         private async Task<object?> ExecuteMapAsync(MapStepDesc map, FlowContext context)
         {
             var sourceResult = await RunAsync(map.Source, context);
-            return map.Mapper(sourceResult);
+            return map.Mapper(sourceResult!);
         }
 
         private async Task<object?> ExecuteScopeAsync(ScopeStepDesc scope, FlowContext context)

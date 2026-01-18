@@ -47,12 +47,14 @@ namespace WinMachine
             _cts?.Dispose();
             _cts = new CancellationTokenSource();
 
-            var (context, flow, beforeRun) = scenario.Create(_cts);
+            var runtime = scenario.Create(_cts);
+            var context = runtime.Context;
+            var flow = runtime.Flow;
             var interpreter = new SimulationFlowInterpreter();
             interpreter.InitializeDevices(context);
 
-            WireUpVisualization(context, interpreter);
-            beforeRun?.Invoke();
+            WireUpVisualization(context, interpreter, runtime);
+            runtime.BeforeRun?.Invoke(context, _subscriptions);
 
             Log($"--- RUN {scenario.Name} ---");
 
@@ -76,7 +78,7 @@ namespace WinMachine
             }
         }
 
-        private void WireUpVisualization(FlowContext context, SimulationFlowInterpreter interpreter)
+        private void WireUpVisualization(FlowContext context, SimulationFlowInterpreter interpreter, ScenarioRuntime runtime)
         {
             var ui = this;
             var sync = System.Threading.SynchronizationContext.Current;
@@ -94,125 +96,54 @@ namespace WinMachine
                 else ui.BeginInvoke((Action)Apply);
             }));
 
-            WireAxis(context, "X", pnlAxisX, AxisDirection.Horizontal, 0, 1000, origin: new Point(40, 60));
-            WireAxis(context, "Y", pnlAxisY, AxisDirection.Horizontal, 0, 1000, origin: new Point(40, 110));
-            WireAxis(context, "Z", pnlAxisZ, AxisDirection.Vertical, 0, 200, origin: new Point(220, 60));
-            WireAxis(context, "Z1_Axis", pnlAxisZ, AxisDirection.Vertical, 0, 100, origin: new Point(220, 60));
-            WireAxis(context, "Rotate", pnlAxisRotate, AxisDirection.Rotate, 0, 180, origin: new Point(220, 140));
+            transferStationView.ResetModel(runtime.TransferModel);
 
-            WireCylinder(context, "Gripper", pnlCylGripper);
-            WireCylinder(context, "Clamp", pnlCylClamp);
-            WireVacuum(context, "VAC_1", pnlVac1);
+            // 领域事件：驱动物料互换
+            _subscriptions.Add(runtime.DomainEvents.Subscribe(ev =>
+            {
+                void Apply() => transferStationView.ApplyDomainEvent(ev);
+                if (sync != null) sync.Post(_ => Apply(), null);
+                else ui.BeginInvoke((Action)Apply);
+            }));
+
+            // 设备状态：驱动位置/角度/夹爪/升降
+            WireAxisToView(context, "Slide", v => transferStationView.SetSlide(v), -120, 120);
+            WireAxisToView(context, "LeftRotate", v => transferStationView.SetLeftRotate(v), 0, 180);
+            WireAxisToView(context, "RightRotate", v => transferStationView.SetRightRotate(v), 0, 180);
+
+            WireCylinderToView(context, "LeftLift", up => transferStationView.SetLeftLift(up));
+            WireCylinderToView(context, "RightLift", up => transferStationView.SetRightLift(up));
+            WireCylinderToView(context, "LeftGrip", closed => transferStationView.SetLeftGrip(closed));
+            WireCylinderToView(context, "RightGrip", closed => transferStationView.SetRightGrip(closed));
         }
 
-        private void WireAxis(FlowContext context, string axisId, Panel panel, AxisDirection dir, double min, double max, Point origin)
+        private void WireAxisToView(FlowContext context, string axisId, Action<double> applyPosition, double min, double max)
         {
             var axis = context.GetDevice<SimulatorAxis>(axisId);
             if (axis == null) return;
-
-            panel.Location = origin;
-            panel.BackColor = ColorForAxis(axisId);
 
             _subscriptions!.Add(axis.StateStream
                 .Sample(TimeSpan.FromMilliseconds(16))
                 .Subscribe(s =>
                 {
-                    void Apply()
-                    {
-                        if (dir == AxisDirection.Horizontal)
-                        {
-                            var x = origin.X + MapToPixels(s.Position, min, max, 520);
-                            panel.Location = new Point(x, origin.Y);
-                        }
-                        else if (dir == AxisDirection.Vertical)
-                        {
-                            var y = origin.Y + MapToPixels(s.Position, min, max, 420);
-                            panel.Location = new Point(origin.X, y);
-                        }
-                        else if (dir == AxisDirection.Rotate)
-                        {
-                            // 用颜色强度表示角度（简化）：0 -> 暗, max -> 亮
-                            var t = Clamp01((s.Position - min) / Math.Max(1e-6, (max - min)));
-                            var c = Color.FromArgb(255, (int)(80 + 120 * t), (int)(60 + 80 * t), (int)(140 + 60 * t));
-                            panel.BackColor = c;
-                        }
-                    }
-
-                    if (IsHandleCreated) BeginInvoke((Action)Apply);
+                    if (!IsHandleCreated) return;
+                    BeginInvoke((Action)(() => applyPosition(s.Position)));
                 }));
         }
 
-        private void WireCylinder(FlowContext context, string id, Panel panel)
+        private void WireCylinderToView(FlowContext context, string id, Action<bool> applyExtended)
         {
             var cyl = context.GetDevice<ISimulatorCylinder>(id);
             if (cyl == null) return;
 
             _subscriptions!.Add(cyl.StateStream
+                .Where(s => !s.IsMoving)
+                .DistinctUntilChanged(s => s.IsExtended)
                 .Subscribe(s =>
                 {
-                    void Apply()
-                    {
-                        panel.BackColor = s.IsMoving
-                            ? Color.Goldenrod
-                            : (s.IsExtended ? Color.LimeGreen : Color.DimGray);
-                    }
-
-                    if (IsHandleCreated) BeginInvoke((Action)Apply);
+                    if (!IsHandleCreated) return;
+                    BeginInvoke((Action)(() => applyExtended(s.IsExtended)));
                 }));
-        }
-
-        private void WireVacuum(FlowContext context, string id, Panel panel)
-        {
-            var vac = context.GetDevice<ISimulatorVacuum>(id);
-            if (vac == null) return;
-
-            _subscriptions!.Add(vac.StateStream
-                .Subscribe(s =>
-                {
-                    void Apply()
-                    {
-                        panel.BackColor = s.IsChanging
-                            ? Color.Goldenrod
-                            : (s.IsOn ? Color.DeepSkyBlue : Color.DimGray);
-                    }
-
-                    if (IsHandleCreated) BeginInvoke((Action)Apply);
-                }));
-        }
-
-        private void Highlight(string deviceId, StepStatus status)
-        {
-            Panel? panel = deviceId switch
-            {
-                "X" => pnlAxisX,
-                "Y" => pnlAxisY,
-                "Z" => pnlAxisZ,
-                "Z1_Axis" => pnlAxisZ,
-                "Rotate" => pnlAxisRotate,
-                "Gripper" => pnlCylGripper,
-                "Clamp" => pnlCylClamp,
-                "VAC_1" => pnlVac1,
-                _ => null
-            };
-
-            if (panel == null) return;
-
-            var baseColor = panel.BackColor;
-            if (status == StepStatus.Running)
-                panel.BorderStyle = BorderStyle.FixedSingle;
-            else
-                panel.BorderStyle = BorderStyle.None;
-        }
-
-        private void ResetHighlights()
-        {
-            pnlAxisX.BorderStyle = BorderStyle.None;
-            pnlAxisY.BorderStyle = BorderStyle.None;
-            pnlAxisZ.BorderStyle = BorderStyle.None;
-            pnlAxisRotate.BorderStyle = BorderStyle.None;
-            pnlCylGripper.BorderStyle = BorderStyle.None;
-            pnlCylClamp.BorderStyle = BorderStyle.None;
-            pnlVac1.BorderStyle = BorderStyle.None;
         }
 
         private void Log(string msg)
@@ -220,26 +151,16 @@ namespace WinMachine
             txtLog.AppendText(msg + Environment.NewLine);
         }
 
-        private static int MapToPixels(double val, double min, double max, int spanPx)
+        private void ResetHighlights()
         {
-            if (max <= min) return 0;
-            var t = Clamp01((val - min) / (max - min));
-            return (int)(t * spanPx);
+            // 新版 UI 的高亮由 Trace 日志文本呈现；视图本身使用设备状态变化。
         }
 
-        private static double Clamp01(double t) => t < 0 ? 0 : (t > 1 ? 1 : t);
-
-        private static Color ColorForAxis(string axisId) => axisId switch
+        private void Highlight(string deviceId, StepStatus status)
         {
-            "X" => Color.SteelBlue,
-            "Y" => Color.MediumSeaGreen,
-            "Z" => Color.Orange,
-            "Z1_Axis" => Color.Orange,
-            "Rotate" => Color.MediumPurple,
-            _ => Color.White
-        };
-
-        private enum AxisDirection { Horizontal, Vertical, Rotate }
+            // 预留：可在 TransferStationView 上做“当前设备”描边/发光。
+            // 目前用 lblActiveStep 与 txtLog 即可满足追踪需求。
+        }
 
     }
 }

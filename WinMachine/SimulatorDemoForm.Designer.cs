@@ -13,14 +13,7 @@ namespace WinMachine
         private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.Panel pnlCanvas;
 
-        private System.Windows.Forms.Panel pnlAxisX;
-        private System.Windows.Forms.Panel pnlAxisY;
-        private System.Windows.Forms.Panel pnlAxisZ;
-        private System.Windows.Forms.Panel pnlAxisRotate;
-
-        private System.Windows.Forms.Panel pnlCylGripper;
-        private System.Windows.Forms.Panel pnlCylClamp;
-        private System.Windows.Forms.Panel pnlVac1;
+        private WinMachine.TransferStationView transferStationView;
 
         protected override void Dispose(bool disposing)
         {
@@ -42,13 +35,7 @@ namespace WinMachine
             lblActiveStep = new System.Windows.Forms.Label();
             txtLog = new System.Windows.Forms.TextBox();
             pnlCanvas = new System.Windows.Forms.Panel();
-            pnlAxisX = new System.Windows.Forms.Panel();
-            pnlAxisY = new System.Windows.Forms.Panel();
-            pnlAxisZ = new System.Windows.Forms.Panel();
-            pnlAxisRotate = new System.Windows.Forms.Panel();
-            pnlCylGripper = new System.Windows.Forms.Panel();
-            pnlCylClamp = new System.Windows.Forms.Panel();
-            pnlVac1 = new System.Windows.Forms.Panel();
+            transferStationView = new WinMachine.TransferStationView();
 
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
@@ -106,50 +93,9 @@ namespace WinMachine
             pnlCanvas.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
             pnlCanvas.Name = "pnlCanvas";
 
-            // Axis panels (simple blocks)
-            pnlAxisX.BackColor = System.Drawing.Color.SteelBlue;
-            pnlAxisX.Name = "pnlAxisX";
-            pnlAxisX.Size = new System.Drawing.Size(40, 16);
-            pnlAxisX.Location = new System.Drawing.Point(40, 60);
-
-            pnlAxisY.BackColor = System.Drawing.Color.MediumSeaGreen;
-            pnlAxisY.Name = "pnlAxisY";
-            pnlAxisY.Size = new System.Drawing.Size(40, 16);
-            pnlAxisY.Location = new System.Drawing.Point(40, 110);
-
-            pnlAxisZ.BackColor = System.Drawing.Color.Orange;
-            pnlAxisZ.Name = "pnlAxisZ";
-            pnlAxisZ.Size = new System.Drawing.Size(16, 40);
-            pnlAxisZ.Location = new System.Drawing.Point(220, 60);
-
-            pnlAxisRotate.BackColor = System.Drawing.Color.MediumPurple;
-            pnlAxisRotate.Name = "pnlAxisRotate";
-            pnlAxisRotate.Size = new System.Drawing.Size(24, 24);
-            pnlAxisRotate.Location = new System.Drawing.Point(220, 140);
-
-            // Cylinder/Vacuum panels
-            pnlCylGripper.BackColor = System.Drawing.Color.DimGray;
-            pnlCylGripper.Name = "pnlCylGripper";
-            pnlCylGripper.Size = new System.Drawing.Size(40, 10);
-            pnlCylGripper.Location = new System.Drawing.Point(320, 60);
-
-            pnlCylClamp.BackColor = System.Drawing.Color.DimGray;
-            pnlCylClamp.Name = "pnlCylClamp";
-            pnlCylClamp.Size = new System.Drawing.Size(40, 10);
-            pnlCylClamp.Location = new System.Drawing.Point(320, 90);
-
-            pnlVac1.BackColor = System.Drawing.Color.DimGray;
-            pnlVac1.Name = "pnlVac1";
-            pnlVac1.Size = new System.Drawing.Size(18, 18);
-            pnlVac1.Location = new System.Drawing.Point(320, 130);
-
-            pnlCanvas.Controls.Add(pnlAxisX);
-            pnlCanvas.Controls.Add(pnlAxisY);
-            pnlCanvas.Controls.Add(pnlAxisZ);
-            pnlCanvas.Controls.Add(pnlAxisRotate);
-            pnlCanvas.Controls.Add(pnlCylGripper);
-            pnlCanvas.Controls.Add(pnlCylClamp);
-            pnlCanvas.Controls.Add(pnlVac1);
+            transferStationView.Dock = System.Windows.Forms.DockStyle.Fill;
+            transferStationView.Name = "transferStationView";
+            pnlCanvas.Controls.Add(transferStationView);
 
             splitMain.Panel2.Controls.Add(pnlCanvas);
 
