@@ -24,9 +24,7 @@ namespace Machine.Framework.Core.Simulation
             public StubAssemblyBuilder(string name) => Name = name;
 
             public IBoardBuilder AddBoard(string name, int cardId) => new StubBoardBuilder();
-            public IMountPointBuilder Mount(string name) => new StubMountPointBuilder();
 
-            // --- 实例方法优先于扩展方法，解决 LINQ 歧义 ---
             public ISimulatorAssemblyBuilder Select(Func<ISimulatorAssemblyBuilder, ISimulatorAssemblyBuilder> selector) => selector(this);
             
             public TResult SelectMany<TIntermediate, TResult>(
@@ -37,14 +35,27 @@ namespace Machine.Framework.Core.Simulation
                 return resultSelector(this, intermediate);
             }
 
-            // 支持 let (匿名类型处理)
             public TResult SelectMany<TIntermediate, TResult>(
                 Func<ISimulatorAssemblyBuilder, TIntermediate> intermediateSelector,
                 Func<object, TIntermediate, TResult> resultSelector)
             {
-                // 注意：在 Stub 实现中，我们目前不真正处理匿名对象的解构，仅为原型编译成功
                 var intermediate = intermediateSelector(this);
                 return resultSelector(this, intermediate);
+            }
+
+            public ISimulatorAssemblyBuilder AddBoard(string name, int cardId, Action<IBoardBuilder> configure)
+            {
+                var board = new StubBoardBuilder();
+                configure(board);
+                return this;
+            }
+
+            public IMountPointBuilder Mount(string name) => new StubMountPointBuilder();
+            public ISimulatorAssemblyBuilder Mount(string name, Action<IMountPointBuilder> configure)
+            {
+                var mount = new StubMountPointBuilder();
+                configure(mount);
+                return this;
             }
         }
 
@@ -52,6 +63,20 @@ namespace Machine.Framework.Core.Simulation
         {
             public IAxisBuilder AddAxis(int id, string name) => new StubAxisBuilder();
             public ICylinderBuilder AddCylinder(string name, int doOut, int doIn) => new StubCylinderBuilder();
+
+            public IBoardBuilder AddAxis(int id, string name, Action<IAxisBuilder> configure)
+            {
+                var axis = new StubAxisBuilder();
+                configure(axis);
+                return this;
+            }
+
+            public IBoardBuilder AddCylinder(string name, int doOut, int doIn, Action<ICylinderBuilder> configure)
+            {
+                var cyl = new StubCylinderBuilder();
+                configure(cyl);
+                return this;
+            }
         }
 
         private class StubAxisBuilder : IAxisBuilder
@@ -63,9 +88,18 @@ namespace Machine.Framework.Core.Simulation
         private class StubMountPointBuilder : IMountPointBuilder
         {
             public IMountPointBuilder AttachedTo(object parent) => this;
+            public IMountPointBuilder AttachedTo(string parentName) => this;
             public IMountPointBuilder LinkTo(object axis) => this;
+            public IMountPointBuilder LinkTo(string deviceId) => this;
             public IMountPointBuilder WithTransform(Func<double, double> transform) => this;
             public IMountPointBuilder WithOffset(double x = 0, double y = 0, double z = 0) => this;
+            public IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure)
+            {
+                var child = new StubMountPointBuilder();
+                configure(child);
+                return this;
+            }
+            public IMountPointBuilder Mount(string name) => new StubMountPointBuilder();
         }
 
         private class StubCylinderBuilder : ICylinderBuilder
@@ -75,13 +109,43 @@ namespace Machine.Framework.Core.Simulation
         }
     }
 
+    // --- 视觉 Builder Stub ---
+
+    internal class StubAxisVisualBuilder : IAxisVisualBuilder
+    {
+        public IAxisVisualBuilder AsLinearGuide(double length, double sliderWidth) => this;
+        public IAxisVisualBuilder AsRotaryTable(double radius) => this;
+        public IAxisVisualBuilder AsCustom(string modelPath) => this;
+
+        public IAxisVisualBuilder Horizontal() => this;
+        public IAxisVisualBuilder Vertical() => this;
+        public IAxisVisualBuilder Forward() => this;
+        public IAxisVisualBuilder Reversed() => this;
+    }
+
+    internal class StubCylinderVisualBuilder : ICylinderVisualBuilder
+    {
+        public ICylinderVisualBuilder AsSlider(double width, double height) => this;
+        public ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth) => this;
+        public ICylinderVisualBuilder AsSuctionPen(double diameter) => this;
+        public ICylinderVisualBuilder AsCustom(string modelPath) => this;
+
+        public ICylinderVisualBuilder Horizontal() => this;
+        public ICylinderVisualBuilder Vertical() => this;
+        public ICylinderVisualBuilder Forward() => this;
+        public ICylinderVisualBuilder Reversed() => this;
+    }
+
     // --- DSL 契约接口定义 ---
 
     public interface ISimulatorAssemblyBuilder
     {
         string Name { get; }
         IBoardBuilder AddBoard(string name, int cardId);
+        ISimulatorAssemblyBuilder AddBoard(string name, int cardId, Action<IBoardBuilder> configure);
+        
         IMountPointBuilder Mount(string name);
+        ISimulatorAssemblyBuilder Mount(string name, Action<IMountPointBuilder> configure);
 
         // LINQ Support
         ISimulatorAssemblyBuilder Select(Func<ISimulatorAssemblyBuilder, ISimulatorAssemblyBuilder> selector);
@@ -99,6 +163,9 @@ namespace Machine.Framework.Core.Simulation
     {
         IAxisBuilder AddAxis(int id, string name);
         ICylinderBuilder AddCylinder(string name, int doOut, int doIn);
+
+        IBoardBuilder AddAxis(int id, string name, Action<IAxisBuilder> configure);
+        IBoardBuilder AddCylinder(string name, int doOut, int doIn, Action<ICylinderBuilder> configure);
     }
 
     public interface IAxisBuilder
@@ -107,26 +174,30 @@ namespace Machine.Framework.Core.Simulation
         IAxisBuilder WithRange(double min, double max);
     }
 
+    public interface IAxisVisualBuilder
+    {
+        IAxisVisualBuilder AsLinearGuide(double length, double sliderWidth);
+        IAxisVisualBuilder AsRotaryTable(double radius);
+        IAxisVisualBuilder AsCustom(string modelPath);
+
+        IAxisVisualBuilder Horizontal();
+        IAxisVisualBuilder Vertical();
+        IAxisVisualBuilder Forward();
+        IAxisVisualBuilder Reversed();
+    }
+
     public interface IMountPointBuilder
     {
-        /// <summary>
-        /// 定义挂载父级（实现层级拓扑）
-        /// </summary>
         IMountPointBuilder AttachedTo(object parent);
+        IMountPointBuilder AttachedTo(string parentName);
 
-        /// <summary>
-        /// 定义联动轴
-        /// </summary>
         IMountPointBuilder LinkTo(object axis);
+        IMountPointBuilder LinkTo(string deviceId);
 
-        /// <summary>
-        /// 定义轴位置到挂载点位移的变换函数
-        /// </summary>
+        IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure);
+        IMountPointBuilder Mount(string name);
+
         IMountPointBuilder WithTransform(Func<double, double> transform);
-
-        /// <summary>
-        /// 物理位移偏置
-        /// </summary>
         IMountPointBuilder WithOffset(double x = 0, double y = 0, double z = 0);
     }
 
@@ -136,48 +207,53 @@ namespace Machine.Framework.Core.Simulation
         ICylinderBuilder WithDynamics(int actionTimeMs);
     }
 
-    /// <summary>
-    /// 专门的解释逻辑工具，负责将蓝图描述转换为可执行的对象。
-    /// 保持 DSL 纯净，转换逻辑外部化。
-    /// </summary>
+    public interface ICylinderVisualBuilder
+    {
+        ICylinderVisualBuilder AsSlider(double width, double height);
+        ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth);
+        ICylinderVisualBuilder AsSuctionPen(double diameter);
+        ICylinderVisualBuilder AsCustom(string modelPath);
+
+        ICylinderVisualBuilder Horizontal();
+        ICylinderVisualBuilder Vertical();
+        ICylinderVisualBuilder Forward();
+        ICylinderVisualBuilder Reversed();
+    }
+
     public static class BlueprintInterpreter
     {
         public static Machine.Framework.Core.Configuration.Models.MachineConfig ToConfig(ISimulatorAssemblyBuilder blueprint)
         {
-            // 实际上会遍历 blueprint 内部的配置树并生成 MachineConfig
-            // 目前返回一个 Stub 对象
             return Machine.Framework.Core.Configuration.Models.MachineConfig.Create();
         }
 
         public static object ToRuntime(ISimulatorAssemblyBuilder blueprint)
         {
-            // 创建真正的物理模拟引擎实例
-            return new object(); // SimulationRuntime
+            return new object();
         }
     }
-
-    // --- 视觉绑定与踪迹流相关的契约 ---
 
     public enum StepStatus { Ready, Running, Completed, Error }
 
     public record ActiveStepUpdate(string TargetDevice, string Name, StepStatus Status);
 
-    /// <summary>
-    /// 可视化流程解释器，支持 Rx.NET 踪迹流
-    /// </summary>
     public interface IVisualFlowInterpreter : Machine.Framework.Core.Flow.IFlowInterpreter
     {
         IObservable<ActiveStepUpdate> TraceStream { get; }
     }
 
-    /// <summary>
-    /// UI 绑定器 DSL 接口
-    /// </summary>
     public interface IUIVisualizer
     {
         IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter);
         IUIVisualizer AutoHighlight(object panel, string deviceId);
+        IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig);
         IBindingBuilder Bind(object panel);
+    }
+
+    public interface IDeviceVisualRegistry
+    {
+        IAxisVisualBuilder ForAxis(string axisId);
+        ICylinderVisualBuilder ForCylinder(string cylinderId);
     }
 
     public interface IBindingBuilder
@@ -193,12 +269,23 @@ namespace Machine.Framework.Core.Simulation
         public static IUIVisualizer Link(object form) => new StubUIVisualizer();
     }
 
-    // --- Stub 实现 ---
     internal class StubUIVisualizer : IUIVisualizer
     {
         public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter) => this;
         public IUIVisualizer AutoHighlight(object panel, string deviceId) => this;
+        public IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig)
+        {
+            var registry = new StubDeviceVisualRegistry();
+            registryConfig(registry);
+            return this;
+        }
         public IBindingBuilder Bind(object panel) => new StubBindingBuilder();
+    }
+
+    internal class StubDeviceVisualRegistry : IDeviceVisualRegistry
+    {
+        public IAxisVisualBuilder ForAxis(string axisId) => new StubAxisVisualBuilder();
+        public ICylinderVisualBuilder ForCylinder(string cylinderId) => new StubCylinderVisualBuilder();
     }
 
     internal class StubBindingBuilder : IBindingBuilder

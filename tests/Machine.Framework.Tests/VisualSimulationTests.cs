@@ -63,5 +63,101 @@ namespace Machine.Framework.Tests
                 return Task.FromResult<object?>(Unit.Default);
             }
         }
+
+        [Fact]
+        public void Verify_Hardware_Shape_DSL_Expressions()
+        {
+            // 1. 物理蓝图定义：只关心逻辑特征、行程和机动性
+            var blueprint = MachineSimulator.Assemble("ShapeDemoMachine")
+                .AddBoard("MotionCard", 1, board => 
+                {
+                    board.AddAxis(1, "Z1_Slide").WithRange(0, 100);
+                    board.AddAxis(2, "R_Axis");
+                    board.AddCylinder("PushCylinder", 0, 0);
+                    board.AddCylinder("Gripper", 1, 1);
+                    board.AddCylinder("Suction", 2, 2);
+                    board.AddAxis(3, "ComplexArm");
+                });
+
+            // 2. UI 视觉展现 DSL：定义这些逻辑设备如何从视觉上表达
+            // 这种分离允许同一套蓝图有多种视觉表现形式（如 2D Panel 渲染或 3D 模型渲染）
+            object currentForm = new { Text = "MainSimulator" };
+            
+            UI.Link(currentForm)
+              .Visuals(v => 
+              {
+                  // Z轴: 长条+滑块 (竖直, 反向)
+                  v.ForAxis("Z1_Slide").AsLinearGuide(200, 20).Vertical().Reversed();
+
+                  // R轴: 旋转座 (水平, 正向)
+                  v.ForAxis("R_Axis").AsRotaryTable(radius: 15).Horizontal().Forward();
+
+                  // 气缸: 滑块形态
+                  v.ForCylinder("PushCylinder").AsSlider(10, 30).Horizontal().Reversed();
+
+                  // 气缸: 夹爪形态
+                  v.ForCylinder("Gripper").AsGripper(15, 5).Vertical();
+
+                  // 气缸: 吸笔形态
+                  v.ForCylinder("Suction").AsSuctionPen(diameter: 4).Vertical();
+
+                  // 复杂部件: 挂载外部模型
+                  v.ForAxis("ComplexArm").AsCustom("assets/models/robot_arm.obj").Horizontal();
+              });
+
+            Assert.NotNull(blueprint);
+        }
+
+        [Fact]
+        public void Verify_Complex_Assembly_Kinematic_DSL()
+        {
+            // 场景：旋转搬运站 (Rotary Transfer Station)
+            // 结构：旋转座(R轴) -> 横移气缸 -> 升降气缸 -> 4个夹爪
+            
+            // 1. 定义物理蓝图 (Kinematic Hierarchy)
+            var blueprint = MachineSimulator.Assemble("RotaryTransferStation")
+                .AddBoard("MainCard", 1, board => 
+                {
+                    board.AddAxis(1, "R_Axis");
+                    board.AddCylinder("H_Move_Cyl", 0, 0);
+                    board.AddCylinder("V_Lift_Cyl", 1, 1);
+                    board.AddCylinder("Grip_L1", 2, 2);
+                    board.AddCylinder("Grip_L2", 3, 3);
+                    board.AddCylinder("Grip_R1", 4, 4);
+                    board.AddCylinder("Grip_R2", 5, 5);
+                })
+                .Mount("RotaryBase", rotary => rotary
+                    .LinkTo("R_Axis")
+                    .Mount("SlideArm", arm => arm
+                        .LinkTo("H_Move_Cyl")
+                        .WithOffset(x: 50)
+                        .Mount("LiftHead", head => head
+                            .LinkTo("V_Lift_Cyl")
+                            .Mount("Gripper_Group", group => group
+                                .Mount("L1").LinkTo("Grip_L1").WithOffset(y: -20)
+                                .Mount("L2").LinkTo("Grip_L2").WithOffset(y: -40)
+                                .Mount("R1").LinkTo("Grip_R1").WithOffset(y: 20)
+                                .Mount("R2").LinkTo("Grip_R2").WithOffset(y: 40)
+                            )
+                        )
+                    )
+                );
+
+            // 2. 视觉展现 (Visual Overlay)
+            UI.Link(new object()) // 模拟 Form
+              .Visuals(v => 
+              {
+                  v.ForAxis("R_Axis").AsRotaryTable(100);
+                  v.ForCylinder("H_Move_Cyl").AsSlider(40, 10).Horizontal();
+                  v.ForCylinder("V_Lift_Cyl").AsSlider(10, 40).Vertical();
+                  
+                  // 批量定义夹爪外观
+                  var grippers = new[] { "Grip_L1", "Grip_L2", "Grip_R1", "Grip_R2" };
+                  foreach(var g in grippers)
+                      v.ForCylinder(g).AsGripper(10, 2).Vertical();
+              });
+
+            Assert.NotNull(blueprint);
+        }
     }
 }
