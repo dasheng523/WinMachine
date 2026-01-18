@@ -13,17 +13,48 @@ namespace Machine.Framework.Core.Simulation
         /// </summary>
         public static ISimulatorAssemblyBuilder Assemble(string name)
         {
-            return new StubAssemblyBuilder(name);
+            return new BlueprintAssemblyBuilder(name);
         }
 
-        // --- 内部 Stub 实现，仅用于原型编译与演示 ---
+        internal sealed record BlueprintAxisDefinition(
+            int Id,
+            string Name,
+            double Min,
+            double Max,
+            double MaxVel,
+            double MaxAcc);
 
-        private class StubAssemblyBuilder : ISimulatorAssemblyBuilder
+        internal sealed record BlueprintCylinderDefinition(
+            string Name,
+            int DoOut,
+            int DoIn,
+            int? FeedbackDiOut,
+            int? FeedbackDiIn,
+            int ActionTimeMs);
+
+        internal sealed class BlueprintAssembly
         {
             public string Name { get; }
-            public StubAssemblyBuilder(string name) => Name = name;
+            public List<BlueprintAxisDefinition> Axes { get; } = new();
+            public List<BlueprintCylinderDefinition> Cylinders { get; } = new();
 
-            public IBoardBuilder AddBoard(string name, int cardId) => new StubBoardBuilder();
+            public BlueprintAssembly(string name) => Name = name;
+        }
+
+        // --- 内部实现：保留 LINQ 外观，但把信息落到 BlueprintAssembly ---
+
+        internal sealed class BlueprintAssemblyBuilder : ISimulatorAssemblyBuilder
+        {
+            public string Name { get; }
+            internal BlueprintAssembly Assembly { get; }
+
+            public BlueprintAssemblyBuilder(string name)
+            {
+                Name = name;
+                Assembly = new BlueprintAssembly(name);
+            }
+
+            public IBoardBuilder AddBoard(string name, int cardId) => new BlueprintBoardBuilder(Assembly, name, cardId);
 
             public ISimulatorAssemblyBuilder Select(Func<ISimulatorAssemblyBuilder, ISimulatorAssemblyBuilder> selector) => selector(this);
             
@@ -45,7 +76,7 @@ namespace Machine.Framework.Core.Simulation
 
             public ISimulatorAssemblyBuilder AddBoard(string name, int cardId, Action<IBoardBuilder> configure)
             {
-                var board = new StubBoardBuilder();
+                var board = new BlueprintBoardBuilder(Assembly, name, cardId);
                 configure(board);
                 return this;
             }
@@ -59,30 +90,87 @@ namespace Machine.Framework.Core.Simulation
             }
         }
 
-        private class StubBoardBuilder : IBoardBuilder
+        private sealed class BlueprintBoardBuilder : IBoardBuilder
         {
-            public IAxisBuilder AddAxis(int id, string name) => new StubAxisBuilder();
-            public ICylinderBuilder AddCylinder(string name, int doOut, int doIn) => new StubCylinderBuilder();
+            private readonly BlueprintAssembly _assembly;
+            private readonly string _boardName;
+            private readonly int _cardId;
+
+            public BlueprintBoardBuilder(BlueprintAssembly assembly, string boardName, int cardId)
+            {
+                _assembly = assembly;
+                _boardName = boardName;
+                _cardId = cardId;
+            }
+
+            public IAxisBuilder AddAxis(int id, string name)
+            {
+                var axis = new BlueprintAxisBuilder(id, name, _assembly);
+                axis.Commit();
+                return axis;
+            }
+
+            public ICylinderBuilder AddCylinder(string name, int doOut, int doIn)
+            {
+                var cyl = new BlueprintCylinderBuilder(name, doOut, doIn, _assembly);
+                cyl.Commit();
+                return cyl;
+            }
 
             public IBoardBuilder AddAxis(int id, string name, Action<IAxisBuilder> configure)
             {
-                var axis = new StubAxisBuilder();
+                var axis = new BlueprintAxisBuilder(id, name, _assembly);
                 configure(axis);
+                axis.Commit();
                 return this;
             }
 
             public IBoardBuilder AddCylinder(string name, int doOut, int doIn, Action<ICylinderBuilder> configure)
             {
-                var cyl = new StubCylinderBuilder();
+                var cyl = new BlueprintCylinderBuilder(name, doOut, doIn, _assembly);
                 configure(cyl);
+                cyl.Commit();
                 return this;
             }
         }
 
-        private class StubAxisBuilder : IAxisBuilder
+        private sealed class BlueprintAxisBuilder : IAxisBuilder
         {
-            public IAxisBuilder WithKinematics(double maxVel, double maxAcc) => this;
-            public IAxisBuilder WithRange(double min, double max) => this;
+            private readonly int _id;
+            private readonly string _name;
+            private readonly BlueprintAssembly _assembly;
+
+            private double _min = 0;
+            private double _max = 1000;
+            private double _maxVel = 200;
+            private double _maxAcc = 200;
+
+            public BlueprintAxisBuilder(int id, string name, BlueprintAssembly assembly)
+            {
+                _id = id;
+                _name = name;
+                _assembly = assembly;
+            }
+
+            public IAxisBuilder WithKinematics(double maxVel, double maxAcc)
+            {
+                _maxVel = maxVel;
+                _maxAcc = maxAcc;
+                return this;
+            }
+
+            public IAxisBuilder WithRange(double min, double max)
+            {
+                _min = min;
+                _max = max;
+                return this;
+            }
+
+            public void Commit()
+            {
+                if (_assembly.Axes.Exists(a => a.Name == _name)) return;
+                _assembly.Axes.Add(new BlueprintAxisDefinition(_id, _name, _min, _max, _maxVel, _maxAcc));
+            }
         }
 
         private class StubMountPointBuilder : IMountPointBuilder
@@ -102,10 +190,43 @@ namespace Machine.Framework.Core.Simulation
             public IMountPointBuilder Mount(string name) => new StubMountPointBuilder();
         }
 
-        private class StubCylinderBuilder : ICylinderBuilder
+        private sealed class BlueprintCylinderBuilder : ICylinderBuilder
         {
-            public ICylinderBuilder WithFeedback(int diOut, int diIn) => this;
-            public ICylinderBuilder WithDynamics(int actionTimeMs) => this;
+            private readonly string _name;
+            private readonly int _doOut;
+            private readonly int _doIn;
+            private readonly BlueprintAssembly _assembly;
+
+            private int? _fbDiOut;
+            private int? _fbDiIn;
+            private int _actionTimeMs = 200;
+
+            public BlueprintCylinderBuilder(string name, int doOut, int doIn, BlueprintAssembly assembly)
+            {
+                _name = name;
+                _doOut = doOut;
+                _doIn = doIn;
+                _assembly = assembly;
+            }
+
+            public ICylinderBuilder WithFeedback(int diOut, int diIn)
+            {
+                _fbDiOut = diOut;
+                _fbDiIn = diIn;
+                return this;
+            }
+
+            public ICylinderBuilder WithDynamics(int actionTimeMs)
+            {
+                _actionTimeMs = actionTimeMs;
+                return this;
+            }
+
+            public void Commit()
+            {
+                if (_assembly.Cylinders.Exists(c => c.Name == _name)) return;
+                _assembly.Cylinders.Add(new BlueprintCylinderDefinition(_name, _doOut, _doIn, _fbDiOut, _fbDiIn, _actionTimeMs));
+            }
         }
     }
 
@@ -224,7 +345,40 @@ namespace Machine.Framework.Core.Simulation
     {
         public static Machine.Framework.Core.Configuration.Models.MachineConfig ToConfig(ISimulatorAssemblyBuilder blueprint)
         {
-            return Machine.Framework.Core.Configuration.Models.MachineConfig.Create();
+            var config = Machine.Framework.Core.Configuration.Models.MachineConfig.Create();
+
+            if (blueprint is not MachineSimulator.BlueprintAssemblyBuilder b)
+                return config;
+
+            var asm = b.Assembly;
+
+            if (asm.Axes.Count > 0)
+            {
+                config.AddControlBoard("SimBoard", board =>
+                    board.UseSimulator(sim =>
+                    {
+                        foreach (var axis in asm.Axes)
+                        {
+                            sim.MapAxis(axis.Name, axis.Id);
+                            sim.ConfigAxis(axis.Name, a => a.SetSoftLimits(sl => sl.Range(axis.Min, axis.Max)));
+                        }
+                    }));
+            }
+
+            foreach (var cyl in asm.Cylinders)
+            {
+                config.AddCylinder(cyl.Name, c =>
+                {
+                    c.Drive(cyl.DoOut);
+                    if (cyl.FeedbackDiOut.HasValue && cyl.FeedbackDiIn.HasValue)
+                    {
+                        c.WithSensors(cyl.FeedbackDiOut.Value, cyl.FeedbackDiIn.Value);
+                    }
+                    c.MoveTime = cyl.ActionTimeMs;
+                });
+            }
+
+            return config;
         }
 
         public static object ToRuntime(ISimulatorAssemblyBuilder blueprint)

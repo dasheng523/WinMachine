@@ -5,6 +5,65 @@ using Machine.Framework.Core.Configuration.Models;
 
 namespace Machine.Framework.Core.Flow
 {
+    internal sealed class DeviceHub
+    {
+        private readonly ConcurrentDictionary<Type, object> _byType = new();
+
+        public DeviceHub(params object[] devices)
+        {
+            foreach (var d in devices)
+            {
+                if (d == null) continue;
+                _byType[d.GetType()] = d;
+            }
+        }
+
+        public void Add(object device)
+        {
+            if (device == null) return;
+            _byType[device.GetType()] = device;
+        }
+
+        public bool TryGet<T>(out T value) where T : class
+        {
+            // 1) 精确类型命中
+            if (_byType.TryGetValue(typeof(T), out var v) && v is T exact)
+            {
+                value = exact;
+                return true;
+            }
+
+            // 2) 支持按接口/基类查询
+            foreach (var obj in _byType.Values)
+            {
+                if (obj is T t)
+                {
+                    value = t;
+                    return true;
+                }
+            }
+
+            value = null!;
+            return false;
+        }
+
+        public static object Merge(object existing, object incoming)
+        {
+            if (existing is DeviceHub hub)
+            {
+                hub.Add(incoming);
+                return hub;
+            }
+            if (incoming is DeviceHub incomingHub)
+            {
+                incomingHub.Add(existing);
+                return incomingHub;
+            }
+
+            return new DeviceHub(existing, incoming);
+        }
+    }
+
     /// <summary>
     /// Flow DSL 执行上下文。
     /// 承载了硬件配置、运行时的设备实例、取消令牌以及中间变量。
@@ -44,14 +103,22 @@ namespace Machine.Framework.Core.Flow
         {
             if (Devices.TryGetValue(id, out var device))
             {
-                return (T)device;
+                if (device is T typed) return typed;
+
+                if (device is DeviceHub hub && hub.TryGet<T>(out var hubTyped))
+                {
+                    return hubTyped;
+                }
             }
             return null;
         }
 
         public void RegisterDevice(string id, object device)
         {
-            Devices[id] = device;
+            Devices.AddOrUpdate(
+                id,
+                _ => device,
+                (_, existing) => DeviceHub.Merge(existing, device));
         }
     }
 }

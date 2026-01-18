@@ -51,4 +51,36 @@ namespace Machine.Framework.Core.Simulation
         void StartMove(double targetPos, double speed);
         void Stop();
     }
+
+    /// <summary>
+    /// 气缸瞬时状态快照
+    /// </summary>
+    public record CylinderState
+    {
+        public bool IsExtended { get; init; }
+        public bool IsMoving { get; init; }
+    }
+
+    /// <summary>
+    /// 真空瞬时状态快照
+    /// </summary>
+    public record VacuumState
+    {
+        public bool IsOn { get; init; }
+        public bool IsChanging { get; init; }
+    }
+
+    public interface ISimulatorCylinder : ISimulatorDevice<CylinderState>
+    {
+        string CylinderId { get; }
+        void StartSet(bool extended, int actionTimeMs);
+        void Stop();
+    }
+
+    public interface ISimulatorVacuum : ISimulatorDevice<VacuumState>
+    {
+        string VacuumId { get; }
+        void StartSet(bool on, int actionTimeMs);
+        void Stop();
+    }
 }

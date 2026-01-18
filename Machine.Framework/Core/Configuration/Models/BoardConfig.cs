@@ -30,11 +30,25 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
+        public SimulatorBoardConfig MapAxis(string axisId, int physicalIndex)
+        {
+            AxisMappings[axisId] = physicalIndex;
+            return this;
+        }
+
         public SimulatorBoardConfig ConfigAxis(Enum axis, Action<AxisConfigBuilder> configure)
         {
             var builder = new AxisConfigBuilder();
             configure(builder);
             AxisConfigs[axis.ToString()] = builder.Build();
+            return this;
+        }
+
+        public SimulatorBoardConfig ConfigAxis(string axisId, Action<AxisConfigBuilder> configure)
+        {
+            var builder = new AxisConfigBuilder();
+            configure(builder);
+            AxisConfigs[axisId] = builder.Build();
             return this;
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Reactive.Threading.Tasks;
 using System.Threading.Tasks;
 using Machine.Framework.Core.Flow;
@@ -14,8 +15,18 @@ namespace Machine.Framework.Interpreters.Flow
     /// 仿真流程解释器。
     /// 负责将 DSL 步骤映射到仿真硬设备 (SimulatorAxis, SimulatorCylinder 等) 的行为。
     /// </summary>
-    public class SimulationFlowInterpreter : IFlowInterpreter
+    public class SimulationFlowInterpreter : IVisualFlowInterpreter
     {
+        private readonly Subject<ActiveStepUpdate> _trace = new Subject<ActiveStepUpdate>();
+
+        public IObservable<ActiveStepUpdate> TraceStream => _trace.AsObservable();
+
+        public void InitializeDevices(FlowContext context)
+        {
+            if (context == null) throw new ArgumentNullException(nameof(context));
+            EnsureDevicesInitialized(context);
+        }
+
         public async Task<object?> RunAsync(StepDesc definition, FlowContext context)
         {
             if (definition == null) return null;
@@ -26,6 +37,20 @@ namespace Machine.Framework.Interpreters.Flow
 
             // 2. 递归执行 AST
             return await ExecuteStepAsync(definition, context);
+        }
+
+        private static bool ShouldTrace(StepDesc step) => step is ActionStepDesc or ScopeStepDesc;
+
+        private static string ResolveTraceTargetDevice(StepDesc step)
+        {
+            if (step is ActionStepDesc action) return action.TargetDevice;
+            return "System";
+        }
+
+        private void EmitTrace(StepDesc step, StepStatus status)
+        {
+            if (!ShouldTrace(step)) return;
+            _trace.OnNext(new ActiveStepUpdate(ResolveTraceTargetDevice(step), step.Name, status));
         }
 
         private async Task<object?> ExecuteStepAsync(StepDesc step, FlowContext context)
@@ -41,7 +66,9 @@ namespace Machine.Framework.Interpreters.Flow
                     // 检查取消请求
                     context.CancellationToken.ThrowIfCancellationRequested();
 
-                    return await (step switch
+                    EmitTrace(step, StepStatus.Running);
+
+                    var result = await (step switch
                     {
                         ActionStepDesc action => ExecuteActionAsync(action, context),
                         SequenceStepDesc sequence => ExecuteSequenceAsync(sequence, context),
@@ -50,16 +77,26 @@ namespace Machine.Framework.Interpreters.Flow
                         ScopeStepDesc scope => ExecuteStepAsync(scope.InnerStep, context),
                         _ => throw new NotSupportedException($"Unsupported step type: {step.GetType().Name}")
                     });
+
+                    EmitTrace(step, StepStatus.Completed);
+                    return result;
                 }
                 catch (OperationCanceledException)
                 {
+                    EmitTrace(step, StepStatus.Error);
                     throw; // 直接抛出取消异常，不触发重试
                 }
                 catch (Exception ex) when (attempts < maxRetries)
                 {
                     attempts++;
+                    EmitTrace(step, StepStatus.Error);
                     Console.WriteLine($"[Flow] Step '{step.Name}' failed. Retrying ({attempts}/{maxRetries}). Error: {ex.Message}");
                     continue; 
+                }
+                catch
+                {
+                    EmitTrace(step, StepStatus.Error);
+                    throw;
                 }
             }
         }
@@ -172,18 +209,81 @@ namespace Machine.Framework.Interpreters.Flow
 
         private Task<object?> HandleFireAsync(ActionStepDesc action, FlowContext context)
         {
-            Console.WriteLine($"[Sim] Device '{action.TargetDevice}' fired with {action.Args?[0] ?? "null"}");
+            bool state = (bool)(action.Args?[0] ?? false);
+
+            var cyl = context.GetDevice<ISimulatorCylinder>(action.TargetDevice);
+            if (cyl != null)
+            {
+                var conf = context.GetDevice<CylinderConfig>(action.TargetDevice);
+                var actionTime = conf?.MoveTime ?? 200;
+                cyl.StartSet(state, actionTime);
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            var vac = context.GetDevice<ISimulatorVacuum>(action.TargetDevice);
+            if (vac != null)
+            {
+                var conf = context.GetDevice<CylinderConfig>(action.TargetDevice);
+                var actionTime = conf?.MoveTime ?? 50;
+                vac.StartSet(state, actionTime);
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            Console.WriteLine($"[Sim] Device '{action.TargetDevice}' fired with {state}");
             return Task.FromResult<object?>(new Unit());
         }
 
         private async Task<object?> HandleFireAndWaitAsync(ActionStepDesc action, FlowContext context)
         {
             bool state = (bool)(action.Args?[0] ?? false);
-            Console.WriteLine($"[Sim] Device '{action.TargetDevice}' FireAndWait start: {state}");
-            
+
+            var cyl = context.GetDevice<ISimulatorCylinder>(action.TargetDevice);
+            if (cyl != null)
+            {
+                var conf = context.GetDevice<CylinderConfig>(action.TargetDevice);
+                var actionTime = conf?.MoveTime ?? 200;
+                cyl.StartSet(state, actionTime);
+
+                try
+                {
+                    await cyl.StateStream
+                        .Where(s => !s.IsMoving && s.IsExtended == state)
+                        .FirstAsync()
+                        .ToTask(context.CancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    cyl.Stop();
+                    throw;
+                }
+
+                return new Unit();
+            }
+
+            var vac = context.GetDevice<ISimulatorVacuum>(action.TargetDevice);
+            if (vac != null)
+            {
+                var conf = context.GetDevice<CylinderConfig>(action.TargetDevice);
+                var actionTime = conf?.MoveTime ?? 50;
+                vac.StartSet(state, actionTime);
+
+                try
+                {
+                    await vac.StateStream
+                        .Where(s => !s.IsChanging && s.IsOn == state)
+                        .FirstAsync()
+                        .ToTask(context.CancellationToken);
+                }
+                catch (OperationCanceledException)
+                {
+                    vac.Stop();
+                    throw;
+                }
+
+                return new Unit();
+            }
+
             await Task.Delay(200, context.CancellationToken);
-            
-            Console.WriteLine($"[Sim] Device '{action.TargetDevice}' FireAndWait finished.");
             return new Unit();
         }
 
@@ -246,6 +346,14 @@ namespace Machine.Framework.Interpreters.Flow
             foreach (var cyl in context.Config.CylinderConfigs)
             {
                 context.RegisterDevice(cyl.Name, cyl);
+                if (IsVacuumName(cyl.Name))
+                {
+                    context.RegisterDevice(cyl.Name, new SimulatorVacuum(cyl.Name));
+                }
+                else
+                {
+                    context.RegisterDevice(cyl.Name, new SimulatorCylinder(cyl.Name));
+                }
             }
             foreach (var board in context.Config.BoardConfigs)
             {
@@ -264,6 +372,15 @@ namespace Machine.Framework.Interpreters.Flow
                     }
                 }
             }
+        }
+
+        private static bool IsVacuumName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+
+            return name.StartsWith("VAC", StringComparison.OrdinalIgnoreCase)
+                || name.StartsWith("Vac", StringComparison.OrdinalIgnoreCase)
+                || name.Contains("Vacuum", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
