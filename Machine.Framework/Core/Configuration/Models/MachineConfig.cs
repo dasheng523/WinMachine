@@ -6,10 +6,11 @@ namespace Machine.Framework.Core.Configuration.Models
 {
     public class MachineConfig
     {
-        public List<BaseBoardConfig> BoardConfigs { get; set; } = new List<BaseBoardConfig>();
+        public List<ControlBoardConfig> BoardConfigs { get; set; } = new List<ControlBoardConfig>();
         public List<BaseDeviceConfig> DeviceConfigs { get; set; } = new List<BaseDeviceConfig>();
         public List<BusConfig> BusConfigs { get; set; } = new List<BusConfig>();
-        public List<CylinderConfig> CylinderConfigs { get; set; } = new List<CylinderConfig>();
+        public Dictionary<string, AxisConfig> AxisConfigs { get; set; } = new Dictionary<string, AxisConfig>();
+        public Dictionary<string, CylinderConfig> CylinderConfigs { get; set; } = new Dictionary<string, CylinderConfig>();
 
         public static MachineConfig Create()
         {
@@ -20,10 +21,59 @@ namespace Machine.Framework.Core.Configuration.Models
         {
             var builder = new BoardBuilder(name);
             configure(builder);
-            if (builder.Config != null)
+            BoardConfigs.Add(builder.Config);
+            return this;
+        }
+
+        public MachineConfig ConfigureAxis(string axisId, Action<AxisConfigBuilder> configure)
+        {
+            var builder = new AxisConfigBuilder();
+            configure(builder);
+            AxisConfigs[axisId] = builder.Build();
+            return this;
+        }
+
+        public MachineConfig ConfigureAxis(Enum axis, Action<AxisConfigBuilder> configure)
+        {
+            return ConfigureAxis(axis.ToString(), configure);
+        }
+
+        public MachineConfig ConfigureCylinder(string cylinderId, Action<CylinderConfig> configure)
+        {
+            if (!CylinderConfigs.TryGetValue(cylinderId, out var cfg))
             {
-                BoardConfigs.Add(builder.Config);
+                cfg = new CylinderConfig(cylinderId);
             }
+
+            configure(cfg);
+            CylinderConfigs[cylinderId] = cfg;
+            return this;
+        }
+
+        public MachineConfig UseSimulator(string boardName, Action<SimulatorDriverConfig> configure)
+        {
+            var board = GetBoardOrThrow(boardName);
+            var cfg = new SimulatorDriverConfig();
+            configure(cfg);
+            board.Driver = cfg;
+            return this;
+        }
+
+        public MachineConfig UseLeadshine(string boardName, Action<LeadshineDriverConfig> configure)
+        {
+            var board = GetBoardOrThrow(boardName);
+            var cfg = new LeadshineDriverConfig();
+            configure(cfg);
+            board.Driver = cfg;
+            return this;
+        }
+
+        public MachineConfig UseZMotion(string boardName, Action<ZMotionDriverConfig> configure)
+        {
+            var board = GetBoardOrThrow(boardName);
+            var cfg = new ZMotionDriverConfig();
+            configure(cfg);
+            board.Driver = cfg;
             return this;
         }
 
@@ -49,12 +99,15 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
-        public MachineConfig AddCylinder(string name, Action<CylinderConfig> configure)
+        private ControlBoardConfig GetBoardOrThrow(string boardName)
         {
-            var config = new CylinderConfig(name);
-            configure(config);
-            CylinderConfigs.Add(config);
-            return this;
+            var board = BoardConfigs.Find(b => string.Equals(b.Name, boardName, StringComparison.OrdinalIgnoreCase));
+            if (board == null)
+            {
+                throw new InvalidOperationException($"Control board '{boardName}' not found. Did you forget AddControlBoard('{boardName}', ...)?");
+            }
+
+            return board;
         }
     }
 }

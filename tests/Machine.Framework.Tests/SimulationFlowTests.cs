@@ -19,11 +19,11 @@ namespace Machine.Framework.Tests
         {
             var config = MachineConfig.Create()
                 .AddControlBoard("SimBoard", b => b
-                    .UseSimulator(s => s
-                        .MapAxis(MyAxis.X, 0)
-                        .ConfigAxis(MyAxis.X, a => a.SetSoftLimits(sl => sl.Range(0, 1000)))
-                    )
-                );
+                    .MapAxis(MyAxis.X, 0)
+                    .UseSimulator()
+                )
+                .ConfigureAxis(MyAxis.X, a => a.SetSoftLimits(sl => sl.Range(0, 1000)))
+                .UseSimulator("SimBoard", sim => sim.Axis(MyAxis.X.ToString(), a => a.Travel(0, 1000)));
 
             var context = new FlowContext(config);
             var interpreter = new SimulationFlowInterpreter();
@@ -43,7 +43,11 @@ namespace Machine.Framework.Tests
         public async Task Test_Dynamic_Calibration_And_Move()
         {
             var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Z, 0)));
+                .AddControlBoard("Main", b => b
+                    .MapAxis(MyAxis.Z, 0)
+                    .UseSimulator()
+                )
+                .UseSimulator("Main", sim => sim.Axis(MyAxis.Z.ToString(), a => a.Travel(0, 1000)));
             
             var context = new FlowContext(config);
             var interpreter = new SimulationFlowInterpreter();
@@ -59,6 +63,7 @@ namespace Machine.Framework.Tests
 
             Assert.Equal(111.0, (double)finalPos!);
             var zAxis = context.GetDevice<SimulatorAxis>("Z");
+            Assert.NotNull(zAxis);
             Assert.Equal(111.0, zAxis.CurrentState.Position, precision: 1);
         }
 
@@ -66,7 +71,11 @@ namespace Machine.Framework.Tests
         public async Task Test_Safety_Interlock_Panic_Stop()
         {
             var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Y, 0)));
+                .AddControlBoard("Main", b => b
+                    .MapAxis(MyAxis.Y, 0)
+                    .UseSimulator()
+                )
+                .UseSimulator("Main", sim => sim.Axis(MyAxis.Y.ToString(), a => a.Travel(0, 1000)));
             
             using var tcs = new CancellationTokenSource();
             var context = new FlowContext(config, tcs.Token);
@@ -82,6 +91,7 @@ namespace Machine.Framework.Tests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await task);
 
             var yAxis = context.GetDevice<SimulatorAxis>("Y");
+            Assert.NotNull(yAxis);
             Assert.True(yAxis.CurrentState.Position < 1000);
             Assert.False(yAxis.CurrentState.IsMoving);
         }
@@ -90,12 +100,17 @@ namespace Machine.Framework.Tests
         public async Task Test_MoveToObj_Transfer_Sequence()
         {
             var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b.UseSimulator(s => s
+                .AddControlBoard("Main", b => b
                     .MapAxis(MyAxis.Rotate, 0)
-                ))
-                .AddCylinder("Gripper", c => c.Drive(10).WithSensors(100, 101))
-                .AddCylinder("Lift",    c => c.Drive(11).WithSensors(102, 103))
-                .AddCylinder("VAC_1",   c => c.Drive(12));
+                    .MapCylinder("Gripper", 10, extendedPort: 100, retractedPort: 101)
+                    .MapCylinder("Lift", 11, extendedPort: 102, retractedPort: 103)
+                    .MapCylinder("VAC_1", 12)
+                    .UseSimulator()
+                )
+                .ConfigureCylinder("Gripper", c => c.MoveTime = 200)
+                .ConfigureCylinder("Lift", c => c.MoveTime = 200)
+                .ConfigureCylinder("VAC_1", c => c.MoveTime = 60)
+                .UseSimulator("Main", sim => sim.Axis(MyAxis.Rotate.ToString(), a => a.Travel(0, 180)));
             
             var context = new FlowContext(config);
             var interpreter = new SimulationFlowInterpreter();
@@ -111,6 +126,7 @@ namespace Machine.Framework.Tests
             await interpreter.RunAsync(CreateMoveToObjFlow(TestSide.Left).Definition, context);
 
             var rotateAxis = context.GetDevice<SimulatorAxis>("Rotate");
+            Assert.NotNull(rotateAxis);
             Assert.Equal(180, rotateAxis.CurrentState.Position, precision: 1);
         }
 
@@ -119,7 +135,11 @@ namespace Machine.Framework.Tests
         {
             // 验证场景：轴往下移动，压力传感器数值会不断升高，直到达到某个数值后停止移动。
             var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Z, 0)));
+                .AddControlBoard("Main", b => b
+                    .MapAxis(MyAxis.Z, 0)
+                    .UseSimulator()
+                )
+                .UseSimulator("Main", sim => sim.Axis(MyAxis.Z.ToString(), a => a.Travel(0, 1000)));
             
             var context = new FlowContext(config);
             var interpreter = new SimulationFlowInterpreter();
@@ -137,6 +157,7 @@ namespace Machine.Framework.Tests
             Assert.Equal(120.0, (double)resultPos!, precision: 1);
             
             var zAxis = context.GetDevice<SimulatorAxis>("Z");
+            Assert.NotNull(zAxis);
             Assert.False(zAxis.CurrentState.IsMoving);
             Assert.Equal(120.0, zAxis.CurrentState.Position, precision: 1);
 
@@ -180,7 +201,9 @@ namespace Machine.Framework.Tests
             await interpreter.RunAsync(flow.Definition, context);
 
             // 4. 物理验证
-            Assert.Equal(10.0, context.GetDevice<SimulatorAxis>("Z1_Axis").CurrentState.Position);
+            var z1 = context.GetDevice<SimulatorAxis>("Z1_Axis");
+            Assert.NotNull(z1);
+            Assert.Equal(10.0, z1.CurrentState.Position);
         }
 
         [Fact]

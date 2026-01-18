@@ -42,15 +42,29 @@ internal static class SimulationFlowScenarios
             cts =>
             {
                 var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b.UseSimulator(s => s
-                        .MapAxis("Slide", 0).ConfigAxis("Slide", a => a.SetSoftLimits(sl => sl.Range(-120, 120)))
-                        .MapAxis("LeftRotate", 1).ConfigAxis("LeftRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
-                        .MapAxis("RightRotate", 2).ConfigAxis("RightRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
-                    ))
-                    .AddCylinder("LeftLift", c => c.Drive(20).WithDynamicsMs(260))
-                    .AddCylinder("RightLift", c => c.Drive(21).WithDynamicsMs(260))
-                    .AddCylinder("LeftGrip", c => c.Drive(22).WithDynamicsMs(180))
-                    .AddCylinder("RightGrip", c => c.Drive(23).WithDynamicsMs(180));
+                    .AddControlBoard("Main", b => b
+                        .MapAxis("Slide", 0)
+                        .MapAxis("LeftRotate", 1)
+                        .MapAxis("RightRotate", 2)
+                        .MapCylinder("LeftLift", 20)
+                        .MapCylinder("RightLift", 21)
+                        .MapCylinder("LeftGrip", 22)
+                        .MapCylinder("RightGrip", 23)
+                        .UseSimulator()
+                    )
+                    .ConfigureAxis("Slide", a => a.SetSoftLimits(sl => sl.Range(-120, 120)))
+                    .ConfigureAxis("LeftRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
+                    .ConfigureAxis("RightRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
+                    .ConfigureCylinder("LeftLift", c => c.WithDynamicsMs(260))
+                    .ConfigureCylinder("RightLift", c => c.WithDynamicsMs(260))
+                    .ConfigureCylinder("LeftGrip", c => c.WithDynamicsMs(180))
+                    .ConfigureCylinder("RightGrip", c => c.WithDynamicsMs(180))
+                    .UseSimulator("Main", sim => sim
+                        .Axis("Slide", a => a.Travel(-120, 120))
+                        .Axis("LeftRotate", a => a.Travel(0, 180))
+                        .Axis("RightRotate", a => a.Travel(0, 180))
+                        .Timing(t => t.TickMs = 16)
+                    );
 
                 var context = new FlowContext(config, cts.Token);
 
@@ -115,11 +129,13 @@ internal static class SimulationFlowScenarios
             {
                 var config = MachineConfig.Create()
                     .AddControlBoard("SimBoard", b => b
-                        .UseSimulator(s => s
-                            .MapAxis(MyAxis.X, 0)
-                            .ConfigAxis(MyAxis.X, a => a.SetSoftLimits(sl => sl.Range(0, 1000)))
-                        )
+                        .MapAxis(MyAxis.X, 0)
+                        .UseSimulator()
                     );
+
+                config
+                    .ConfigureAxis(MyAxis.X, a => a.SetSoftLimits(sl => sl.Range(0, 1000)))
+                    .UseSimulator("SimBoard", sim => sim.Axis(MyAxis.X.ToString(), a => a.Travel(0, 1000)));
 
                 var context = new FlowContext(config);
 
@@ -136,7 +152,11 @@ internal static class SimulationFlowScenarios
             _ =>
             {
                 var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Z, 0)));
+                    .AddControlBoard("Main", b => b
+                        .MapAxis(MyAxis.Z, 0)
+                        .UseSimulator()
+                    )
+                    .UseSimulator("Main", sim => sim.Axis(MyAxis.Z.ToString(), a => a.Travel(0, 1000)));
 
                 var context = new FlowContext(config);
 
@@ -158,7 +178,11 @@ internal static class SimulationFlowScenarios
             cts =>
             {
                 var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Y, 0)));
+                    .AddControlBoard("Main", b => b
+                        .MapAxis(MyAxis.Y, 0)
+                        .UseSimulator()
+                    )
+                    .UseSimulator("Main", sim => sim.Axis(MyAxis.Y.ToString(), a => a.Travel(0, 1000)));
 
                 var context = new FlowContext(config, cts.Token);
 
@@ -184,10 +208,17 @@ internal static class SimulationFlowScenarios
             _ =>
             {
                 var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Rotate, 0)))
-                    .AddCylinder("Gripper", c => c.Drive(10).WithSensors(100, 101).WithDynamicsMs(200))
-                    .AddCylinder("Lift", c => c.Drive(11).WithSensors(102, 103).WithDynamicsMs(200))
-                    .AddCylinder("VAC_1", c => c.Drive(12).WithDynamicsMs(60));
+                    .AddControlBoard("Main", b => b
+                        .MapAxis(MyAxis.Rotate, 0)
+                        .MapCylinder("Gripper", 10, extendedPort: 100, retractedPort: 101)
+                        .MapCylinder("Lift", 11, extendedPort: 102, retractedPort: 103)
+                        .MapCylinder("VAC_1", 12)
+                        .UseSimulator()
+                    )
+                    .ConfigureCylinder("Gripper", c => c.WithDynamicsMs(200))
+                    .ConfigureCylinder("Lift", c => c.WithDynamicsMs(200))
+                    .ConfigureCylinder("VAC_1", c => c.WithDynamicsMs(60))
+                    .UseSimulator("Main", sim => sim.Axis(MyAxis.Rotate.ToString(), a => a.Travel(0, 180)));
 
                 var context = new FlowContext(config);
 
@@ -207,7 +238,11 @@ internal static class SimulationFlowScenarios
             _ =>
             {
                 var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b.UseSimulator(s => s.MapAxis(MyAxis.Z, 0)));
+                    .AddControlBoard("Main", b => b
+                        .MapAxis(MyAxis.Z, 0)
+                        .UseSimulator()
+                    )
+                    .UseSimulator("Main", sim => sim.Axis(MyAxis.Z.ToString(), a => a.Travel(0, 1000)));
 
                 var context = new FlowContext(config);
 

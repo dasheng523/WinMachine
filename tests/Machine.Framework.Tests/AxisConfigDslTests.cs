@@ -18,48 +18,50 @@ namespace Machine.Framework.Tests
 
             var config = MachineConfig.Create()
                 .AddControlBoard("MainMotion", board => board
-                    .UseLeadshine(c => c
-                        .Model(LeadshineModel.DMC3000)
-                        .CardId(0)
-                        
-                        // --- 轴配置 DSL ---
-                        .ConfigAxis(TestSystemAxis.X, axis => axis
-                            // 1. 基础信号配置
-                            .SetPulseOutput(PulseOutputMode.PulseDir_High_PosHigh)
-                            .SetEncInput(EncoderInputMode.AbPhase_4x)
-
-                            // 2. 运动参数 (物理量)
-                            .SetEquivalency(pulsePerUnit: 1000) // 1mm = 1000脉冲
-                            .SetBacklash(0.05)                  // 反向间隙 0.05mm
-                            
-                            // 3. 限位与安全 (Hard Limits)
-                            .SetHardLimits(limits => limits
-                                .Enable(true)
-                                .Logic(ActiveLevel.Low)
-                                .StopMode(StopAction.Immediate) // 急停/立即停止
-                            )
-
-                            // 4. 软限位 (Soft Limits)
-                            .SetSoftLimits(limits => limits
-                                .Enable(true)
-                                .Range(-10, 500)
-                                .Action(StopAction.Decelerate) // 减速停止
-                            )
-
-                            // 5. 回原点配置 (Homing)
-                            .SetHoming(home => home
-                                .Mode(HomeMode.Once) // 原点在正方向，仅搜原点
-                                .HighSpeed(2000)    // 寻原点高速
-                                .LowSpeed(100)      // 爬行速度
-                                .OrgLogic(ActiveLevel.Low) // 原点信号电平
-                            )
-
-                            // 6. 专用IO映射 (Axis Specific IO Mapping)
-                            // 将该轴的"报警信号"映射到物理端口 IN_15
-                            .MapAxisIo(AxisIoType.Alarm, IoMapType.GeneralInput, index: 15, filterTime: 0.1)
-                        )
-                    )
+                    .UseLeadshine()
                 );
+
+            config.UseLeadshine("MainMotion", c => c
+                .Model(LeadshineModel.DMC3000)
+                .CardId(0)
+
+                // --- 轴配置 DSL ---
+                .ConfigAxis(TestSystemAxis.X, axis => axis
+                    // 1. 基础信号配置
+                    .SetPulseOutput(PulseOutputMode.PulseDir_High_PosHigh)
+                    .SetEncInput(EncoderInputMode.AbPhase_4x)
+
+                    // 2. 运动参数 (物理量)
+                    .SetEquivalency(pulsePerUnit: 1000) // 1mm = 1000脉冲
+                    .SetBacklash(0.05)                  // 反向间隙 0.05mm
+
+                    // 3. 限位与安全 (Hard Limits)
+                    .SetHardLimits(limits => limits
+                        .Enable(true)
+                        .Logic(ActiveLevel.Low)
+                        .StopMode(StopAction.Immediate) // 急停/立即停止
+                    )
+
+                    // 4. 软限位 (Soft Limits)
+                    .SetSoftLimits(limits => limits
+                        .Enable(true)
+                        .Range(-10, 500)
+                        .Action(StopAction.Decelerate) // 减速停止
+                    )
+
+                    // 5. 回原点配置 (Homing)
+                    .SetHoming(home => home
+                        .Mode(HomeMode.Once) // 原点在正方向，仅搜原点
+                        .HighSpeed(2000)    // 寻原点高速
+                        .LowSpeed(100)      // 爬行速度
+                        .OrgLogic(ActiveLevel.Low) // 原点信号电平
+                    )
+
+                    // 6. 专用IO映射 (Axis Specific IO Mapping)
+                    // 将该轴的"报警信号"映射到物理端口 IN_15
+                    .MapAxisIo(AxisIoType.Alarm, IoMapType.GeneralInput, index: 15, filterTime: 0.1)
+                )
+            );
 
             Assert.NotNull(config);
             Console.WriteLine("Axis Detailed Config DSL execution successful.");
@@ -73,28 +75,30 @@ namespace Machine.Framework.Tests
 
             var config = MachineConfig.Create()
                 .AddControlBoard("MainMotion", board => board
-                    .UseLeadshine(c => c
-                        .Model(LeadshineModel.SMC600)
-                        .CardId(0)
-
-                        // L1 - L4 批量配置 (共性部分可以提取 Loop，但 DSL 中 explicit 写法如下)
-                        .ConfigAxis(Axis_B.L1, Configure_L_Axis)
-                        .ConfigAxis(Axis_B.L2, Configure_L_Axis)
-                        .ConfigAxis(Axis_B.L3, Configure_L_Axis)
-                        .ConfigAxis(Axis_B.L4, Configure_L_Axis)
-
-                        // R1 - R2 批量配置
-                        .ConfigAxis(Axis_B.R1, Configure_R_Axis)
-                        .ConfigAxis(Axis_B.R2, Configure_R_Axis)
-
-                        // RS1 - RS2 批量配置
-                        .ConfigAxis(Axis_B.RS1, Configure_RS1_Axis)
-                        .ConfigAxis(Axis_B.RS2, Configure_RS2_Axis)
-                    )
+                    .UseLeadshine()
                 );
 
+            config.UseLeadshine("MainMotion", c => c
+                .Model(LeadshineModel.SMC600)
+                .CardId(0)
+
+                // L1 - L4 批量配置 (共性部分可以提取 Loop，但 DSL 中 explicit 写法如下)
+                .ConfigAxis(Axis_B.L1, Configure_L_Axis)
+                .ConfigAxis(Axis_B.L2, Configure_L_Axis)
+                .ConfigAxis(Axis_B.L3, Configure_L_Axis)
+                .ConfigAxis(Axis_B.L4, Configure_L_Axis)
+
+                // R1 - R2 批量配置
+                .ConfigAxis(Axis_B.R1, Configure_R_Axis)
+                .ConfigAxis(Axis_B.R2, Configure_R_Axis)
+
+                // RS1 - RS2 批量配置
+                .ConfigAxis(Axis_B.RS1, Configure_RS1_Axis)
+                .ConfigAxis(Axis_B.RS2, Configure_RS2_Axis)
+            );
+
             Assert.NotNull(config);
-            var leadshine = config.BoardConfigs[0] as LeadshineConfig;
+            var leadshine = config.BoardConfigs[0].Driver as LeadshineDriverConfig;
             Assert.NotNull(leadshine);
             
             // 验证 L1 的配置
@@ -196,10 +200,11 @@ namespace Machine.Framework.Tests
             // 验证 DSL -> JSON -> DSL 的无损还原
             var config = MachineConfig.Create()
                 .AddControlBoard("MotionA", b => b
-                    .UseLeadshine(l => l
-                        .Model(LeadshineModel.DMC3000)
-                        .ConfigAxis(TestSystemAxis.X, a => a.SetPulseOutput(PulseOutputMode.PulseDir_High_PosHigh))
-                    )
+                    .UseLeadshine()
+                )
+                .UseLeadshine("MotionA", l => l
+                    .Model(LeadshineModel.DMC3000)
+                    .ConfigAxis(TestSystemAxis.X, a => a.SetPulseOutput(PulseOutputMode.PulseDir_High_PosHigh))
                 )
                 .AddDevice("Serial1", d => d
                     .UseSerialDevice(s => s.Port("COM1").BaudRate(9600))
@@ -215,14 +220,17 @@ namespace Machine.Framework.Tests
             Assert.Single(loaded.BoardConfigs);
             Assert.Single(loaded.DeviceConfigs);
 
-            var board = loaded.BoardConfigs[0] as LeadshineConfig;
+            var board = loaded.BoardConfigs[0];
             Assert.NotNull(board);
             Assert.Equal("MotionA", board.Name);
-            Assert.Equal(LeadshineModel.DMC3000, board.ModelType);
+
+            var driver = board.Driver as LeadshineDriverConfig;
+            Assert.NotNull(driver);
+            Assert.Equal(LeadshineModel.DMC3000, driver.ModelType);
             
             // 验证字典键是否正确序列化为字符串
-            Assert.True(board.AxisConfigs.ContainsKey(TestSystemAxis.X.ToString()));
-            var axis = board.AxisConfigs[TestSystemAxis.X.ToString()];
+            Assert.True(driver.AxisConfigs.ContainsKey(TestSystemAxis.X.ToString()));
+            var axis = driver.AxisConfigs[TestSystemAxis.X.ToString()];
             Assert.Equal(PulseOutputMode.PulseDir_High_PosHigh, axis.PulseOutput);
 
             var device = loaded.DeviceConfigs[0] as SerialConfig;

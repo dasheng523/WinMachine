@@ -343,33 +343,73 @@ namespace Machine.Framework.Interpreters.Flow
         {
             if (!context.Devices.IsEmpty) return;
 
-            foreach (var cyl in context.Config.CylinderConfigs)
-            {
-                context.RegisterDevice(cyl.Name, cyl);
-                if (IsVacuumName(cyl.Name))
-                {
-                    context.RegisterDevice(cyl.Name, new SimulatorVacuum(cyl.Name));
-                }
-                else
-                {
-                    context.RegisterDevice(cyl.Name, new SimulatorCylinder(cyl.Name));
-                }
-            }
+            var registeredAxes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var registeredCylinders = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var board in context.Config.BoardConfigs)
             {
-                if (board is SimulatorBoardConfig simBoard)
+                // 1) 气缸/真空：板级 IO 绑定 -> CylinderConfig + SimulatorCylinder/Vacuum
+                foreach (var kv in board.CylinderMappings)
                 {
-                    foreach (var pair in simBoard.AxisMappings)
-                    {
-                        string logicId = pair.Key;
-                        simBoard.AxisConfigs.TryGetValue(logicId, out var axisConfig);
-                        
-                        double min = axisConfig?.SoftLimits?.Min ?? 0;
-                        double max = axisConfig?.SoftLimits?.Max ?? 1000;
+                    var id = kv.Key;
+                    var binding = kv.Value;
 
-                        var axis = new SimulatorAxis(logicId, min, max, 200);
-                        context.RegisterDevice(logicId, axis);
+                    if (!registeredCylinders.Add(id))
+                    {
+                        throw new InvalidOperationException($"Cylinder '{id}' is mapped on multiple boards.");
                     }
+
+                    var cylCfg = new CylinderConfig(id)
+                        .Drive(binding.OutputPort);
+
+                    if (binding.ExtendedSensorPort.HasValue && binding.RetractedSensorPort.HasValue)
+                    {
+                        cylCfg.WithSensors(binding.ExtendedSensorPort.Value, binding.RetractedSensorPort.Value);
+                    }
+
+                    if (context.Config.CylinderConfigs.TryGetValue(id, out var commonCylCfg))
+                    {
+                        cylCfg.MoveTime = commonCylCfg.MoveTime;
+                        cylCfg.DefaultTimeoutMs = commonCylCfg.DefaultTimeoutMs;
+                    }
+
+                    context.RegisterDevice(id, cylCfg);
+
+                    if (IsVacuumName(id))
+                    {
+                        context.RegisterDevice(id, new SimulatorVacuum(id));
+                    }
+                    else
+                    {
+                        context.RegisterDevice(id, new SimulatorCylinder(id));
+                    }
+                }
+
+                // 2) 轴：仅对 Simulator 驱动创建仿真轴对象
+                if (board.Driver is not SimulatorDriverConfig simDriver) continue;
+
+                foreach (var pair in board.AxisMappings)
+                {
+                    string logicId = pair.Key;
+
+                    if (!registeredAxes.Add(logicId))
+                    {
+                        throw new InvalidOperationException($"Axis '{logicId}' is mapped on multiple boards.");
+                    }
+
+                    context.Config.AxisConfigs.TryGetValue(logicId, out var commonAxisConfig);
+                    simDriver.Axes.TryGetValue(logicId, out var physical);
+
+                    double min = commonAxisConfig?.SoftLimits?.Min
+                        ?? physical?.TravelMin
+                        ?? 0;
+
+                    double max = commonAxisConfig?.SoftLimits?.Max
+                        ?? physical?.TravelMax
+                        ?? 1000;
+
+                    var axis = new SimulatorAxis(logicId, min, max, 200);
+                    context.RegisterDevice(logicId, axis);
                 }
             }
         }

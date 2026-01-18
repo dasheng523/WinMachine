@@ -352,29 +352,46 @@ namespace Machine.Framework.Core.Simulation
 
             var asm = b.Assembly;
 
-            if (asm.Axes.Count > 0)
+            if (asm.Axes.Count > 0 || asm.Cylinders.Count > 0)
             {
                 config.AddControlBoard("SimBoard", board =>
-                    board.UseSimulator(sim =>
-                    {
-                        foreach (var axis in asm.Axes)
-                        {
-                            sim.MapAxis(axis.Name, axis.Id);
-                            sim.ConfigAxis(axis.Name, a => a.SetSoftLimits(sl => sl.Range(axis.Min, axis.Max)));
-                        }
-                    }));
-            }
-
-            foreach (var cyl in asm.Cylinders)
-            {
-                config.AddCylinder(cyl.Name, c =>
                 {
-                    c.Drive(cyl.DoOut);
-                    if (cyl.FeedbackDiOut.HasValue && cyl.FeedbackDiIn.HasValue)
+                    foreach (var axis in asm.Axes)
                     {
-                        c.WithSensors(cyl.FeedbackDiOut.Value, cyl.FeedbackDiIn.Value);
+                        board.MapAxis(axis.Name, axis.Id);
                     }
-                    c.MoveTime = cyl.ActionTimeMs;
+
+                    foreach (var cyl in asm.Cylinders)
+                    {
+                        if (cyl.FeedbackDiOut.HasValue && cyl.FeedbackDiIn.HasValue)
+                        {
+                            board.MapCylinder(cyl.Name, cyl.DoOut, cyl.FeedbackDiOut.Value, cyl.FeedbackDiIn.Value);
+                        }
+                        else
+                        {
+                            board.MapCylinder(cyl.Name, cyl.DoOut);
+                        }
+                    }
+
+                    board.UseSimulator();
+                });
+
+                foreach (var axis in asm.Axes)
+                {
+                    config.ConfigureAxis(axis.Name, a => a.SetSoftLimits(sl => sl.Range(axis.Min, axis.Max)));
+                }
+
+                foreach (var cyl in asm.Cylinders)
+                {
+                    config.ConfigureCylinder(cyl.Name, c => c.MoveTime = cyl.ActionTimeMs);
+                }
+
+                config.UseSimulator("SimBoard", sim =>
+                {
+                    foreach (var axis in asm.Axes)
+                    {
+                        sim.Axis(axis.Name, a => a.Travel(axis.Min, axis.Max));
+                    }
                 });
             }
 

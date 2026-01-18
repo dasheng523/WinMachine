@@ -17,7 +17,7 @@ namespace Machine.Framework.Interpreters.Configuration
         {
             _options = new JsonSerializerOptions 
             { 
-                WriteIndented = indented 
+                WriteIndented = indented
             };
         }
 

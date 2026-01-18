@@ -20,28 +20,32 @@ namespace Machine.Framework.Tests
                 
                 // --- 板卡 1: 运动控制卡 (雷赛 -> Leadshine) ---
                 .AddControlBoard("MainMotion", board => board
-                    .UseLeadshine(c => c
-                        .Model(LeadshineModel.DMC3000)
-                        .CardId(0)
-                        .PulseMode(PulseOutputMode.PulseDir_High_PosHigh)
+                    // --- 资源映射 (Mapping) ---
+                    .MapAxis(SystemAxis.X, channel: 0)
+                    .MapAxis(SystemAxis.Z1, channel: 1)
+                    .MapAxis(SystemAxis.Z2, channel: 2)
 
-                        // --- 资源映射 (Mapping) ---
-                        .MapAxis(SystemAxis.X, physicalIndex: 0)
-                        .MapAxis(SystemAxis.Z1, physicalIndex: 1)
-                        .MapAxis(SystemAxis.Z2, physicalIndex: 2)
+                    .MapInput(SystemDI.StartBtn, port: 0)
+                    .MapOutput(SystemDO.GreenLight, port: 0)
 
-                        .MapInput(SystemDI.StartBtn, port: 0)
-                        .MapOutput(SystemDO.GreenLight, port: 0)
-                    )
+                    .UseLeadshine()
+                )
+
+                .UseLeadshine("MainMotion", c => c
+                    .Model(LeadshineModel.DMC3000)
+                    .CardId(0)
+                    .PulseMode(PulseOutputMode.PulseDir_High_PosHigh)
                 )
 
                 // --- 板卡 2: 辅助板卡 (正运动) ---
                 .AddControlBoard("AuxMotion", board => board
-                    .UseZMotion(c => c
-                        .Model(ZMotionModel.ZMC432)
-                        .IpAddress("192.168.0.11")
-                        .SelectAxis(SystemAxis.Y1, physicalIndex: 0)
-                    )
+                    .MapAxis(SystemAxis.Y1, channel: 0)
+                    .UseZMotion()
+                )
+
+                .UseZMotion("AuxMotion", c => c
+                    .Model(ZMotionModel.ZMC432)
+                    .IpAddress("192.168.0.11")
                 )
 
                 // --- 复杂传感器/外设配置 ---
@@ -96,11 +100,14 @@ namespace Machine.Framework.Tests
             Assert.Single(config.BusConfigs);
 
             // 验证详细属性
-            var leadshine = config.BoardConfigs[0] as LeadshineConfig;
+            var mainBoard = config.BoardConfigs[0];
+            Assert.NotNull(mainBoard);
+            Assert.Equal(3, mainBoard.AxisMappings.Count);
+
+            var leadshine = mainBoard.Driver as LeadshineDriverConfig;
             Assert.NotNull(leadshine);
             Assert.Equal(LeadshineModel.DMC3000, leadshine.ModelType);
             Assert.Equal(0, leadshine.BoardId);
-            Assert.Equal(3, leadshine.AxisMappings.Count);
 
             var pressureBus = config.BusConfigs[0] as BusConfig;
             Assert.NotNull(pressureBus);

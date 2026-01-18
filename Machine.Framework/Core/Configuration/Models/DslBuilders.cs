@@ -5,34 +5,65 @@ namespace Machine.Framework.Core.Configuration.Models
     public class BoardBuilder
     {
         public string Name { get; }
-        public BaseBoardConfig? Config { get; private set; }
+        public ControlBoardConfig Config { get; }
 
         public BoardBuilder(string name)
         {
             Name = name;
+            Config = new ControlBoardConfig(name);
         }
 
-        public BoardBuilder UseLeadshine(Action<LeadshineConfig> configure)
+        public BoardBuilder MapAxis(Enum axis, int channel)
         {
-            var config = new LeadshineConfig(Name);
-            configure(config);
-            Config = config;
+            Config.AxisMappings[axis.ToString()] = channel;
             return this;
         }
 
-        public BoardBuilder UseSimulator(Action<SimulatorBoardConfig> configure)
+        public BoardBuilder MapAxis(string axisId, int channel)
         {
-            var config = new SimulatorBoardConfig(Name);
-            configure(config);
-            Config = config;
+            Config.AxisMappings[axisId] = channel;
             return this;
         }
 
-        public BoardBuilder UseZMotion(Action<ZMotionConfig> configure)
+        public BoardBuilder MapCylinder(string cylinderId, int doOut)
         {
-            var config = new ZMotionConfig(Name);
-            configure(config);
-            Config = config;
+            Config.CylinderMappings[cylinderId] = new CylinderBinding(doOut);
+            return this;
+        }
+
+        public BoardBuilder MapCylinder(string cylinderId, int doOut, int extendedPort, int retractedPort)
+        {
+            Config.CylinderMappings[cylinderId] = new CylinderBinding(doOut).WithFeedback(extendedPort, retractedPort);
+            return this;
+        }
+
+        public BoardBuilder MapInput(Enum di, int port)
+        {
+            Config.InputMappings[di.ToString()] = port;
+            return this;
+        }
+
+        public BoardBuilder MapOutput(Enum doo, int port)
+        {
+            Config.OutputMappings[doo.ToString()] = port;
+            return this;
+        }
+
+        public BoardBuilder UseSimulator()
+        {
+            Config.Driver = new SimulatorDriverConfig();
+            return this;
+        }
+
+        public BoardBuilder UseLeadshine()
+        {
+            Config.Driver = new LeadshineDriverConfig();
+            return this;
+        }
+
+        public BoardBuilder UseZMotion()
+        {
+            Config.Driver = new ZMotionDriverConfig();
             return this;
         }
     }
