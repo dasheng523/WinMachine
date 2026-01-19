@@ -7,9 +7,9 @@ using System.Windows.Forms;
 using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Simulation;
 
-namespace WinMachine.Visualization;
+namespace Machine.Framework.Visualization;
 
-internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry, IDisposable
+public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry, IDisposable
 {
     private readonly Control _root;
     private readonly CompositeDisposable _subscriptions = new CompositeDisposable();

@@ -4,7 +4,7 @@ using System.Windows.Forms;
 using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Interpreters.Flow;
-using WinMachine.Visualization;
+using Machine.Framework.Visualization;
 
 namespace WinMachine
 {

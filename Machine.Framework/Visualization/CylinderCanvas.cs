@@ -4,7 +4,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-namespace WinMachine.Visualization;
+namespace Machine.Framework.Visualization;
 
 internal sealed class CylinderCanvas : Control
 {

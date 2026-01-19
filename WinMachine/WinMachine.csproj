@@ -21,4 +21,10 @@
     <ProjectReference Include="..\Machine.Framework\Machine.Framework.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Visualization\AxisCanvas.cs" />
+    <Compile Remove="Visualization\CylinderCanvas.cs" />
+    <Compile Remove="Visualization\WinFormsUIVisualizer.cs" />
+  </ItemGroup>
+
 </Project>
