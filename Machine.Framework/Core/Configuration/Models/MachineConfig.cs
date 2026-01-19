@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text.Json;
+using Machine.Framework.Core.Primitives;
 
 namespace Machine.Framework.Core.Configuration.Models
 {
@@ -33,6 +34,11 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
+        public MachineConfig ConfigureAxis(AxisID axis, Action<AxisConfigBuilder> configure)
+        {
+            return ConfigureAxis(axis.Name, configure);
+        }
+
         public MachineConfig ConfigureAxis(Enum axis, Action<AxisConfigBuilder> configure)
         {
             return ConfigureAxis(axis.ToString(), configure);
@@ -48,6 +54,11 @@ namespace Machine.Framework.Core.Configuration.Models
             configure(cfg);
             CylinderConfigs[cylinderId] = cfg;
             return this;
+        }
+
+        public MachineConfig ConfigureCylinder(CylinderID cylinder, Action<CylinderConfig> configure)
+        {
+            return ConfigureCylinder(cylinder.Name, configure);
         }
 
         public MachineConfig UseSimulator(string boardName, Action<SimulatorDriverConfig> configure)

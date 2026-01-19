@@ -1,4 +1,5 @@
 using System;
+using Machine.Framework.Core.Primitives;
 
 namespace Machine.Framework.Core.Configuration.Models
 {
@@ -25,16 +26,31 @@ namespace Machine.Framework.Core.Configuration.Models
             return this;
         }
 
+        public BoardBuilder MapAxis(AxisID axis, int channel)
+        {
+            return MapAxis(axis.Name, channel);
+        }
+
         public BoardBuilder MapCylinder(string cylinderId, int doOut)
         {
             Config.CylinderMappings[cylinderId] = new CylinderBinding(doOut);
             return this;
         }
 
+        public BoardBuilder MapCylinder(CylinderID cylinder, int doOut)
+        {
+            return MapCylinder(cylinder.Name, doOut);
+        }
+
         public BoardBuilder MapCylinder(string cylinderId, int doOut, int extendedPort, int retractedPort)
         {
             Config.CylinderMappings[cylinderId] = new CylinderBinding(doOut).WithFeedback(extendedPort, retractedPort);
             return this;
+        }
+
+        public BoardBuilder MapCylinder(CylinderID cylinder, int doOut, int extendedPort, int retractedPort)
+        {
+            return MapCylinder(cylinder.Name, doOut, extendedPort, retractedPort);
         }
 
         public BoardBuilder MapInput(Enum di, int port)

@@ -3,6 +3,7 @@ using System.Linq;
 using Xunit;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Tests.BlueprintDsl;
+using Machine.Framework.Core.Primitives;
 
 namespace Machine.Framework.Tests
 {
@@ -15,6 +16,10 @@ namespace Machine.Framework.Tests
         [Fact]
         public void Prototype_Machine_Simulation_Blueprint_Definition()
         {
+            var xAxisId = new AxisID("X_Axis");
+            var z1AxisId = new AxisID("Z1_Axis");
+            var shuttleCylId = new CylinderID("Shuttle_Cyl");
+
             // 这是我们要讨论的 DSL 外观：
             // 目标：通过 LINQ 表达硬件拓扑、物理挂载以及复杂的轴联动（Differential Linkage）
             
@@ -25,11 +30,11 @@ namespace Machine.Framework.Tests
                 let mainBoard = machine.AddBoard("MainBoard", cardId: 0)
                 
                 // 2. 定义基础轴 (基准轴)
-                let xAxis = mainBoard.AddAxis(id: 0, name: "X_Axis")
+                let xAxis = mainBoard.AddAxis(id: 0, axis: xAxisId)
                                      .WithKinematics(maxVel: 500, maxAcc: 2000)
                                      .WithRange(min: 0, max: 800)
                 
-                let z1Axis = mainBoard.AddAxis(id: 1, name: "Z1_Axis")
+                let z1Axis = mainBoard.AddAxis(id: 1, axis: z1AxisId)
                                       .WithRange(min: -50, max: 50)
                 
                 // 3. 核心功能：定义物理挂载结构 (Mechanical Hierarchy)
@@ -58,7 +63,7 @@ namespace Machine.Framework.Tests
                                            .WithOffset(x: 150, y: 0, z: 20) // 初始 z 偏置
                 
                 // 4. 定义气缸及其关联的 IO 传感器
-                let shuttleCyl = mainBoard.AddCylinder("Shuttle_Cyl", doOut: 2, doIn: 3)
+                let shuttleCyl = mainBoard.AddCylinder(shuttleCylId, doOut: 2, doIn: 3)
                                           .WithFeedback(diOut: 5, diIn: 6)
                                           .WithDynamics(actionTimeMs: 500)
                 

@@ -5,6 +5,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Windows.Forms;
 using Machine.Framework.Core.Flow;
+using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Simulation;
 
 namespace Machine.Framework.Visualization;
@@ -39,9 +40,9 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         return this;
     }
 
-    public IUIVisualizer AutoHighlight(object panel, string deviceId)
+    public IUIVisualizer AutoHighlight(object panel, DeviceID id)
     {
-        RegisterHighlightTarget(panel, deviceId);
+        RegisterHighlightTarget(panel, id.Name);
         return this;
     }
 
@@ -59,15 +60,15 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         return new WinFormsBindingBuilder(this, control);
     }
 
-    IDeviceVisualRegistry IDeviceVisualRegistry.AutoHighlight(object panel, string deviceId)
+    IDeviceVisualRegistry IDeviceVisualRegistry.AutoHighlight(object panel, DeviceID id)
     {
-        RegisterHighlightTarget(panel, deviceId);
+        RegisterHighlightTarget(panel, id.Name);
         return this;
     }
 
-    public IAxisVisualBuilder ForAxis(string axisId) => new WinFormsAxisVisualBuilder(_axisStyles, axisId);
+    public IAxisVisualBuilder ForAxis(AxisID axis) => new WinFormsAxisVisualBuilder(_axisStyles, axis.Name);
 
-    public ICylinderVisualBuilder ForCylinder(string cylinderId) => new WinFormsCylinderVisualBuilder(_cylinderStyles, cylinderId);
+    public ICylinderVisualBuilder ForCylinder(CylinderID cylinder) => new WinFormsCylinderVisualBuilder(_cylinderStyles, cylinder.Name);
 
     public void Dispose()
     {
@@ -349,17 +350,17 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             _binding = new PanelBinding { Panel = panel };
         }
 
-        public IBindingBuilder ToAxis(string axisId)
+        public IBindingBuilder ToAxis(AxisID axis)
         {
-            _binding.DeviceId = axisId;
+            _binding.DeviceId = axis.Name;
             _binding.Kind = DeviceKind.Axis;
             _owner.RegisterBinding(_binding);
             return this;
         }
 
-        public IBindingBuilder ToCylinder(string cylinderId)
+        public IBindingBuilder ToCylinder(CylinderID cylinder)
         {
-            _binding.DeviceId = cylinderId;
+            _binding.DeviceId = cylinder.Name;
             _binding.Kind = DeviceKind.Cylinder;
             _owner.RegisterBinding(_binding);
             return this;

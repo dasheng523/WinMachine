@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Machine.Framework.Core.Primitives;
 
 namespace Machine.Framework.Core.Simulation
 {
@@ -103,31 +104,31 @@ namespace Machine.Framework.Core.Simulation
                 _cardId = cardId;
             }
 
-            public IAxisBuilder AddAxis(int id, string name)
+            public IAxisBuilder AddAxis(int id, AxisID axis)
             {
-                var axis = new BlueprintAxisBuilder(id, name, _assembly);
-                axis.Commit();
-                return axis;
+                var builder = new BlueprintAxisBuilder(id, axis.Name, _assembly);
+                builder.Commit();
+                return builder;
             }
 
-            public ICylinderBuilder AddCylinder(string name, int doOut, int doIn)
+            public ICylinderBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn)
             {
-                var cyl = new BlueprintCylinderBuilder(name, doOut, doIn, _assembly);
+                var cyl = new BlueprintCylinderBuilder(cylinder.Name, doOut, doIn, _assembly);
                 cyl.Commit();
                 return cyl;
             }
 
-            public IBoardBuilder AddAxis(int id, string name, Action<IAxisBuilder> configure)
+            public IBoardBuilder AddAxis(int id, AxisID axis, Action<IAxisBuilder> configure)
             {
-                var axis = new BlueprintAxisBuilder(id, name, _assembly);
-                configure(axis);
-                axis.Commit();
+                var builder = new BlueprintAxisBuilder(id, axis.Name, _assembly);
+                configure(builder);
+                builder.Commit();
                 return this;
             }
 
-            public IBoardBuilder AddCylinder(string name, int doOut, int doIn, Action<ICylinderBuilder> configure)
+            public IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn, Action<ICylinderBuilder> configure)
             {
-                var cyl = new BlueprintCylinderBuilder(name, doOut, doIn, _assembly);
+                var cyl = new BlueprintCylinderBuilder(cylinder.Name, doOut, doIn, _assembly);
                 configure(cyl);
                 cyl.Commit();
                 return this;
@@ -178,7 +179,7 @@ namespace Machine.Framework.Core.Simulation
             public IMountPointBuilder AttachedTo(object parent) => this;
             public IMountPointBuilder AttachedTo(string parentName) => this;
             public IMountPointBuilder LinkTo(object axis) => this;
-            public IMountPointBuilder LinkTo(string deviceId) => this;
+            public IMountPointBuilder LinkTo(DeviceID id) => this;
             public IMountPointBuilder WithTransform(Func<double, double> transform) => this;
             public IMountPointBuilder WithOffset(double x = 0, double y = 0, double z = 0) => this;
             public IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure)
@@ -282,11 +283,11 @@ namespace Machine.Framework.Core.Simulation
 
     public interface IBoardBuilder
     {
-        IAxisBuilder AddAxis(int id, string name);
-        ICylinderBuilder AddCylinder(string name, int doOut, int doIn);
+        IAxisBuilder AddAxis(int id, AxisID axis);
+        ICylinderBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn);
 
-        IBoardBuilder AddAxis(int id, string name, Action<IAxisBuilder> configure);
-        IBoardBuilder AddCylinder(string name, int doOut, int doIn, Action<ICylinderBuilder> configure);
+        IBoardBuilder AddAxis(int id, AxisID axis, Action<IAxisBuilder> configure);
+        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn, Action<ICylinderBuilder> configure);
     }
 
     public interface IAxisBuilder
@@ -313,7 +314,7 @@ namespace Machine.Framework.Core.Simulation
         IMountPointBuilder AttachedTo(string parentName);
 
         IMountPointBuilder LinkTo(object axis);
-        IMountPointBuilder LinkTo(string deviceId);
+        IMountPointBuilder LinkTo(DeviceID id);
 
         IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure);
         IMountPointBuilder Mount(string name);
@@ -417,23 +418,23 @@ namespace Machine.Framework.Core.Simulation
     {
         IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter);
         IUIVisualizer ObserveContext(Machine.Framework.Core.Flow.FlowContext context);
-        IUIVisualizer AutoHighlight(object panel, string deviceId);
+        IUIVisualizer AutoHighlight(object panel, DeviceID id);
         IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig);
         IBindingBuilder Bind(object panel);
     }
 
     public interface IDeviceVisualRegistry
     {
-        IDeviceVisualRegistry AutoHighlight(object panel, string deviceId);
+        IDeviceVisualRegistry AutoHighlight(object panel, DeviceID id);
         IBindingBuilder Bind(object panel);
-        IAxisVisualBuilder ForAxis(string axisId);
-        ICylinderVisualBuilder ForCylinder(string cylinderId);
+        IAxisVisualBuilder ForAxis(AxisID axis);
+        ICylinderVisualBuilder ForCylinder(CylinderID cylinder);
     }
 
     public interface IBindingBuilder
     {
-        IBindingBuilder ToAxis(string axisId);
-        IBindingBuilder ToCylinder(string cylinderId);
+        IBindingBuilder ToAxis(AxisID axis);
+        IBindingBuilder ToCylinder(CylinderID cylinder);
         IBindingBuilder Vertical();
         IBindingBuilder Horizontal();
         IBindingBuilder Map(Func<double, object> mapper);
@@ -487,17 +488,17 @@ namespace Machine.Framework.Core.Simulation
             };
         }
 
-        public VisualLayout AutoHighlight(object panel, string deviceId)
+        public VisualLayout AutoHighlight(object panel, DeviceID id)
         {
-            AddAction(v => v.AutoHighlight(panel, deviceId));
+            AddAction(v => v.AutoHighlight(panel, id));
             return this;
         }
 
         public VisualBindingBuilder Bind(object panel) => new VisualBindingBuilder(this, panel);
 
-        public VisualAxisStyleBuilder ForAxis(string axisId) => new VisualAxisStyleBuilder(this, axisId);
+        public VisualAxisStyleBuilder ForAxis(AxisID axis) => new VisualAxisStyleBuilder(this, axis);
 
-        public VisualCylinderStyleBuilder ForCylinder(string cylinderId) => new VisualCylinderStyleBuilder(this, cylinderId);
+        public VisualCylinderStyleBuilder ForCylinder(CylinderID cylinder) => new VisualCylinderStyleBuilder(this, cylinder);
 
         public VisualLayout SelectMany(Func<VisualLayout, VisualLayout> selector, Func<VisualLayout, VisualLayout, VisualLayout> resultSelector)
         {
@@ -511,13 +512,13 @@ namespace Machine.Framework.Core.Simulation
     public sealed class VisualAxisStyleBuilder
     {
         private readonly VisualLayout _layout;
-        private readonly string _axisId;
+        private readonly AxisID _axis;
         private readonly System.Collections.Generic.List<Action<IAxisVisualBuilder>> _steps = new();
 
-        internal VisualAxisStyleBuilder(VisualLayout layout, string axisId)
+        internal VisualAxisStyleBuilder(VisualLayout layout, AxisID axis)
         {
             _layout = layout;
-            _axisId = axisId;
+            _axis = axis;
         }
 
         public VisualAxisStyleBuilder AsLinearGuide(double length, double sliderWidth)
@@ -566,7 +567,7 @@ namespace Machine.Framework.Core.Simulation
         {
             _layout.AddAction(v =>
             {
-                var builder = v.ForAxis(_axisId);
+                var builder = v.ForAxis(_axis);
                 foreach (var step in _steps)
                 {
                     step(builder);
@@ -580,13 +581,13 @@ namespace Machine.Framework.Core.Simulation
     public sealed class VisualCylinderStyleBuilder
     {
         private readonly VisualLayout _layout;
-        private readonly string _cylinderId;
+        private readonly CylinderID _cylinder;
         private readonly System.Collections.Generic.List<Action<ICylinderVisualBuilder>> _steps = new();
 
-        internal VisualCylinderStyleBuilder(VisualLayout layout, string cylinderId)
+        internal VisualCylinderStyleBuilder(VisualLayout layout, CylinderID cylinder)
         {
             _layout = layout;
-            _cylinderId = cylinderId;
+            _cylinder = cylinder;
         }
 
         public VisualCylinderStyleBuilder AsSlideBlock(double? blockSize = null)
@@ -641,7 +642,7 @@ namespace Machine.Framework.Core.Simulation
         {
             _layout.AddAction(v =>
             {
-                var builder = v.ForCylinder(_cylinderId);
+                var builder = v.ForCylinder(_cylinder);
                 foreach (var step in _steps)
                 {
                     step(builder);
@@ -664,15 +665,15 @@ namespace Machine.Framework.Core.Simulation
             _panel = panel;
         }
 
-        public VisualBindingBuilder ToAxis(string axisId)
+        public VisualBindingBuilder ToAxis(AxisID axis)
         {
-            _steps.Add(b => b.ToAxis(axisId));
+            _steps.Add(b => b.ToAxis(axis));
             return this;
         }
 
-        public VisualBindingBuilder ToCylinder(string cylinderId)
+        public VisualBindingBuilder ToCylinder(CylinderID cylinder)
         {
-            _steps.Add(b => b.ToCylinder(cylinderId));
+            _steps.Add(b => b.ToCylinder(cylinder));
             return this;
         }
 
@@ -726,7 +727,7 @@ namespace Machine.Framework.Core.Simulation
     {
         public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter) => this;
         public IUIVisualizer ObserveContext(Machine.Framework.Core.Flow.FlowContext context) => this;
-        public IUIVisualizer AutoHighlight(object panel, string deviceId) => this;
+        public IUIVisualizer AutoHighlight(object panel, DeviceID id) => this;
         public IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig)
         {
             var registry = new StubDeviceVisualRegistry();
@@ -738,16 +739,16 @@ namespace Machine.Framework.Core.Simulation
 
     internal class StubDeviceVisualRegistry : IDeviceVisualRegistry
     {
-        public IDeviceVisualRegistry AutoHighlight(object panel, string deviceId) => this;
+        public IDeviceVisualRegistry AutoHighlight(object panel, DeviceID id) => this;
         public IBindingBuilder Bind(object panel) => new StubBindingBuilder();
-        public IAxisVisualBuilder ForAxis(string axisId) => new StubAxisVisualBuilder();
-        public ICylinderVisualBuilder ForCylinder(string cylinderId) => new StubCylinderVisualBuilder();
+        public IAxisVisualBuilder ForAxis(AxisID axis) => new StubAxisVisualBuilder();
+        public ICylinderVisualBuilder ForCylinder(CylinderID cylinder) => new StubCylinderVisualBuilder();
     }
 
     internal class StubBindingBuilder : IBindingBuilder
     {
-        public IBindingBuilder ToAxis(string axisId) => this;
-        public IBindingBuilder ToCylinder(string cylinderId) => this;
+        public IBindingBuilder ToAxis(AxisID axis) => this;
+        public IBindingBuilder ToCylinder(CylinderID cylinder) => this;
         public IBindingBuilder Vertical() => this;
         public IBindingBuilder Horizontal() => this;
         public IBindingBuilder Map(Func<double, object> mapper) => this;

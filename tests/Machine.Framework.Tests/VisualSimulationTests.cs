@@ -4,6 +4,7 @@ using Xunit;
 using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Flow.Dsl;
 using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Primitives;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 
 namespace Machine.Framework.Tests
@@ -13,13 +14,15 @@ namespace Machine.Framework.Tests
         [Fact]
         public async Task Prototype_Visual_Flow_Binding_And_Tracking()
         {
+            var x = new AxisID("X");
+            var z1 = new AxisID("Z1_Axis");
+
             // 物理层：定义蓝图
             var blueprint = BlueprintScenarios.WinMachineWithDifferentialZ1();
             var config = BlueprintInterpreter.ToConfig(blueprint);
             var context = new FlowContext(config);
 
             // 解释层：使用支持视觉跟踪的解释器 (IVisualFlowInterpreter)
-            // 提示：实际开发中，SimulationFlowInterpreter 将实现 IVisualFlowInterpreter
             IVisualFlowInterpreter interpreter = new StubVisualInterpreter();
 
             // UI层：模拟 WinForms Panel (用 object 代替)
@@ -27,41 +30,39 @@ namespace Machine.Framework.Tests
             object pnl_Z1 = new { Name = "pnl_Z1", Width = 50 };
             object currentForm = new { Text = "MainSimulator" };
 
-                        // --- 绑定 DSL 外观展现（统一入口） ---
-                        UI.Link(currentForm)
-                            .ObserveInterpreter(interpreter)
-                            .Visuals(v =>
-                            {
-                                    v.AutoHighlight(pnl_XAxis, "X");
-                                    v.AutoHighlight(pnl_Z1, "Z1_Axis");
+            // --- 绑定 DSL 外观展现（统一入口） ---
+            UI.Link(currentForm)
+                .ObserveInterpreter(interpreter)
+                .Visuals(v =>
+                {
+                    v.AutoHighlight(pnl_XAxis, x);
+                    v.AutoHighlight(pnl_Z1, z1);
 
-                                    // 坐标投影绑定
-                                    v.Bind(pnl_Z1)
-                                     .ToAxis("Z1_Axis")
-                                     .Vertical()
-                                     .Map(pos => pos * 2); // 比如 1mm 映射为 2像素
-                            });
+                    // 坐标投影绑定
+                    v.Bind(pnl_Z1)
+                        .ToAxis(z1)
+                        .Vertical()
+                        .Map(pos => pos * 2); // 比如 1mm 映射为 2像素
+                });
 
             // 执行业务流
-            var flow = from _ in Name("初始化动作").Next(Motion("X").MoveToAndWait(100))
-                       from __ in Name("笔头下降").Next(Motion("Z1_Axis").MoveToAndWait(20))
+            var flow = from _ in Name("初始化动作").Next(Motion(x).MoveToAndWait(100))
+                       from __ in Name("笔头下降").Next(Motion(z1).MoveToAndWait(20))
                        select Unit.Default;
 
             // 运行
             await interpreter.RunAsync(flow.Definition, context);
 
             Assert.NotNull(flow);
-            Console.WriteLine("Visual Binding and Flow Tracking DSL Prototype verified.");
         }
 
         // --- 辅助测试的 Stub ---
         private class StubVisualInterpreter : IVisualFlowInterpreter
         {
-            public IObservable<ActiveStepUpdate> TraceStream => null!; // Rx.Observable.Empty 在此省略实现
+            public IObservable<ActiveStepUpdate> TraceStream => null!; 
 
             public Task<object?> RunAsync(StepDesc definition, FlowContext context)
             {
-                // 模拟运行
                 return Task.FromResult<object?>(Unit.Default);
             }
         }
@@ -69,42 +70,37 @@ namespace Machine.Framework.Tests
         [Fact]
         public void Verify_Hardware_Shape_DSL_Expressions()
         {
-            // 1. 物理蓝图定义：只关心逻辑特征、行程和机动性
+            var z1 = new AxisID("Z1_Slide");
+            var r = new AxisID("R_Axis");
+            var complex = new AxisID("ComplexArm");
+            var push = new CylinderID("PushCylinder");
+            var grip = new CylinderID("Gripper");
+            var suction = new CylinderID("Suction");
+
+            // 1. 物理蓝图定义
             var blueprint = MachineSimulator.Assemble("ShapeDemoMachine")
                 .AddBoard("MotionCard", 1, board => 
                 {
-                    board.AddAxis(1, "Z1_Slide").WithRange(0, 100);
-                    board.AddAxis(2, "R_Axis");
-                    board.AddCylinder("PushCylinder", 0, 0);
-                    board.AddCylinder("Gripper", 1, 1);
-                    board.AddCylinder("Suction", 2, 2);
-                    board.AddAxis(3, "ComplexArm");
+                    board.AddAxis(1, z1, a => a.WithRange(0, 100));
+                    board.AddAxis(2, r);
+                    board.AddCylinder(push, 0, 0);
+                    board.AddCylinder(grip, 1, 1);
+                    board.AddCylinder(suction, 2, 2);
+                    board.AddAxis(3, complex);
                 });
 
-            // 2. UI 视觉展现 DSL：定义这些逻辑设备如何从视觉上表达
-            // 这种分离允许同一套蓝图有多种视觉表现形式（如 2D Panel 渲染或 3D 模型渲染）
+            // 2. UI 视觉展现 DSL
             object currentForm = new { Text = "MainSimulator" };
             
             UI.Link(currentForm)
               .Visuals(v => 
               {
-                  // Z轴: 长条+滑块 (竖直, 反向)
-                  v.ForAxis("Z1_Slide").AsLinearGuide(200, 20).Vertical().Reversed();
-
-                  // R轴: 旋转座 (水平, 正向)
-                  v.ForAxis("R_Axis").AsRotaryTable(radius: 15).Horizontal().Forward();
-
-                  // 气缸: 滑块形态
-                  v.ForCylinder("PushCylinder").AsSlideBlock().Horizontal().Reversed();
-
-                  // 气缸: 夹爪形态
-                  v.ForCylinder("Gripper").AsGripper(15, 5).Vertical();
-
-                  // 气缸: 吸笔形态
-                  v.ForCylinder("Suction").AsSuctionPen(diameter: 4).Vertical();
-
-                  // 复杂部件: 挂载外部模型
-                  v.ForAxis("ComplexArm").AsCustom("assets/models/robot_arm.obj").Horizontal();
+                  v.ForAxis(z1).AsLinearGuide(200, 20).Vertical().Reversed();
+                  v.ForAxis(r).AsRotaryTable(radius: 15).Horizontal().Forward();
+                  v.ForCylinder(push).AsSlideBlock().Horizontal().Reversed();
+                  v.ForCylinder(grip).AsGripper(15, 5).Vertical();
+                  v.ForCylinder(suction).AsSuctionPen(diameter: 4).Vertical();
+                  v.ForAxis(complex).AsCustom("assets/models/robot_arm.obj").Horizontal();
               });
 
             Assert.NotNull(blueprint);
@@ -113,50 +109,55 @@ namespace Machine.Framework.Tests
         [Fact]
         public void Verify_Complex_Assembly_Kinematic_DSL()
         {
-            // 场景：旋转搬运站 (Rotary Transfer Station)
-            // 结构：旋转座(R轴) -> 横移气缸 -> 升降气缸 -> 4个夹爪
-            
-            // 1. 定义物理蓝图 (Kinematic Hierarchy)
+            var r = new AxisID("R_Axis");
+            var h = new CylinderID("H_Move_Cyl");
+            var vLift = new CylinderID("V_Lift_Cyl");
+            var gL1 = new CylinderID("Grip_L1");
+            var gL2 = new CylinderID("Grip_L2");
+            var gR1 = new CylinderID("Grip_R1");
+            var gR2 = new CylinderID("Grip_R2");
+
+            // 1. 定义物理蓝图
             var blueprint = MachineSimulator.Assemble("RotaryTransferStation")
                 .AddBoard("MainCard", 1, board => 
                 {
-                    board.AddAxis(1, "R_Axis");
-                    board.AddCylinder("H_Move_Cyl", 0, 0);
-                    board.AddCylinder("V_Lift_Cyl", 1, 1);
-                    board.AddCylinder("Grip_L1", 2, 2);
-                    board.AddCylinder("Grip_L2", 3, 3);
-                    board.AddCylinder("Grip_R1", 4, 4);
-                    board.AddCylinder("Grip_R2", 5, 5);
+                    board.AddAxis(1, r);
+                    board.AddCylinder(h, 0, 0);
+                    board.AddCylinder(vLift, 1, 1);
+                    board.AddCylinder(gL1, 2, 2);
+                    board.AddCylinder(gL2, 3, 3);
+                    board.AddCylinder(gR1, 4, 4);
+                    board.AddCylinder(gR2, 5, 5);
                 })
                 .Mount("RotaryBase", rotary => rotary
-                    .LinkTo("R_Axis")
+                    .LinkTo(r)
                     .Mount("SlideArm", arm => arm
-                        .LinkTo("H_Move_Cyl")
+                        .LinkTo(h)
                         .WithOffset(x: 50)
                         .Mount("LiftHead", head => head
-                            .LinkTo("V_Lift_Cyl")
+                            .LinkTo(vLift)
                             .Mount("Gripper_Group", group => group
-                                .Mount("L1").LinkTo("Grip_L1").WithOffset(y: -20)
-                                .Mount("L2").LinkTo("Grip_L2").WithOffset(y: -40)
-                                .Mount("R1").LinkTo("Grip_R1").WithOffset(y: 20)
-                                .Mount("R2").LinkTo("Grip_R2").WithOffset(y: 40)
+                                .Mount("L1").LinkTo(gL1).WithOffset(y: -20)
+                                .Mount("L2").LinkTo(gL2).WithOffset(y: -40)
+                                .Mount("R1").LinkTo(gR1).WithOffset(y: 20)
+                                .Mount("R2").LinkTo(gR2).WithOffset(y: 40)
                             )
                         )
                     )
                 );
 
-            // 2. 视觉展现 (Visual Overlay)
-            UI.Link(new object()) // 模拟 Form
+            // 2. 视觉展现
+            UI.Link(new object()) 
               .Visuals(v => 
               {
-                  v.ForAxis("R_Axis").AsRotaryTable(100);
-                  v.ForCylinder("H_Move_Cyl").AsSlideBlock().Horizontal();
-                  v.ForCylinder("V_Lift_Cyl").AsSlideBlock().Vertical();
+                  v.ForAxis(r).AsRotaryTable(100);
+                  v.ForCylinder(h).AsSlideBlock().Horizontal();
+                  v.ForCylinder(vLift).AsSlideBlock().Vertical();
                   
-                  // 批量定义夹爪外观
-                  var grippers = new[] { "Grip_L1", "Grip_L2", "Grip_R1", "Grip_R2" };
-                  foreach(var g in grippers)
-                      v.ForCylinder(g).AsGripper(10, 2).Vertical();
+                  v.ForCylinder(gL1).AsGripper(10, 2).Vertical();
+                  v.ForCylinder(gL2).AsGripper(10, 2).Vertical();
+                  v.ForCylinder(gR1).AsGripper(10, 2).Vertical();
+                  v.ForCylinder(gR2).AsGripper(10, 2).Vertical();
               });
 
             Assert.NotNull(blueprint);
