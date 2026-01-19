@@ -124,23 +124,28 @@ namespace WinMachine
 
         private void ConfigureVisualizationBindings(FlowContext context, IVisualFlowInterpreter interpreter)
         {
-            UI.Link(this)
-              .ObserveInterpreter(interpreter)
-              .ObserveContext(context)
-              .Visuals(v =>
-              {
-                  v.AutoHighlight(pnlAxisX, "X");
-                  v.AutoHighlight(pnlAxisZ1, "Z1_Axis");
-                  v.AutoHighlight(pnlAxisZ2, "Z2_Axis");
+            var layout =
+                from v in Visuals.Start()
+                select v
+                    .ForAxis("X").AsLinearGuide(200, 18).Horizontal().Done()
+                    .ForAxis("Z1_Axis").AsLinearGuide(180, 16).Vertical().Done()
+                    .ForAxis("Z2_Axis").AsLinearGuide(180, 16).Vertical().Done()
+                    .ForAxis("LeftRotate").AsRotaryTable(24).Done()
+                    .ForAxis("RightRotate").AsRotaryTable(24).Done()
+                    .ForCylinder("Slide").AsSlider(40, 8).Horizontal().Done()
+                    .ForCylinder("LeftGrip").AsGripper(18, 6).Horizontal().Done()
+                    .ForCylinder("RightGrip").AsGripper(18, 6).Horizontal().Done()
+                    .AutoHighlight(pnlAxisX, "X")
+                    .AutoHighlight(pnlAxisZ1, "Z1_Axis")
+                    .AutoHighlight(pnlAxisZ2, "Z2_Axis")
+                    .Bind(pnlAxisX).ToAxis("X").Horizontal().Done()
+                    .Bind(pnlAxisZ1).ToAxis("Z1_Axis").Vertical().Done()
+                    .Bind(pnlAxisZ2).ToAxis("Z2_Axis").Vertical().Done()
+                    .Bind(pnlCylinderSlide).ToCylinder("Slide").Done()
+                    .Bind(pnlLeftGrip).ToCylinder("LeftGrip").Done()
+                    .Bind(pnlRightGrip).ToCylinder("RightGrip").Done();
 
-                  v.Bind(pnlAxisX).ToAxis("X").Horizontal();
-                  v.Bind(pnlAxisZ1).ToAxis("Z1_Axis").Vertical();
-                  v.Bind(pnlAxisZ2).ToAxis("Z2_Axis").Vertical();
-
-                  v.Bind(pnlCylinderSlide).ToCylinder("Slide");
-                  v.Bind(pnlLeftGrip).ToCylinder("LeftGrip");
-                  v.Bind(pnlRightGrip).ToCylinder("RightGrip");
-              });
+            interpreter.AttachVisuals(this, context, layout);
         }
 
     }

@@ -453,6 +453,275 @@ namespace Machine.Framework.Core.Simulation
         public static IUIVisualizer CreateStub() => new StubUIVisualizer();
     }
 
+    public static class Visuals
+    {
+        public static VisualLayout Start() => new VisualLayout();
+
+        public static VisualLayout Define(Action<IDeviceVisualRegistry> registryConfig)
+        {
+            if (registryConfig == null) throw new ArgumentNullException(nameof(registryConfig));
+            var layout = new VisualLayout();
+            layout.AddAction(registryConfig);
+            return layout;
+        }
+    }
+
+    public sealed class VisualLayout
+    {
+        private readonly System.Collections.Generic.List<Action<IDeviceVisualRegistry>> _actions = new();
+
+        internal void AddAction(Action<IDeviceVisualRegistry> action)
+        {
+            if (action == null) return;
+            _actions.Add(action);
+        }
+
+        internal Action<IDeviceVisualRegistry> Build()
+        {
+            return registry =>
+            {
+                foreach (var action in _actions)
+                {
+                    action(registry);
+                }
+            };
+        }
+
+        public VisualLayout AutoHighlight(object panel, string deviceId)
+        {
+            AddAction(v => v.AutoHighlight(panel, deviceId));
+            return this;
+        }
+
+        public VisualBindingBuilder Bind(object panel) => new VisualBindingBuilder(this, panel);
+
+        public VisualAxisStyleBuilder ForAxis(string axisId) => new VisualAxisStyleBuilder(this, axisId);
+
+        public VisualCylinderStyleBuilder ForCylinder(string cylinderId) => new VisualCylinderStyleBuilder(this, cylinderId);
+
+        public VisualLayout SelectMany(Func<VisualLayout, VisualLayout> selector, Func<VisualLayout, VisualLayout, VisualLayout> resultSelector)
+        {
+            var next = selector(this);
+            return resultSelector(this, next);
+        }
+
+        public VisualLayout Select(Func<VisualLayout, VisualLayout> selector) => selector(this);
+    }
+
+    public sealed class VisualAxisStyleBuilder
+    {
+        private readonly VisualLayout _layout;
+        private readonly string _axisId;
+        private readonly System.Collections.Generic.List<Action<IAxisVisualBuilder>> _steps = new();
+
+        internal VisualAxisStyleBuilder(VisualLayout layout, string axisId)
+        {
+            _layout = layout;
+            _axisId = axisId;
+        }
+
+        public VisualAxisStyleBuilder AsLinearGuide(double length, double sliderWidth)
+        {
+            _steps.Add(b => b.AsLinearGuide(length, sliderWidth));
+            return this;
+        }
+
+        public VisualAxisStyleBuilder AsRotaryTable(double radius)
+        {
+            _steps.Add(b => b.AsRotaryTable(radius));
+            return this;
+        }
+
+        public VisualAxisStyleBuilder AsCustom(string modelPath)
+        {
+            _steps.Add(b => b.AsCustom(modelPath));
+            return this;
+        }
+
+        public VisualAxisStyleBuilder Horizontal()
+        {
+            _steps.Add(b => b.Horizontal());
+            return this;
+        }
+
+        public VisualAxisStyleBuilder Vertical()
+        {
+            _steps.Add(b => b.Vertical());
+            return this;
+        }
+
+        public VisualAxisStyleBuilder Forward()
+        {
+            _steps.Add(b => b.Forward());
+            return this;
+        }
+
+        public VisualAxisStyleBuilder Reversed()
+        {
+            _steps.Add(b => b.Reversed());
+            return this;
+        }
+
+        public VisualLayout Done()
+        {
+            _layout.AddAction(v =>
+            {
+                var builder = v.ForAxis(_axisId);
+                foreach (var step in _steps)
+                {
+                    step(builder);
+                }
+            });
+
+            return _layout;
+        }
+    }
+
+    public sealed class VisualCylinderStyleBuilder
+    {
+        private readonly VisualLayout _layout;
+        private readonly string _cylinderId;
+        private readonly System.Collections.Generic.List<Action<ICylinderVisualBuilder>> _steps = new();
+
+        internal VisualCylinderStyleBuilder(VisualLayout layout, string cylinderId)
+        {
+            _layout = layout;
+            _cylinderId = cylinderId;
+        }
+
+        public VisualCylinderStyleBuilder AsSlider(double width, double height)
+        {
+            _steps.Add(b => b.AsSlider(width, height));
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder AsGripper(double openWidth, double closeWidth)
+        {
+            _steps.Add(b => b.AsGripper(openWidth, closeWidth));
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder AsSuctionPen(double diameter)
+        {
+            _steps.Add(b => b.AsSuctionPen(diameter));
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder AsCustom(string modelPath)
+        {
+            _steps.Add(b => b.AsCustom(modelPath));
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder Horizontal()
+        {
+            _steps.Add(b => b.Horizontal());
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder Vertical()
+        {
+            _steps.Add(b => b.Vertical());
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder Forward()
+        {
+            _steps.Add(b => b.Forward());
+            return this;
+        }
+
+        public VisualCylinderStyleBuilder Reversed()
+        {
+            _steps.Add(b => b.Reversed());
+            return this;
+        }
+
+        public VisualLayout Done()
+        {
+            _layout.AddAction(v =>
+            {
+                var builder = v.ForCylinder(_cylinderId);
+                foreach (var step in _steps)
+                {
+                    step(builder);
+                }
+            });
+
+            return _layout;
+        }
+    }
+
+    public sealed class VisualBindingBuilder
+    {
+        private readonly VisualLayout _layout;
+        private readonly object _panel;
+        private readonly System.Collections.Generic.List<Action<IBindingBuilder>> _steps = new();
+
+        internal VisualBindingBuilder(VisualLayout layout, object panel)
+        {
+            _layout = layout;
+            _panel = panel;
+        }
+
+        public VisualBindingBuilder ToAxis(string axisId)
+        {
+            _steps.Add(b => b.ToAxis(axisId));
+            return this;
+        }
+
+        public VisualBindingBuilder ToCylinder(string cylinderId)
+        {
+            _steps.Add(b => b.ToCylinder(cylinderId));
+            return this;
+        }
+
+        public VisualBindingBuilder Vertical()
+        {
+            _steps.Add(b => b.Vertical());
+            return this;
+        }
+
+        public VisualBindingBuilder Horizontal()
+        {
+            _steps.Add(b => b.Horizontal());
+            return this;
+        }
+
+        public VisualBindingBuilder Map(Func<double, object> mapper)
+        {
+            _steps.Add(b => b.Map(mapper));
+            return this;
+        }
+
+        public VisualLayout Done()
+        {
+            _layout.AddAction(v =>
+            {
+                var builder = v.Bind(_panel);
+                foreach (var step in _steps)
+                {
+                    step(builder);
+                }
+            });
+            return _layout;
+        }
+    }
+
+    public static class VisualInterpreterExtensions
+    {
+        public static IUIVisualizer AttachVisuals(this IVisualFlowInterpreter interpreter, object form, Machine.Framework.Core.Flow.FlowContext context, VisualLayout layout)
+        {
+            if (interpreter == null) throw new ArgumentNullException(nameof(interpreter));
+            if (layout == null) throw new ArgumentNullException(nameof(layout));
+
+            return UI.Link(form)
+                .ObserveInterpreter(interpreter)
+                .ObserveContext(context)
+                .Visuals(layout.Build());
+        }
+    }
+
     internal class StubUIVisualizer : IUIVisualizer
     {
         public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter) => this;

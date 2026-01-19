@@ -16,6 +16,8 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
     private readonly List<PanelBinding> _bindings = new List<PanelBinding>();
     private readonly Dictionary<string, List<Control>> _highlightTargets = new Dictionary<string, List<Control>>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<Control, Color> _originalBackColors = new Dictionary<Control, Color>();
+    private readonly Dictionary<string, AxisStyleConfig> _axisStyles = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, CylinderStyleConfig> _cylinderStyles = new(StringComparer.OrdinalIgnoreCase);
     private FlowContext? _context;
 
     public WinFormsUIVisualizer(Control root)
@@ -63,9 +65,9 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
         return this;
     }
 
-    public IAxisVisualBuilder ForAxis(string axisId) => new WinFormsAxisVisualBuilder();
+    public IAxisVisualBuilder ForAxis(string axisId) => new WinFormsAxisVisualBuilder(_axisStyles, axisId);
 
-    public ICylinderVisualBuilder ForCylinder(string cylinderId) => new WinFormsCylinderVisualBuilder();
+    public ICylinderVisualBuilder ForCylinder(string cylinderId) => new WinFormsCylinderVisualBuilder(_cylinderStyles, cylinderId);
 
     public void Dispose()
     {
@@ -162,7 +164,15 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
         if (axis == null) return;
 
         var valueLabel = EnsureValueLabel(binding.Panel!);
-        var bar = EnsureBar(binding.Panel!, binding.Vertical == true);
+        var canvas = EnsureAxisCanvas(binding.Panel!);
+        if (_axisStyles.TryGetValue(binding.DeviceId, out var style))
+        {
+            canvas.Style = style.Style;
+            canvas.Length = style.Length;
+            canvas.SliderWidth = style.SliderWidth;
+            canvas.Radius = style.Radius;
+        }
+        canvas.Vertical = binding.Vertical == true;
 
         _subscriptions.Add(axis.StateStream
             .Sample(TimeSpan.FromMilliseconds(50))
@@ -172,7 +182,10 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
                 {
                     var pos = state.Position;
                     valueLabel.Text = $"Pos: {pos:0.0}  {(state.IsMoving ? "Moving" : "Stop")}";
-                    UpdateBar(bar, binding.Panel!, binding.Vertical == true, axis.TravelMin, axis.TravelMax, pos);
+                    canvas.Min = axis.TravelMin;
+                    canvas.Max = axis.TravelMax;
+                    canvas.Value = pos;
+                    canvas.Invalidate();
                 }
 
                 if (_root.IsHandleCreated && _root.InvokeRequired)
@@ -188,7 +201,15 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
         if (cyl == null) return;
 
         var valueLabel = EnsureValueLabel(binding.Panel!);
-        var bar = EnsureBar(binding.Panel!, binding.Vertical == true);
+        var canvas = EnsureCylinderCanvas(binding.Panel!);
+        if (_cylinderStyles.TryGetValue(binding.DeviceId, out var style))
+        {
+            canvas.Style = style.Style;
+            canvas.OpenWidth = style.OpenWidth;
+            canvas.CloseWidth = style.CloseWidth;
+            canvas.Diameter = style.Diameter;
+        }
+        canvas.Vertical = binding.Vertical == true;
 
         _subscriptions.Add(cyl.StateStream
             .DistinctUntilChanged(s => (s.IsExtended, s.IsMoving))
@@ -198,8 +219,8 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
                 {
                     var status = state.IsMoving ? "Moving" : (state.IsExtended ? "Extended" : "Retracted");
                     valueLabel.Text = $"{status}";
-                    var pos = state.IsExtended ? 1.0 : 0.0;
-                    UpdateBar(bar, binding.Panel!, binding.Vertical == true, 0, 1, pos);
+                    canvas.Value = state.IsExtended ? 1.0 : 0.0;
+                    canvas.Invalidate();
                 }
 
                 if (_root.IsHandleCreated && _root.InvokeRequired)
@@ -230,60 +251,44 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
         return label;
     }
 
-    private static Panel EnsureBar(Control panel, bool vertical)
+    private static AxisCanvas EnsureAxisCanvas(Control panel)
     {
-        const string barName = "pnlVisualBar";
+        const string canvasName = "axisCanvas";
         foreach (Control child in panel.Controls)
         {
-            if (child is Panel p && p.Name == barName)
-                return p;
+            if (child is AxisCanvas c && c.Name == canvasName)
+                return c;
         }
 
-        var bar = new Panel
+        var canvas = new AxisCanvas
         {
-            Name = barName,
-            BackColor = Color.FromArgb(80, 140, 180),
+            Name = canvasName,
+            Dock = DockStyle.Fill,
         };
 
-        if (vertical)
-        {
-            bar.Location = new Point(panel.Width - 18, panel.Height - 8);
-            bar.Size = new Size(8, 8);
-            bar.Anchor = AnchorStyles.Right | AnchorStyles.Bottom;
-        }
-        else
-        {
-            bar.Location = new Point(6, panel.Height - 12);
-            bar.Size = new Size(8, 6);
-            bar.Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
-        }
-
-        panel.Controls.Add(bar);
-        bar.BringToFront();
-        return bar;
+        panel.Controls.Add(canvas);
+        canvas.SendToBack();
+        return canvas;
     }
 
-    private static void UpdateBar(Panel bar, Control panel, bool vertical, double min, double max, double value)
+    private static CylinderCanvas EnsureCylinderCanvas(Control panel)
     {
-        if (max <= min) max = min + 1;
-        var t = (value - min) / (max - min);
-        if (t < 0) t = 0;
-        if (t > 1) t = 1;
+        const string canvasName = "cylinderCanvas";
+        foreach (Control child in panel.Controls)
+        {
+            if (child is CylinderCanvas c && c.Name == canvasName)
+                return c;
+        }
 
-        if (vertical)
+        var canvas = new CylinderCanvas
         {
-            var full = panel.Height - 16;
-            var h = Math.Max(4, (int)(full * t));
-            bar.Size = new Size(8, h);
-            bar.Location = new Point(panel.Width - 18, panel.Height - 8 - h);
-        }
-        else
-        {
-            var full = panel.Width - 16;
-            var w = Math.Max(6, (int)(full * t));
-            bar.Size = new Size(w, 6);
-            bar.Location = new Point(6, panel.Height - 12);
-        }
+            Name = canvasName,
+            Dock = DockStyle.Fill,
+        };
+
+        panel.Controls.Add(canvas);
+        canvas.SendToBack();
+        return canvas;
     }
 
     private void ApplyHighlight(string deviceId, StepStatus status)
@@ -381,8 +386,36 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
 
     private sealed class WinFormsAxisVisualBuilder : IAxisVisualBuilder
     {
-        public IAxisVisualBuilder AsLinearGuide(double length, double sliderWidth) => this;
-        public IAxisVisualBuilder AsRotaryTable(double radius) => this;
+        private readonly Dictionary<string, AxisStyleConfig> _styles;
+        private readonly string _axisId;
+
+        public WinFormsAxisVisualBuilder(Dictionary<string, AxisStyleConfig> styles, string axisId)
+        {
+            _styles = styles;
+            _axisId = axisId;
+        }
+
+        public IAxisVisualBuilder AsLinearGuide(double length, double sliderWidth)
+        {
+            _styles[_axisId] = new AxisStyleConfig
+            {
+                Style = AxisVisualStyle.LinearGuide,
+                Length = length,
+                SliderWidth = sliderWidth
+            };
+            return this;
+        }
+
+        public IAxisVisualBuilder AsRotaryTable(double radius)
+        {
+            _styles[_axisId] = new AxisStyleConfig
+            {
+                Style = AxisVisualStyle.RotaryTable,
+                Radius = radius
+            };
+            return this;
+        }
+
         public IAxisVisualBuilder AsCustom(string modelPath) => this;
         public IAxisVisualBuilder Horizontal() => this;
         public IAxisVisualBuilder Vertical() => this;
@@ -392,13 +425,65 @@ internal sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistr
 
     private sealed class WinFormsCylinderVisualBuilder : ICylinderVisualBuilder
     {
-        public ICylinderVisualBuilder AsSlider(double width, double height) => this;
-        public ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth) => this;
-        public ICylinderVisualBuilder AsSuctionPen(double diameter) => this;
+        private readonly Dictionary<string, CylinderStyleConfig> _styles;
+        private readonly string _cylinderId;
+
+        public WinFormsCylinderVisualBuilder(Dictionary<string, CylinderStyleConfig> styles, string cylinderId)
+        {
+            _styles = styles;
+            _cylinderId = cylinderId;
+        }
+
+        public ICylinderVisualBuilder AsSlider(double width, double height)
+        {
+            _styles[_cylinderId] = new CylinderStyleConfig
+            {
+                Style = CylinderVisualStyle.Slider
+            };
+            return this;
+        }
+
+        public ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth)
+        {
+            _styles[_cylinderId] = new CylinderStyleConfig
+            {
+                Style = CylinderVisualStyle.Gripper,
+                OpenWidth = openWidth,
+                CloseWidth = closeWidth
+            };
+            return this;
+        }
+
+        public ICylinderVisualBuilder AsSuctionPen(double diameter)
+        {
+            _styles[_cylinderId] = new CylinderStyleConfig
+            {
+                Style = CylinderVisualStyle.SuctionPen,
+                Diameter = diameter
+            };
+            return this;
+        }
+
         public ICylinderVisualBuilder AsCustom(string modelPath) => this;
         public ICylinderVisualBuilder Horizontal() => this;
         public ICylinderVisualBuilder Vertical() => this;
         public ICylinderVisualBuilder Forward() => this;
         public ICylinderVisualBuilder Reversed() => this;
+    }
+
+    private sealed class AxisStyleConfig
+    {
+        public AxisVisualStyle Style { get; set; } = AxisVisualStyle.LinearGuide;
+        public double Length { get; set; } = 120;
+        public double SliderWidth { get; set; } = 18;
+        public double Radius { get; set; } = 20;
+    }
+
+    private sealed class CylinderStyleConfig
+    {
+        public CylinderVisualStyle Style { get; set; } = CylinderVisualStyle.Slider;
+        public double OpenWidth { get; set; } = 18;
+        public double CloseWidth { get; set; } = 6;
+        public double Diameter { get; set; } = 10;
     }
 }
