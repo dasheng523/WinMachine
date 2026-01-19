@@ -416,6 +416,7 @@ namespace Machine.Framework.Core.Simulation
     public interface IUIVisualizer
     {
         IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter);
+        IUIVisualizer ObserveContext(Machine.Framework.Core.Flow.FlowContext context);
         IUIVisualizer AutoHighlight(object panel, string deviceId);
         IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig);
         IBindingBuilder Bind(object panel);
@@ -423,6 +424,8 @@ namespace Machine.Framework.Core.Simulation
 
     public interface IDeviceVisualRegistry
     {
+        IDeviceVisualRegistry AutoHighlight(object panel, string deviceId);
+        IBindingBuilder Bind(object panel);
         IAxisVisualBuilder ForAxis(string axisId);
         ICylinderVisualBuilder ForCylinder(string cylinderId);
     }
@@ -430,6 +433,7 @@ namespace Machine.Framework.Core.Simulation
     public interface IBindingBuilder
     {
         IBindingBuilder ToAxis(string axisId);
+        IBindingBuilder ToCylinder(string cylinderId);
         IBindingBuilder Vertical();
         IBindingBuilder Horizontal();
         IBindingBuilder Map(Func<double, object> mapper);
@@ -437,12 +441,22 @@ namespace Machine.Framework.Core.Simulation
 
     public static class UI
     {
-        public static IUIVisualizer Link(object form) => new StubUIVisualizer();
+        private static Func<object, IUIVisualizer> _factory = _ => new StubUIVisualizer();
+
+        public static void UseFactory(Func<object, IUIVisualizer> factory)
+        {
+            _factory = factory ?? throw new ArgumentNullException(nameof(factory));
+        }
+
+        public static IUIVisualizer Link(object form) => _factory(form);
+
+        public static IUIVisualizer CreateStub() => new StubUIVisualizer();
     }
 
     internal class StubUIVisualizer : IUIVisualizer
     {
         public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter) => this;
+        public IUIVisualizer ObserveContext(Machine.Framework.Core.Flow.FlowContext context) => this;
         public IUIVisualizer AutoHighlight(object panel, string deviceId) => this;
         public IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig)
         {
@@ -455,6 +469,8 @@ namespace Machine.Framework.Core.Simulation
 
     internal class StubDeviceVisualRegistry : IDeviceVisualRegistry
     {
+        public IDeviceVisualRegistry AutoHighlight(object panel, string deviceId) => this;
+        public IBindingBuilder Bind(object panel) => new StubBindingBuilder();
         public IAxisVisualBuilder ForAxis(string axisId) => new StubAxisVisualBuilder();
         public ICylinderVisualBuilder ForCylinder(string cylinderId) => new StubCylinderVisualBuilder();
     }
@@ -462,6 +478,7 @@ namespace Machine.Framework.Core.Simulation
     internal class StubBindingBuilder : IBindingBuilder
     {
         public IBindingBuilder ToAxis(string axisId) => this;
+        public IBindingBuilder ToCylinder(string cylinderId) => this;
         public IBindingBuilder Vertical() => this;
         public IBindingBuilder Horizontal() => this;
         public IBindingBuilder Map(Func<double, object> mapper) => this;

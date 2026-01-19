@@ -13,7 +13,18 @@ namespace WinMachine
         private System.Windows.Forms.TextBox txtLog;
         private System.Windows.Forms.Panel pnlCanvas;
 
-        private WinMachine.TransferStationView transferStationView;
+        private System.Windows.Forms.Panel pnlLayoutSurface;
+        private System.Windows.Forms.Panel pnlAxisX;
+        private System.Windows.Forms.Panel pnlAxisZ1;
+        private System.Windows.Forms.Panel pnlAxisZ2;
+        private System.Windows.Forms.Panel pnlCylinderSlide;
+        private System.Windows.Forms.Panel pnlLeftGrip;
+        private System.Windows.Forms.Panel pnlRightGrip;
+        private System.Windows.Forms.Panel pnlSeatL1;
+        private System.Windows.Forms.Panel pnlSeatL2;
+        private System.Windows.Forms.Panel pnlSeatR1;
+        private System.Windows.Forms.Panel pnlSeatR2;
+
 
         protected override void Dispose(bool disposing)
         {
@@ -35,7 +46,17 @@ namespace WinMachine
             lblActiveStep = new System.Windows.Forms.Label();
             txtLog = new System.Windows.Forms.TextBox();
             pnlCanvas = new System.Windows.Forms.Panel();
-            transferStationView = new WinMachine.TransferStationView();
+            pnlLayoutSurface = new System.Windows.Forms.Panel();
+            pnlAxisX = new System.Windows.Forms.Panel();
+            pnlAxisZ1 = new System.Windows.Forms.Panel();
+            pnlAxisZ2 = new System.Windows.Forms.Panel();
+            pnlCylinderSlide = new System.Windows.Forms.Panel();
+            pnlLeftGrip = new System.Windows.Forms.Panel();
+            pnlRightGrip = new System.Windows.Forms.Panel();
+            pnlSeatL1 = new System.Windows.Forms.Panel();
+            pnlSeatL2 = new System.Windows.Forms.Panel();
+            pnlSeatR1 = new System.Windows.Forms.Panel();
+            pnlSeatR2 = new System.Windows.Forms.Panel();
 
             ((System.ComponentModel.ISupportInitialize)splitMain).BeginInit();
             splitMain.Panel1.SuspendLayout();
@@ -93,9 +114,86 @@ namespace WinMachine
             pnlCanvas.BackColor = System.Drawing.Color.FromArgb(30, 30, 30);
             pnlCanvas.Name = "pnlCanvas";
 
-            transferStationView.Dock = System.Windows.Forms.DockStyle.Fill;
-            transferStationView.Name = "transferStationView";
-            pnlCanvas.Controls.Add(transferStationView);
+            // Layout surface (Designer 可自由摆放)
+            pnlLayoutSurface.Dock = System.Windows.Forms.DockStyle.Fill;
+            pnlLayoutSurface.BackColor = System.Drawing.Color.FromArgb(24, 24, 24);
+            pnlLayoutSurface.Name = "pnlLayoutSurface";
+
+            // Axis panels
+            pnlAxisX.BackColor = System.Drawing.Color.FromArgb(45, 52, 60);
+            pnlAxisX.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlAxisX.Location = new System.Drawing.Point(24, 20);
+            pnlAxisX.Name = "pnlAxisX";
+            pnlAxisX.Size = new System.Drawing.Size(240, 70);
+
+            pnlAxisZ1.BackColor = System.Drawing.Color.FromArgb(45, 52, 60);
+            pnlAxisZ1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlAxisZ1.Location = new System.Drawing.Point(24, 100);
+            pnlAxisZ1.Name = "pnlAxisZ1";
+            pnlAxisZ1.Size = new System.Drawing.Size(240, 70);
+
+            pnlAxisZ2.BackColor = System.Drawing.Color.FromArgb(45, 52, 60);
+            pnlAxisZ2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlAxisZ2.Location = new System.Drawing.Point(24, 180);
+            pnlAxisZ2.Name = "pnlAxisZ2";
+            pnlAxisZ2.Size = new System.Drawing.Size(240, 70);
+
+            // Cylinder / gripper panels
+            pnlCylinderSlide.BackColor = System.Drawing.Color.FromArgb(50, 58, 66);
+            pnlCylinderSlide.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlCylinderSlide.Location = new System.Drawing.Point(280, 20);
+            pnlCylinderSlide.Name = "pnlCylinderSlide";
+            pnlCylinderSlide.Size = new System.Drawing.Size(300, 70);
+
+            pnlLeftGrip.BackColor = System.Drawing.Color.FromArgb(50, 58, 66);
+            pnlLeftGrip.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlLeftGrip.Location = new System.Drawing.Point(600, 20);
+            pnlLeftGrip.Name = "pnlLeftGrip";
+            pnlLeftGrip.Size = new System.Drawing.Size(120, 120);
+
+            pnlRightGrip.BackColor = System.Drawing.Color.FromArgb(50, 58, 66);
+            pnlRightGrip.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlRightGrip.Location = new System.Drawing.Point(730, 20);
+            pnlRightGrip.Name = "pnlRightGrip";
+            pnlRightGrip.Size = new System.Drawing.Size(120, 120);
+
+            // Seats (left 2 + right 2)
+            pnlSeatL1.BackColor = System.Drawing.Color.FromArgb(36, 39, 44);
+            pnlSeatL1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlSeatL1.Location = new System.Drawing.Point(320, 140);
+            pnlSeatL1.Name = "pnlSeatL1";
+            pnlSeatL1.Size = new System.Drawing.Size(90, 80);
+
+            pnlSeatL2.BackColor = System.Drawing.Color.FromArgb(36, 39, 44);
+            pnlSeatL2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlSeatL2.Location = new System.Drawing.Point(420, 140);
+            pnlSeatL2.Name = "pnlSeatL2";
+            pnlSeatL2.Size = new System.Drawing.Size(90, 80);
+
+            pnlSeatR1.BackColor = System.Drawing.Color.FromArgb(36, 39, 44);
+            pnlSeatR1.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlSeatR1.Location = new System.Drawing.Point(560, 140);
+            pnlSeatR1.Name = "pnlSeatR1";
+            pnlSeatR1.Size = new System.Drawing.Size(90, 80);
+
+            pnlSeatR2.BackColor = System.Drawing.Color.FromArgb(36, 39, 44);
+            pnlSeatR2.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            pnlSeatR2.Location = new System.Drawing.Point(660, 140);
+            pnlSeatR2.Name = "pnlSeatR2";
+            pnlSeatR2.Size = new System.Drawing.Size(90, 80);
+
+            pnlLayoutSurface.Controls.Add(pnlAxisX);
+            pnlLayoutSurface.Controls.Add(pnlAxisZ1);
+            pnlLayoutSurface.Controls.Add(pnlAxisZ2);
+            pnlLayoutSurface.Controls.Add(pnlCylinderSlide);
+            pnlLayoutSurface.Controls.Add(pnlLeftGrip);
+            pnlLayoutSurface.Controls.Add(pnlRightGrip);
+            pnlLayoutSurface.Controls.Add(pnlSeatL1);
+            pnlLayoutSurface.Controls.Add(pnlSeatL2);
+            pnlLayoutSurface.Controls.Add(pnlSeatR1);
+            pnlLayoutSurface.Controls.Add(pnlSeatR2);
+
+            pnlCanvas.Controls.Add(pnlLayoutSurface);
 
             splitMain.Panel2.Controls.Add(pnlCanvas);
 

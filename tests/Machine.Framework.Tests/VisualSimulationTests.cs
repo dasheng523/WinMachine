@@ -27,18 +27,20 @@ namespace Machine.Framework.Tests
             object pnl_Z1 = new { Name = "pnl_Z1", Width = 50 };
             object currentForm = new { Text = "MainSimulator" };
 
-            // --- 绑定 DSL 外观展现 ---
-            UI.Link(currentForm)
-              .ObserveInterpreter(interpreter)
-              .AutoHighlight(pnl_XAxis, "X")
-              .AutoHighlight(pnl_Z1, "Z1_Axis");
+                        // --- 绑定 DSL 外观展现（统一入口） ---
+                        UI.Link(currentForm)
+                            .ObserveInterpreter(interpreter)
+                            .Visuals(v =>
+                            {
+                                    v.AutoHighlight(pnl_XAxis, "X");
+                                    v.AutoHighlight(pnl_Z1, "Z1_Axis");
 
-            // 坐标投影绑定
-            UI.Link(currentForm)
-              .Bind(pnl_Z1)
-              .ToAxis("Z1_Axis")
-              .Vertical()
-              .Map(pos => pos * 2); // 比如 1mm 映射为 2像素
+                                    // 坐标投影绑定
+                                    v.Bind(pnl_Z1)
+                                     .ToAxis("Z1_Axis")
+                                     .Vertical()
+                                     .Map(pos => pos * 2); // 比如 1mm 映射为 2像素
+                            });
 
             // 执行业务流
             var flow = from _ in Name("初始化动作").Next(Motion("X").MoveToAndWait(100))

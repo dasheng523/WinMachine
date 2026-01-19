@@ -1,11 +1,10 @@
 using System;
-using System.Drawing;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Windows.Forms;
 using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Interpreters.Flow;
+using WinMachine.Visualization;
 
 namespace WinMachine
 {
@@ -23,6 +22,14 @@ namespace WinMachine
         public SimulatorDemoForm()
         {
             InitializeComponent();
+
+            UI.UseFactory(form =>
+            {
+                if (form is Control control)
+                    return new WinFormsUIVisualizer(control);
+
+                return UI.CreateStub();
+            });
 
             lstScenarios.DataSource = _scenarios;
             lstScenarios.DisplayMember = nameof(SimulationFlowScenario.Name);
@@ -96,54 +103,7 @@ namespace WinMachine
                 else ui.BeginInvoke((Action)Apply);
             }));
 
-            transferStationView.ResetModel(runtime.TransferModel);
-
-            // 领域事件：驱动物料互换
-            _subscriptions.Add(runtime.DomainEvents.Subscribe(ev =>
-            {
-                void Apply() => transferStationView.ApplyDomainEvent(ev);
-                if (sync != null) sync.Post(_ => Apply(), null);
-                else ui.BeginInvoke((Action)Apply);
-            }));
-
-            // 设备状态：驱动位置/角度/夹爪/升降
-            WireAxisToView(context, "Slide", v => transferStationView.SetSlide(v), -120, 120);
-            WireAxisToView(context, "LeftRotate", v => transferStationView.SetLeftRotate(v), 0, 180);
-            WireAxisToView(context, "RightRotate", v => transferStationView.SetRightRotate(v), 0, 180);
-
-            WireCylinderToView(context, "LeftLift", up => transferStationView.SetLeftLift(up));
-            WireCylinderToView(context, "RightLift", up => transferStationView.SetRightLift(up));
-            WireCylinderToView(context, "LeftGrip", closed => transferStationView.SetLeftGrip(closed));
-            WireCylinderToView(context, "RightGrip", closed => transferStationView.SetRightGrip(closed));
-        }
-
-        private void WireAxisToView(FlowContext context, string axisId, Action<double> applyPosition, double min, double max)
-        {
-            var axis = context.GetDevice<SimulatorAxis>(axisId);
-            if (axis == null) return;
-
-            _subscriptions!.Add(axis.StateStream
-                .Sample(TimeSpan.FromMilliseconds(16))
-                .Subscribe(s =>
-                {
-                    if (!IsHandleCreated) return;
-                    BeginInvoke((Action)(() => applyPosition(s.Position)));
-                }));
-        }
-
-        private void WireCylinderToView(FlowContext context, string id, Action<bool> applyExtended)
-        {
-            var cyl = context.GetDevice<ISimulatorCylinder>(id);
-            if (cyl == null) return;
-
-            _subscriptions!.Add(cyl.StateStream
-                .Where(s => !s.IsMoving)
-                .DistinctUntilChanged(s => s.IsExtended)
-                .Subscribe(s =>
-                {
-                    if (!IsHandleCreated) return;
-                    BeginInvoke((Action)(() => applyExtended(s.IsExtended)));
-                }));
+            ConfigureVisualizationBindings(context, interpreter);
         }
 
         private void Log(string msg)
@@ -158,8 +118,29 @@ namespace WinMachine
 
         private void Highlight(string deviceId, StepStatus status)
         {
-            // 预留：可在 TransferStationView 上做“当前设备”描边/发光。
+            // 预留：可在 Visuals 绑定后做“当前设备”描边/发光。
             // 目前用 lblActiveStep 与 txtLog 即可满足追踪需求。
+        }
+
+        private void ConfigureVisualizationBindings(FlowContext context, IVisualFlowInterpreter interpreter)
+        {
+            UI.Link(this)
+              .ObserveInterpreter(interpreter)
+              .ObserveContext(context)
+              .Visuals(v =>
+              {
+                  v.AutoHighlight(pnlAxisX, "X");
+                  v.AutoHighlight(pnlAxisZ1, "Z1_Axis");
+                  v.AutoHighlight(pnlAxisZ2, "Z2_Axis");
+
+                  v.Bind(pnlAxisX).ToAxis("X").Horizontal();
+                  v.Bind(pnlAxisZ1).ToAxis("Z1_Axis").Vertical();
+                  v.Bind(pnlAxisZ2).ToAxis("Z2_Axis").Vertical();
+
+                  v.Bind(pnlCylinderSlide).ToCylinder("Slide");
+                  v.Bind(pnlLeftGrip).ToCylinder("LeftGrip");
+                  v.Bind(pnlRightGrip).ToCylinder("RightGrip");
+              });
         }
 
     }
