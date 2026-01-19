@@ -205,6 +205,7 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         if (_cylinderStyles.TryGetValue(binding.DeviceId, out var style))
         {
             canvas.Style = style.Style;
+            canvas.BlockSize = style.BlockSize;
             canvas.OpenWidth = style.OpenWidth;
             canvas.CloseWidth = style.CloseWidth;
             canvas.Diameter = style.Diameter;
@@ -212,14 +213,13 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         canvas.Vertical = binding.Vertical == true;
 
         _subscriptions.Add(cyl.StateStream
-            .DistinctUntilChanged(s => (s.IsExtended, s.IsMoving))
             .Subscribe(state =>
             {
                 void Apply()
                 {
                     var status = state.IsMoving ? "Moving" : (state.IsExtended ? "Extended" : "Retracted");
                     valueLabel.Text = $"{status}";
-                    canvas.Value = state.IsExtended ? 1.0 : 0.0;
+                    canvas.Value = state.Position;
                     canvas.Invalidate();
                 }
 
@@ -434,11 +434,12 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             _cylinderId = cylinderId;
         }
 
-        public ICylinderVisualBuilder AsSlider(double width, double height)
+        public ICylinderVisualBuilder AsSlideBlock(double? blockSize = null)
         {
             _styles[_cylinderId] = new CylinderStyleConfig
             {
-                Style = CylinderVisualStyle.Slider
+                Style = CylinderVisualStyle.SlideBlock,
+                BlockSize = blockSize
             };
             return this;
         }
@@ -481,7 +482,8 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
 
     private sealed class CylinderStyleConfig
     {
-        public CylinderVisualStyle Style { get; set; } = CylinderVisualStyle.Slider;
+        public CylinderVisualStyle Style { get; set; } = CylinderVisualStyle.SlideBlock;
+        public double? BlockSize { get; set; }
         public double OpenWidth { get; set; } = 18;
         public double CloseWidth { get; set; } = 6;
         public double Diameter { get; set; } = 10;

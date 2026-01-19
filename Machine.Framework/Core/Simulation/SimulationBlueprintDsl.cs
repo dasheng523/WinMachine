@@ -246,7 +246,7 @@ namespace Machine.Framework.Core.Simulation
 
     internal class StubCylinderVisualBuilder : ICylinderVisualBuilder
     {
-        public ICylinderVisualBuilder AsSlider(double width, double height) => this;
+        public ICylinderVisualBuilder AsSlideBlock(double? blockSize = null) => this;
         public ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth) => this;
         public ICylinderVisualBuilder AsSuctionPen(double diameter) => this;
         public ICylinderVisualBuilder AsCustom(string modelPath) => this;
@@ -330,7 +330,7 @@ namespace Machine.Framework.Core.Simulation
 
     public interface ICylinderVisualBuilder
     {
-        ICylinderVisualBuilder AsSlider(double width, double height);
+        ICylinderVisualBuilder AsSlideBlock(double? blockSize = null);
         ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth);
         ICylinderVisualBuilder AsSuctionPen(double diameter);
         ICylinderVisualBuilder AsCustom(string modelPath);
@@ -589,9 +589,9 @@ namespace Machine.Framework.Core.Simulation
             _cylinderId = cylinderId;
         }
 
-        public VisualCylinderStyleBuilder AsSlider(double width, double height)
+        public VisualCylinderStyleBuilder AsSlideBlock(double? blockSize = null)
         {
-            _steps.Add(b => b.AsSlider(width, height));
+            _steps.Add(b => b.AsSlideBlock(blockSize));
             return this;
         }
 

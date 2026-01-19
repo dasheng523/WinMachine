@@ -17,7 +17,7 @@ internal sealed class CylinderCanvas : Control
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
-    public CylinderVisualStyle Style { get; set; } = CylinderVisualStyle.Slider;
+    public CylinderVisualStyle Style { get; set; } = CylinderVisualStyle.SlideBlock;
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
@@ -39,6 +39,10 @@ internal sealed class CylinderCanvas : Control
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public double Diameter { get; set; } = 10;
 
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public double? BlockSize { get; set; }
+
     protected override void OnPaint(PaintEventArgs e)
     {
         base.OnPaint(e);
@@ -55,41 +59,66 @@ internal sealed class CylinderCanvas : Control
                 DrawSuction(g);
                 break;
             default:
-                DrawSlider(g);
+                DrawSlideBlock(g);
                 break;
         }
     }
 
-    private void DrawSlider(Graphics g)
+    private void DrawSlideBlock(Graphics g)
     {
         var rect = ClientRectangle;
-        var pad = 8;
-        var t = Math.Clamp(Value, 0, 1);
+        float padding = 12;
+        float t = (float)Math.Clamp(Value, 0, 1);
 
         if (Vertical)
         {
-            var x = rect.Width / 2f - 8;
-            var y0 = pad;
-            var y1 = rect.Height - pad;
-            using var bodyBrush = new SolidBrush(Color.FromArgb(70, 90, 120));
-            g.FillRectangle(bodyBrush, x, y0, 16, y1 - y0);
+            // 垂直轨道
+            float trackWidth = 4f;
+            float trackX = rect.Width / 2f - trackWidth / 2f;
+            using var trackBrush = new SolidBrush(Color.FromArgb(60, 60, 60));
+            g.FillRectangle(trackBrush, trackX, padding, trackWidth, rect.Height - padding * 2);
 
-            var rodH = (float)((y1 - y0) * t);
-            using var rodBrush = new SolidBrush(Color.FromArgb(160, 200, 220));
-            g.FillRectangle(rodBrush, x + 4, y1 - rodH, 8, rodH);
+            // 垂直滑块
+            float size = (float)(BlockSize ?? (rect.Width - padding * 2));
+            float startY = padding;
+            float endY = rect.Height - padding - size;
+            float currentY = startY + (endY - startY) * t;
+
+            var blockRect = new RectangleF(rect.Width / 2f - size / 2f, currentY, size, size);
+            DrawBlock(g, blockRect, t);
         }
         else
         {
-            var y = rect.Height / 2f - 8;
-            var x0 = pad;
-            var x1 = rect.Width - pad;
-            using var bodyBrush = new SolidBrush(Color.FromArgb(70, 90, 120));
-            g.FillRectangle(bodyBrush, x0, y, x1 - x0, 16);
+            // 水平轨道
+            float trackHeight = 4f;
+            float trackY = rect.Height / 2f - trackHeight / 2f;
+            using var trackBrush = new SolidBrush(Color.FromArgb(60, 60, 60));
+            g.FillRectangle(trackBrush, padding, trackY, rect.Width - padding * 2, trackHeight);
 
-            var rodW = (float)((x1 - x0) * t);
-            using var rodBrush = new SolidBrush(Color.FromArgb(160, 200, 220));
-            g.FillRectangle(rodBrush, x0, y + 4, rodW, 8);
+            // 水平滑块
+            float size = (float)(BlockSize ?? (rect.Height - padding * 2));
+            float startX = padding;
+            float endX = rect.Width - padding - size;
+            float currentX = startX + (endX - startX) * t;
+
+            var blockRect = new RectangleF(currentX, rect.Height / 2f - size / 2f, size, size);
+            DrawBlock(g, blockRect, t);
         }
+    }
+
+    private void DrawBlock(Graphics g, RectangleF rect, float t)
+    {
+        // 扁平化色块：根据状态切换颜色
+        Color blockColor = t > 0.99 ? Color.FromArgb(0, 120, 215) : // 伸出：蓝色
+                           t < 0.01 ? Color.FromArgb(100, 100, 100) : // 缩回：深灰
+                                      Color.FromArgb(0, 153, 188);    // 运动中：亮蓝
+
+        using var brush = new SolidBrush(blockColor);
+        g.FillRectangle(brush, rect);
+
+        // 扁平化边框
+        using var pen = new Pen(Color.FromArgb(80, 255, 255, 255), 1f);
+        g.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
     }
 
     private void DrawGripper(Graphics g)
@@ -129,7 +158,7 @@ internal sealed class CylinderCanvas : Control
 
 internal enum CylinderVisualStyle
 {
-    Slider,
+    SlideBlock,
     Gripper,
     SuctionPen
 }

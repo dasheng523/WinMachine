@@ -95,7 +95,7 @@ namespace Machine.Framework.Tests
                   v.ForAxis("R_Axis").AsRotaryTable(radius: 15).Horizontal().Forward();
 
                   // 气缸: 滑块形态
-                  v.ForCylinder("PushCylinder").AsSlider(10, 30).Horizontal().Reversed();
+                  v.ForCylinder("PushCylinder").AsSlideBlock().Horizontal().Reversed();
 
                   // 气缸: 夹爪形态
                   v.ForCylinder("Gripper").AsGripper(15, 5).Vertical();
@@ -150,8 +150,8 @@ namespace Machine.Framework.Tests
               .Visuals(v => 
               {
                   v.ForAxis("R_Axis").AsRotaryTable(100);
-                  v.ForCylinder("H_Move_Cyl").AsSlider(40, 10).Horizontal();
-                  v.ForCylinder("V_Lift_Cyl").AsSlider(10, 40).Vertical();
+                  v.ForCylinder("H_Move_Cyl").AsSlideBlock().Horizontal();
+                  v.ForCylinder("V_Lift_Cyl").AsSlideBlock().Vertical();
                   
                   // 批量定义夹爪外观
                   var grippers = new[] { "Grip_L1", "Grip_L2", "Grip_R1", "Grip_R2" };

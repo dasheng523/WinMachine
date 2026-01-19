@@ -19,7 +19,7 @@ namespace Machine.Framework.Core.Simulation
         public SimulatorCylinder(string cylinderId)
         {
             CylinderId = cylinderId;
-            _state = new BehaviorSubject<CylinderState>(new CylinderState { IsExtended = false, IsMoving = false });
+            _state = new BehaviorSubject<CylinderState>(new CylinderState { IsExtended = false, IsMoving = false, Position = 0.0 });
         }
 
         public void StartSet(bool extended, int actionTimeMs)
@@ -28,22 +28,41 @@ namespace Machine.Framework.Core.Simulation
             {
                 _subscription?.Dispose();
 
-                var current = _state.Value;
-                if (current.IsExtended == extended && !current.IsMoving)
+                var startState = _state.Value;
+                if (startState.IsExtended == extended && !startState.IsMoving)
                     return;
 
-                _state.OnNext(current with { IsMoving = true });
+                double targetPos = extended ? 1.0 : 0.0;
+                double startPos = startState.Position;
+                
+                if (actionTimeMs <= 0)
+                {
+                    _state.OnNext(new CylinderState { IsExtended = extended, IsMoving = false, Position = targetPos });
+                    return;
+                }
 
-                var delay = TimeSpan.FromMilliseconds(Math.Max(0, actionTimeMs));
-                _subscription = Observable.Timer(delay, TaskPoolScheduler.Default)
+                var startTime = DateTime.UtcNow;
+                var interval = TimeSpan.FromMilliseconds(20); // 50fps
+
+                _subscription = Observable.Interval(interval, TaskPoolScheduler.Default)
                     .Subscribe(_ =>
                     {
+                        var elapsed = (DateTime.UtcNow - startTime).TotalMilliseconds;
+                        var progress = Math.Clamp(elapsed / actionTimeMs, 0.0, 1.0);
+                        var currentPos = startPos + (targetPos - startPos) * progress;
+
                         lock (_lock)
                         {
-                            var s = _state.Value;
-                            _state.OnNext(s with { IsExtended = extended, IsMoving = false });
-                            _subscription?.Dispose();
-                            _subscription = null;
+                            if (progress >= 1.0)
+                            {
+                                _state.OnNext(new CylinderState { IsExtended = extended, IsMoving = false, Position = targetPos });
+                                _subscription?.Dispose();
+                                _subscription = null;
+                            }
+                            else
+                            {
+                                _state.OnNext(new CylinderState { IsExtended = extended, IsMoving = true, Position = currentPos });
+                            }
                         }
                     });
             }

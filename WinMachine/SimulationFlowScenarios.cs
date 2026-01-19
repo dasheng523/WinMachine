@@ -35,7 +35,7 @@ internal static class SimulationFlowScenarios
             {
                 var config = MachineConfig.Create()
                     .AddControlBoard("Main", b => b
-                        .MapAxis("Slide", 0)
+                        .MapCylinder("Slide", 10)
                         .MapAxis("LeftRotate", 1)
                         .MapAxis("RightRotate", 2)
                         .MapCylinder("LeftLift", 20)
@@ -44,7 +44,7 @@ internal static class SimulationFlowScenarios
                         .MapCylinder("RightGrip", 23)
                         .UseSimulator()
                     )
-                    .ConfigureAxis("Slide", a => a.SetSoftLimits(sl => sl.Range(-120, 120)))
+                    .ConfigureCylinder("Slide", c => c.WithDynamicsMs(500))
                     .ConfigureAxis("LeftRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
                     .ConfigureAxis("RightRotate", a => a.SetSoftLimits(sl => sl.Range(0, 180)))
                     .ConfigureCylinder("LeftLift", c => c.WithDynamicsMs(260))
@@ -52,7 +52,6 @@ internal static class SimulationFlowScenarios
                     .ConfigureCylinder("LeftGrip", c => c.WithDynamicsMs(180))
                     .ConfigureCylinder("RightGrip", c => c.WithDynamicsMs(180))
                     .UseSimulator("Main", sim => sim
-                        .Axis("Slide", a => a.Travel(-120, 120))
                         .Axis("LeftRotate", a => a.Travel(0, 180))
                         .Axis("RightRotate", a => a.Travel(0, 180))
                         .Timing(t => t.TickMs = 16)
@@ -61,19 +60,18 @@ internal static class SimulationFlowScenarios
                 var context = new FlowContext(config, cts.Token);
 
                 var flow =
-                    (from _1 in Name("推拉到左侧").Next(Motion("Slide").MoveToAndWait(-100))
+                    (from _1 in Name("推拉到左侧").Next(Cylinder("Slide").FireAndWait(true))
                      from _2 in Name("左侧夹爪闭合").Next(Cylinder("LeftGrip").FireAndWait(true))
                      from _3 in Name("左侧升起").Next(Cylinder("LeftLift").FireAndWait(true))
                      from _4 in Name("左侧旋转180").Next(Motion("LeftRotate").MoveToAndWait(180))
                      from _5 in Name("左侧下降").Next(Cylinder("LeftLift").FireAndWait(false))
                      from _6 in Name("左侧夹爪张开").Next(Cylinder("LeftGrip").FireAndWait(false))
-                     from _7 in Name("推拉到右侧").Next(Motion("Slide").MoveToAndWait(100))
+                     from _7 in Name("推拉到右侧").Next(Cylinder("Slide").FireAndWait(false))
                      from _8 in Name("右侧夹爪闭合").Next(Cylinder("RightGrip").FireAndWait(true))
                      from _9 in Name("右侧升起").Next(Cylinder("RightLift").FireAndWait(true))
                      from _10 in Name("右侧旋转180").Next(Motion("RightRotate").MoveToAndWait(180))
                      from _11 in Name("右侧下降").Next(Cylinder("RightLift").FireAndWait(false))
                      from _12 in Name("右侧夹爪张开").Next(Cylinder("RightGrip").FireAndWait(false))
-                     from _13 in Name("推拉回中间").Next(Motion("Slide").MoveToAndWait(0))
                      select Unit.Default).Definition;
 
                 var model = TransferStationModel.CreateDemo();

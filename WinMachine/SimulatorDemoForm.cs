@@ -129,7 +129,7 @@ namespace WinMachine
                     .ForAxis("Z2_Axis").AsLinearGuide(180, 16).Vertical().Done()
                     .ForAxis("LeftRotate").AsRotaryTable(24).Done()
                     .ForAxis("RightRotate").AsRotaryTable(24).Done()
-                    .ForCylinder("Slide").AsSlider(40, 8).Horizontal().Done()
+                    .ForCylinder("Slide").AsSlideBlock().Horizontal().Done()
                     .ForCylinder("LeftGrip").AsGripper(18, 6).Horizontal().Done()
                     .ForCylinder("RightGrip").AsGripper(18, 6).Horizontal().Done()
                     .AutoHighlight(pnlAxisX, "X")

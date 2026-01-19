@@ -59,6 +59,10 @@ namespace Machine.Framework.Core.Simulation
     {
         public bool IsExtended { get; init; }
         public bool IsMoving { get; init; }
+        /// <summary>
+        /// 当前位置 (0.0=缩回, 1.0=伸出)
+        /// </summary>
+        public double Position { get; init; }
     }
 
     /// <summary>
