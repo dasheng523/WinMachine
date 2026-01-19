@@ -55,13 +55,23 @@ namespace Machine.Framework.Core.Configuration.Models
 
         public BoardBuilder MapInput(Enum di, int port)
         {
-            Config.InputMappings[di.ToString()] = port;
+            return MapInput(di.ToString(), port);
+        }
+
+        public BoardBuilder MapInput(string inputId, int port)
+        {
+            Config.InputMappings[inputId] = port;
             return this;
         }
 
         public BoardBuilder MapOutput(Enum doo, int port)
         {
-            Config.OutputMappings[doo.ToString()] = port;
+            return MapOutput(doo.ToString(), port);
+        }
+
+        public BoardBuilder MapOutput(string outputId, int port)
+        {
+            Config.OutputMappings[outputId] = port;
             return this;
         }
 

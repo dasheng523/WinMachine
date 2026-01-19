@@ -2,36 +2,34 @@ using System;
 using System.Linq;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Simulation;
-using Machine.Framework.Tests.BlueprintDsl;
 
 namespace Machine.Framework.Tests
 {
     public static class BlueprintScenarios
     {
-        // ... (methods remain the same)
-        public static ISimulatorAssemblyBuilder WinMachineWithDifferentialZ1()
+        public static IMachineBlueprintBuilder WinMachineWithDifferentialZ1()
         {
             var x = new AxisID("X");
             var z1 = new AxisID("Z1_Axis");
 
-            return from m in MachineSimulator.Assemble("WinMachine_01")
-                   let mainBoard = m.AddBoard("MainBoard", cardId: 0)
-                   let z1Axis = mainBoard.AddAxis(id: 1, axis: z1)
-                   let beam = m.Mount("MainBeam").AttachedTo(mainBoard.AddAxis(0, x))
-                   let penL = m.Mount("PenLoading").AttachedTo(beam).LinkTo(z1Axis).WithTransform(z => z)
-                   let penU = m.Mount("PenUnloading").AttachedTo(beam).LinkTo(z1Axis).WithTransform(z => -z)
-                   select m;
+            return (from m in MachineBlueprint.Define("WinMachine_01")
+                    from _1 in m.AddBoard("MainBoard", 0, board => {
+                        board.AddAxis(x, 0, a => a.WithRange(0, 1000));
+                        board.AddAxis(z1, 1, a => a.WithRange(0, 100));
+                    }).Select(x => x)
+                    select m);
         }
 
-        public static ISimulatorAssemblyBuilder SimpleCylinderWithFeedback()
+        public static IMachineBlueprintBuilder SimpleCylinderWithFeedback()
         {
             var clampId = new CylinderID("Clamp");
 
-            return from m in MachineSimulator.Assemble("WinMachine_02")
-                   let board = m.AddBoard("IOBoard", cardId: 0)
-                   let clamp = board.AddCylinder(clampId, doOut: 0, doIn: 1)
-                                    .WithFeedback(diOut: 0, diIn: 1)
-                                    .WithDynamics(actionTimeMs: 100)
+            return from m in MachineBlueprint.Define("WinMachine_02")
+                   from _1 in m.AddBoard("IOBoard", 0, board => {
+                       board.AddCylinder(clampId, 0, 1, c => c
+                            .WithFeedback(0, 1)
+                            .WithDynamics(100));
+                   }).Select(x => x)
                    select m;
         }
     }
@@ -39,9 +37,6 @@ namespace Machine.Framework.Tests
 
 namespace Machine.Framework.Tests.BlueprintDsl
 {
-    /// <summary>
-    /// 仅供蓝图定义的 LINQ 桥接。
-    /// </summary>
     internal static class LocalLinqExtensions
     {
         public static TResult Select<TSource, TResult>(this TSource source, Func<TSource, TResult> selector)

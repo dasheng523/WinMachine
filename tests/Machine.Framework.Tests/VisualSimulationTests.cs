@@ -78,15 +78,15 @@ namespace Machine.Framework.Tests
             var suction = new CylinderID("Suction");
 
             // 1. 物理蓝图定义
-            var blueprint = MachineSimulator.Assemble("ShapeDemoMachine")
+            var blueprint = MachineBlueprint.Define("ShapeDemoMachine")
                 .AddBoard("MotionCard", 1, board => 
                 {
-                    board.AddAxis(1, z1, a => a.WithRange(0, 100));
-                    board.AddAxis(2, r);
+                    board.AddAxis(z1, 1, a => a.WithRange(0, 100));
+                    board.AddAxis(r, 2);
                     board.AddCylinder(push, 0, 0);
                     board.AddCylinder(grip, 1, 1);
-                    board.AddCylinder(suction, 2, 2);
-                    board.AddAxis(3, complex);
+                    board.AddCylinder(suction, 0, 0, c => c.WithDynamics(200));
+                    board.AddAxis(complex, 3);
                 });
 
             // 2. UI 视觉展现 DSL
@@ -95,12 +95,12 @@ namespace Machine.Framework.Tests
             UI.Link(currentForm)
               .Visuals(v => 
               {
-                  v.ForAxis(z1).AsLinearGuide(200, 20).Vertical().Reversed();
-                  v.ForAxis(r).AsRotaryTable(radius: 15).Horizontal().Forward();
-                  v.ForCylinder(push).AsSlideBlock().Horizontal().Reversed();
-                  v.ForCylinder(grip).AsGripper(15, 5).Vertical();
-                  v.ForCylinder(suction).AsSuctionPen(diameter: 4).Vertical();
-                  v.ForAxis(complex).AsCustom("assets/models/robot_arm.obj").Horizontal();
+                  v.For(z1).AsLinearGuide(200, 20).Vertical().Reversed();
+                  v.For(r).AsRotaryTable(radius: 15).Horizontal().Forward();
+                  v.For(push).AsSlideBlock().Horizontal().Reversed();
+                  v.For(grip).AsGripper(15, 5).Vertical();
+                  v.For(suction).AsSuctionPen(diameter: 4).Vertical();
+                  v.For(complex).AsCustom("assets/models/robot_arm.obj").Horizontal();
               });
 
             Assert.NotNull(blueprint);
@@ -118,10 +118,10 @@ namespace Machine.Framework.Tests
             var gR2 = new CylinderID("Grip_R2");
 
             // 1. 定义物理蓝图
-            var blueprint = MachineSimulator.Assemble("RotaryTransferStation")
+            var blueprint = MachineBlueprint.Define("RotaryTransferStation")
                 .AddBoard("MainCard", 1, board => 
                 {
-                    board.AddAxis(1, r);
+                    board.AddAxis(r, 1);
                     board.AddCylinder(h, 0, 0);
                     board.AddCylinder(vLift, 1, 1);
                     board.AddCylinder(gL1, 2, 2);
@@ -150,14 +150,14 @@ namespace Machine.Framework.Tests
             UI.Link(new object()) 
               .Visuals(v => 
               {
-                  v.ForAxis(r).AsRotaryTable(100);
-                  v.ForCylinder(h).AsSlideBlock().Horizontal();
-                  v.ForCylinder(vLift).AsSlideBlock().Vertical();
+                  v.For(r).AsRotaryTable(100);
+                  v.For(h).AsSlideBlock().Horizontal();
+                  v.For(vLift).AsSlideBlock().Vertical();
                   
-                  v.ForCylinder(gL1).AsGripper(10, 2).Vertical();
-                  v.ForCylinder(gL2).AsGripper(10, 2).Vertical();
-                  v.ForCylinder(gR1).AsGripper(10, 2).Vertical();
-                  v.ForCylinder(gR2).AsGripper(10, 2).Vertical();
+                  v.For(gL1).AsGripper(10, 2).Vertical();
+                  v.For(gL2).AsGripper(10, 2).Vertical();
+                  v.For(gR1).AsGripper(10, 2).Vertical();
+                  v.For(gR2).AsGripper(10, 2).Vertical();
               });
 
             Assert.NotNull(blueprint);

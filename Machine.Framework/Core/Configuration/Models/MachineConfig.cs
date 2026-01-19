@@ -13,7 +13,15 @@ namespace Machine.Framework.Core.Configuration.Models
         public Dictionary<string, AxisConfig> AxisConfigs { get; set; } = new Dictionary<string, AxisConfig>();
         public Dictionary<string, CylinderConfig> CylinderConfigs { get; set; } = new Dictionary<string, CylinderConfig>();
 
-        public static MachineConfig Create()
+        internal static MachineConfig Create()
+        {
+            return new MachineConfig();
+        }
+
+        /// <summary>
+        /// 仅限蓝图解释器使用的内部创建入口
+        /// </summary>
+        internal static MachineConfig Internal_Create_By_Blueprint()
         {
             return new MachineConfig();
         }

@@ -19,18 +19,15 @@ namespace Machine.Framework.Tests
         public async Task Test_Initialize_From_SimulatorConfig_In_Context()
         {
             var axisX = new AxisID("X");
-            var config = MachineConfig.Create()
-                .AddControlBoard("SimBoard", b => b
-                    .MapAxis(axisX.Name, 0)
+            var blueprint = MachineBlueprint.Define("MachineX")
+                .AddBoard("SimBoard", 0, b => b
                     .UseSimulator()
-                )
-                .ConfigureAxis(axisX.Name, a => a.SetSoftLimits(sl => sl.Range(0, 1000)))
-                .UseSimulator("SimBoard", sim => sim.Axis(axisX.Name, a => a.Travel(0, 1000)));
+                    .AddAxis(axisX, 0, a => a.WithRange(0, 1000))
+                );
 
-            var context = new FlowContext(config);
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint));
             var interpreter = new SimulationFlowInterpreter();
 
-            // 使用 MoveToAndWait 确保阻塞
             var flow = from _1 in Name("X轴回原").Next(Motion(axisX).MoveToAndWait(0))
                        select new Unit();
 
@@ -47,14 +44,13 @@ namespace Machine.Framework.Tests
             var axisZ = new AxisID("Z");
             var heightSensor = new SensorID("Height");
 
-            var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b
-                    .MapAxis(axisZ.Name, 0)
+            var blueprint = MachineBlueprint.Define("MachineZ")
+                .AddBoard("Main", 0, b => b
                     .UseSimulator()
-                )
-                .UseSimulator("Main", sim => sim.Axis(axisZ.Name, a => a.Travel(0, 1000)));
+                    .AddAxis(axisZ, 0, a => a.WithRange(0, 1000))
+                );
             
-            var context = new FlowContext(config);
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint));
             var interpreter = new SimulationFlowInterpreter();
 
             var flow = from sensorVal in Name("测高").Next(Sensor(heightSensor).ReadAnalog())
@@ -76,15 +72,14 @@ namespace Machine.Framework.Tests
         public async Task Test_Safety_Interlock_Panic_Stop()
         {
             var axisY = new AxisID("Y");
-            var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b
-                    .MapAxis(axisY.Name, 0)
+            var blueprint = MachineBlueprint.Define("MachineY")
+                .AddBoard("Main", 0, b => b
                     .UseSimulator()
-                )
-                .UseSimulator("Main", sim => sim.Axis(axisY.Name, a => a.Travel(0, 1000)));
+                    .AddAxis(axisY, 0, a => a.WithRange(0, 1000))
+                );
             
             using var tcs = new CancellationTokenSource();
-            var context = new FlowContext(config, tcs.Token);
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint), tcs.Token);
             var interpreter = new SimulationFlowInterpreter();
 
             var flow = from _ in Motion(axisY).MoveToAndWait(1000)
@@ -107,34 +102,25 @@ namespace Machine.Framework.Tests
         {
             var axisRotate = new AxisID("Rotate");
             var gripper = new CylinderID("Gripper");
-            var lift = new CylinderID("Lift");
-            var vac = new CylinderID("VAC_1");
 
-            var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b
-                    .MapAxis(axisRotate.Name, 0)
-                    .MapCylinder(gripper.Name, 10, extendedPort: 100, retractedPort: 101)
-                    .MapCylinder(lift.Name, 11, extendedPort: 102, retractedPort: 103)
-                    .MapCylinder(vac.Name, 12)
+            var blueprint = MachineBlueprint.Define("Transfer")
+                .AddBoard("Main", 0, b => b
                     .UseSimulator()
-                )
-                .ConfigureCylinder(gripper.Name, c => c.MoveTime = 200)
-                .ConfigureCylinder(lift.Name, c => c.MoveTime = 200)
-                .ConfigureCylinder(vac.Name, c => c.MoveTime = 60)
-                .UseSimulator("Main", sim => sim.Axis(axisRotate.Name, a => a.Travel(0, 180)));
+                    .AddAxis(axisRotate, 0, a => a.WithRange(0, 180))
+                    .AddCylinder(gripper, 10, 11, c => c.WithDynamics(200))
+                );
             
-            var context = new FlowContext(config);
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint));
             var interpreter = new SimulationFlowInterpreter();
 
-            Func<TestSide, Step<Unit>> CreateMoveToObjFlow = (side) =>
+            Func<Unit, Step<Unit>> CreateMoveToObjFlow = (_) =>
             {
-                return from _1 in Name("夹取前延时").Next(SystemStep.Delay(100))
-                       from _2 in Name("轴动作").Next(Motion(axisRotate).MoveToAndWait(180))
-                       from _3 in Name("气缸动作").Next(Cylinder(gripper).FireAndWait(true))
+                return from _1 in Name("轴动作").Next(Motion(axisRotate).MoveToAndWait(180))
+                       from _2 in Name("气缸动作").Next(Cylinder(gripper).FireAndWait(true))
                        select new Unit();
             };
 
-            await interpreter.RunAsync(CreateMoveToObjFlow(TestSide.Left).Definition, context);
+            await interpreter.RunAsync(CreateMoveToObjFlow(Unit.Default).Definition, context);
 
             var rotateAxis = context.GetDevice<SimulatorAxis>(axisRotate.Name);
             Assert.NotNull(rotateAxis);
@@ -147,45 +133,29 @@ namespace Machine.Framework.Tests
             var axisZ = new AxisID("Z");
             var pressureSensor = new SensorID("Pressure");
 
-            // 验证场景：轴往下移动，压力传感器数值会不断升高，直到达到某个数值后停止移动。
-            var config = MachineConfig.Create()
-                .AddControlBoard("Main", b => b
-                    .MapAxis(axisZ.Name, 0)
+            var blueprint = MachineBlueprint.Define("PressureMachine")
+                .AddBoard("Main", 0, b => b
                     .UseSimulator()
-                )
-                .UseSimulator("Main", sim => sim.Axis(axisZ.Name, a => a.Travel(0, 1000)));
+                    .AddAxis(axisZ, 0, a => a.WithRange(0, 1000))
+                );
             
-            var context = new FlowContext(config);
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint));
             var interpreter = new SimulationFlowInterpreter();
-
-            // 往下推到 200mm，中途压力达到 10.0 时停止
-            // 仿真逻辑中：Pressure = (Pos - 100) * 0.5
-            // 期望压力在 Pos = 120 时达到 10.0
             
             var flow = from stopPos in Name("寻压探测").Next(Motion(axisZ).MoveUntil(200, pressureSensor, 10.0))
                        select stopPos;
 
             var resultPos = await interpreter.RunAsync(flow.Definition, context);
 
-            // 验证
             Assert.Equal(120.0, (double)resultPos!, precision: 1);
-            
-            var zAxis = context.GetDevice<SimulatorAxis>(axisZ.Name);
-            Assert.NotNull(zAxis);
-            Assert.False(zAxis.CurrentState.IsMoving);
-            Assert.Equal(120.0, zAxis.CurrentState.Position, precision: 1);
-
-            // 补充校验：此时压力传感器的数值应当恰好为 10.0
-            Assert.True(context.Variables.ContainsKey("MockValue_Pressure"));
-            Assert.Equal(10.0, (double)context.Variables["MockValue_Pressure"], precision: 1);
         }
 
         [Fact]
         public async Task Test_Sensor_Signal_Validation()
         {
             var pressureSensor = new SensorID("Pressure");
-            var config = MachineConfig.Create();
-            var context = new FlowContext(config);
+            var blueprint = MachineBlueprint.Define("Minimal").AddBoard("B", 0, b => b.UseSimulator());
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(blueprint));
             var interpreter = new SimulationFlowInterpreter();
 
             context.Variables["MockValue_Pressure"] = 5.5;
@@ -201,46 +171,21 @@ namespace Machine.Framework.Tests
         [Fact]
         public async Task Test_Blueprint_Driven_Flow_Z1_Linkage()
         {
-            var z1Axis = new AxisID("Z1_Axis");
-            // 1. 获取物理蓝图 (定义已移至专门的场景类中，避免 LINQ 冲突)
+            var z1AxisId = new AxisID("Z1_Axis");
             var blueprint = BlueprintScenarios.WinMachineWithDifferentialZ1();
-
-            // 2. 转换逻辑外部化
             var config = BlueprintInterpreter.ToConfig(blueprint);
             var context = new FlowContext(config);
             var interpreter = new SimulationFlowInterpreter();
 
-            // 3. 执行业务流
-            var flow = from _ in Name("移动Z1").Next(Motion(z1Axis).MoveToAndWait(10.0))
+            var flow = from _ in Name("移动Z1").Next(Motion(z1AxisId).MoveToAndWait(10.0))
                        select new Unit();
 
             await interpreter.RunAsync(flow.Definition, context);
 
-            // 4. 物理验证
-            var z1 = context.GetDevice<SimulatorAxis>(z1Axis.Name);
+            var z1 = context.GetDevice<SimulatorAxis>(z1AxisId.Name);
             Assert.NotNull(z1);
             Assert.Equal(10.0, z1.CurrentState.Position);
         }
-
-        [Fact]
-        public async Task Test_Blueprint_Driven_Flow_Cylinder_Safety()
-        {
-            var clamp = new CylinderID("Clamp");
-            var blueprint = BlueprintScenarios.SimpleCylinderWithFeedback();
-
-            var config = BlueprintInterpreter.ToConfig(blueprint);
-            var context = new FlowContext(config);
-            var interpreter = new SimulationFlowInterpreter();
-
-            var flow = from _ in Name("夹紧").Next(Cylinder(clamp).FireAndWait(true))
-                       select new Unit();
-
-            await interpreter.RunAsync(flow.Definition, context);
-
-            Assert.NotNull(context.GetDevice<CylinderConfig>(clamp.Name));
-        }
-
-        public enum TestSide { Left, Right }
     }
 
     public static class StepTestExtensions

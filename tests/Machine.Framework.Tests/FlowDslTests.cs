@@ -8,6 +8,7 @@ using Machine.Framework.Core.Configuration.Models;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 using Machine.Framework.Core.Flow.Steps;
 using Machine.Framework.Core.Primitives;
+using Machine.Framework.Core.Simulation;
 
 namespace Machine.Framework.Tests
 {
@@ -109,7 +110,7 @@ namespace Machine.Framework.Tests
                        select "DONE";
 
             var interpreter = new SimpleLogInterpreter();
-            var context = new FlowContext(MachineConfig.Create());
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(MachineBlueprint.Define("FlowTest").AddBoard("B", 0, b => b.UseSimulator())));
 
             // 执行
             var result = await interpreter.RunAsync(flow.Definition, context);
@@ -132,7 +133,7 @@ namespace Machine.Framework.Tests
                 select fr;
 
             var interpreter = new SimpleLogInterpreter();
-            var context = new FlowContext(MachineConfig.Create());
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(MachineBlueprint.Define("FlowTest").AddBoard("B", 0, b => b.UseSimulator())));
 
             // 1. 模拟读数为 55.5 (应该返回 OK)
             var finalResult = await interpreter.RunAsync(controlFlow.Definition, context);
@@ -163,7 +164,7 @@ namespace Machine.Framework.Tests
                 select status;
 
             // 3. 运行
-            var context = new FlowContext(MachineConfig.Create());
+            var context = new FlowContext(BlueprintInterpreter.ToConfig(MachineBlueprint.Define("FlowTest").AddBoard("B", 0, b => b.UseSimulator())));
             var interpreter = new SimpleLogInterpreter();
             var result = await interpreter.RunAsync(mainFlow.Definition, context);
             

@@ -124,14 +124,14 @@ namespace WinMachine
             var layout =
                 from v in Visuals.Start()
                 select v
-                    .ForAxis(MachineDevices.X_Axis).AsLinearGuide(200, 18).Horizontal().Done()
-                    .ForAxis(MachineDevices.Z1_Axis).AsLinearGuide(180, 16).Vertical().Done()
-                    .ForAxis(MachineDevices.Z2_Axis).AsLinearGuide(180, 16).Vertical().Done()
-                    .ForAxis(MachineDevices.LeftRotate).AsRotaryTable(24).Done()
-                    .ForAxis(MachineDevices.RightRotate).AsRotaryTable(24).Done()
-                    .ForCylinder(MachineDevices.SlideCyl).AsSlideBlock().Horizontal().Done()
-                    .ForCylinder(MachineDevices.LeftGrip).AsGripper(18, 6).Horizontal().Done()
-                    .ForCylinder(MachineDevices.RightGrip).AsGripper(18, 6).Horizontal().Done()
+                    .For(MachineDevices.X_Axis).AsLinearGuide(200, 18).Horizontal().Done()
+                    .For(MachineDevices.Z1_Axis).AsLinearGuide(180, 16).Vertical().Done()
+                    .For(MachineDevices.Z2_Axis).AsLinearGuide(180, 16).Vertical().Done()
+                    .For(MachineDevices.LeftRotate).AsRotaryTable(24).Done()
+                    .For(MachineDevices.RightRotate).AsRotaryTable(24).Done()
+                    .For(MachineDevices.SlideCyl).AsSlideBlock().Horizontal().Reversed().Done()
+                    .For(MachineDevices.LeftGrip).AsGripper(18, 6).Horizontal().Done()
+                    .For(MachineDevices.RightGrip).AsGripper(18, 6).Horizontal().Done()
                     .AutoHighlight(pnlAxisX, MachineDevices.X_Axis)
                     .AutoHighlight(pnlAxisZ1, MachineDevices.Z1_Axis)
                     .AutoHighlight(pnlAxisZ2, MachineDevices.Z2_Axis)
@@ -142,7 +142,10 @@ namespace WinMachine
                     .Bind(pnlLeftGrip).ToCylinder(MachineDevices.LeftGrip).Done()
                     .Bind(pnlRightGrip).ToCylinder(MachineDevices.RightGrip).Done();
 
-            interpreter.AttachVisuals(this, context, layout);
+            UI.Link(this)
+              .ObserveInterpreter(interpreter)
+              .ObserveContext(context)
+              .Visuals(layout.Build());
         }
 
     }

@@ -25,6 +25,10 @@ internal sealed class AxisCanvas : Control
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool Reversed { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public double Min { get; set; }
 
     [Browsable(false)]
@@ -76,6 +80,8 @@ internal sealed class AxisCanvas : Control
         if (t < 0) t = 0;
         if (t > 1) t = 1;
 
+        if (Reversed) t = 1 - t;
+
         if (Vertical)
         {
             var x = rect.Width / 2 - trackThickness / 2;
@@ -122,6 +128,8 @@ internal sealed class AxisCanvas : Control
         var t = (Value - Min) / range;
         if (t < 0) t = 0;
         if (t > 1) t = 1;
+
+        if (Reversed) t = 1 - t;
 
         var angle = (float)(t * 270 - 135);
         var rad = (float)(Math.PI * angle / 180.0);

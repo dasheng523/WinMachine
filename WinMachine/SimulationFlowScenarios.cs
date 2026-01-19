@@ -33,30 +33,22 @@ internal static class SimulationFlowScenarios
             "Demo_TransferStation_Swap_Left_Then_Right",
             cts =>
             {
-                var config = MachineConfig.Create()
-                    .AddControlBoard("Main", b => b
-                        .MapCylinder(MachineDevices.SlideCyl, 10)
-                        .MapAxis(MachineDevices.LeftRotate, 1)
-                        .MapAxis(MachineDevices.RightRotate, 2)
-                        .MapCylinder(MachineDevices.LeftLift, 20)
-                        .MapCylinder(MachineDevices.RightLift, 21)
-                        .MapCylinder(MachineDevices.LeftGrip, 22)
-                        .MapCylinder(MachineDevices.RightGrip, 23)
+                // 优化后的 DSL：设备定义直接在板卡内完成，物理映射与参数配置合二为一
+                var blueprint = MachineBlueprint.Define("WinMachine_Demo")
+                    .AddBoard("Main", 0, b => b
                         .UseSimulator()
-                    )
-                    .ConfigureCylinder(MachineDevices.SlideCyl.Name, c => c.WithDynamicsMs(500))
-                    .ConfigureAxis(MachineDevices.LeftRotate.Name, a => a.SetSoftLimits(sl => sl.Range(0, 180)))
-                    .ConfigureAxis(MachineDevices.RightRotate.Name, a => a.SetSoftLimits(sl => sl.Range(0, 180)))
-                    .ConfigureCylinder(MachineDevices.LeftLift.Name, c => c.WithDynamicsMs(260))
-                    .ConfigureCylinder(MachineDevices.RightLift.Name, c => c.WithDynamicsMs(260))
-                    .ConfigureCylinder(MachineDevices.LeftGrip.Name, c => c.WithDynamicsMs(180))
-                    .ConfigureCylinder(MachineDevices.RightGrip.Name, c => c.WithDynamicsMs(180))
-                    .UseSimulator("Main", sim => sim
-                        .Axis(MachineDevices.LeftRotate.Name, a => a.Travel(0, 180))
-                        .Axis(MachineDevices.RightRotate.Name, a => a.Travel(0, 180))
-                        .Timing(t => t.TickMs = 16)
+                        // 直接定义并映射气缸
+                        .AddCylinder(MachineDevices.SlideCyl, 10, 10, c => c.WithDynamics(500))
+                        .AddCylinder(MachineDevices.LeftLift, 20, 20, c => c.WithDynamics(260).Vertical())
+                        .AddCylinder(MachineDevices.RightLift, 21, 21, c => c.WithDynamics(260).Vertical())
+                        .AddCylinder(MachineDevices.LeftGrip, 22, 22, c => c.WithDynamics(180))
+                        .AddCylinder(MachineDevices.RightGrip, 23, 23, c => c.WithDynamics(180))
+                        // 直接定义并映射轴
+                        .AddAxis(MachineDevices.LeftRotate, 1, a => a.WithRange(0, 180))
+                        .AddAxis(MachineDevices.RightRotate, 2, a => a.WithRange(0, 180))
                     );
 
+                var config = BlueprintInterpreter.ToConfig(blueprint);
                 var context = new FlowContext(config, cts.Token);
 
                 var flow =
@@ -79,7 +71,6 @@ internal static class SimulationFlowScenarios
 
                 Action<FlowContext, System.Reactive.Disposables.CompositeDisposable> beforeRun = (ctx, d) =>
                 {
-                    // 左侧夹爪：闭合时抓取(扫码座0/1 + 测试座0/1)，张开时释放并互换
                     var leftGrip = ctx.GetDevice<ISimulatorCylinder>(MachineDevices.LeftGrip.Name);
                     if (leftGrip != null)
                     {
@@ -118,14 +109,5 @@ internal static class StepNextExtensions
     public static Step<T> Next<TPrevious, T>(this Step<TPrevious> prev, Step<T> next)
     {
         return prev.SelectMany(_ => next, (_, n) => n);
-    }
-}
-
-internal static class CylinderConfigExtensions
-{
-    public static CylinderConfig WithDynamicsMs(this CylinderConfig cfg, int ms)
-    {
-        cfg.MoveTime = ms;
-        return cfg;
     }
 }

@@ -25,6 +25,10 @@ internal sealed class CylinderCanvas : Control
 
     [Browsable(false)]
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool Reversed { get; set; }
+
+    [Browsable(false)]
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public double Value { get; set; }
 
     [Browsable(false)]
@@ -50,25 +54,31 @@ internal sealed class CylinderCanvas : Control
         g.SmoothingMode = SmoothingMode.AntiAlias;
         g.Clear(Parent?.BackColor ?? Color.FromArgb(24, 24, 24));
 
+        // 获取原始 t (0.0 - 1.0)
+        float t = (float)Math.Clamp(Value, 0, 1);
+        
+        // 处理反向逻辑：如果 Reversed 为 true，则坐标反向映射
+        float drawT = Reversed ? 1 - t : t;
+
         switch (Style)
         {
             case CylinderVisualStyle.Gripper:
-                DrawGripper(g);
+                DrawGripper(g, drawT);
                 break;
             case CylinderVisualStyle.SuctionPen:
-                DrawSuction(g);
+                DrawSuction(g, drawT);
                 break;
             default:
-                DrawSlideBlock(g);
+                DrawSlideBlock(g, drawT);
                 break;
         }
     }
 
-    private void DrawSlideBlock(Graphics g)
+    private void DrawSlideBlock(Graphics g, float t)
     {
         var rect = ClientRectangle;
-        float padding = 12;
-        float t = (float)Math.Clamp(Value, 0, 1);
+        var padding = 10f;
+        var size = (float)(BlockSize ?? (Vertical ? rect.Width : rect.Height) * 0.7f);
 
         if (Vertical)
         {
@@ -78,8 +88,6 @@ internal sealed class CylinderCanvas : Control
             using var trackBrush = new SolidBrush(Color.FromArgb(60, 60, 60));
             g.FillRectangle(trackBrush, trackX, padding, trackWidth, rect.Height - padding * 2);
 
-            // 垂直滑块
-            float size = (float)(BlockSize ?? (rect.Width - padding * 2));
             float startY = padding;
             float endY = rect.Height - padding - size;
             float currentY = startY + (endY - startY) * t;
@@ -95,8 +103,6 @@ internal sealed class CylinderCanvas : Control
             using var trackBrush = new SolidBrush(Color.FromArgb(60, 60, 60));
             g.FillRectangle(trackBrush, padding, trackY, rect.Width - padding * 2, trackHeight);
 
-            // 水平滑块
-            float size = (float)(BlockSize ?? (rect.Height - padding * 2));
             float startX = padding;
             float endX = rect.Width - padding - size;
             float currentX = startX + (endX - startX) * t;
@@ -121,11 +127,10 @@ internal sealed class CylinderCanvas : Control
         g.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
     }
 
-    private void DrawGripper(Graphics g)
+    private void DrawGripper(Graphics g, float t)
     {
         var rect = ClientRectangle;
         var center = new PointF(rect.Width / 2f, rect.Height / 2f);
-        var t = Math.Clamp(Value, 0, 1);
         var gap = (float)(CloseWidth + (OpenWidth - CloseWidth) * (1 - t));
         var jawLen = 16f;
         var jawThk = 5f;
@@ -141,12 +146,12 @@ internal sealed class CylinderCanvas : Control
         g.FillEllipse(hubBrush, center.X - 8, center.Y - 8, 16, 16);
     }
 
-    private void DrawSuction(Graphics g)
+    private void DrawSuction(Graphics g, float t)
     {
         var rect = ClientRectangle;
         var center = new PointF(rect.Width / 2f, rect.Height / 2f);
         var r = (float)Math.Max(6, Diameter / 2f);
-        var t = Math.Clamp(Value, 0, 1);
+        // var t = Math.Clamp(Value, 0, 1); // This line is removed as t is now passed as a parameter
 
         using var ringPen = new Pen(Color.FromArgb(140, 180, 200), 2f);
         g.DrawEllipse(ringPen, center.X - r, center.Y - r, r * 2, r * 2);

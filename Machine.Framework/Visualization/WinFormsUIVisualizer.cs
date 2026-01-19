@@ -66,9 +66,9 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         return this;
     }
 
-    public IAxisVisualBuilder ForAxis(AxisID axis) => new WinFormsAxisVisualBuilder(_axisStyles, axis.Name);
+    public IAxisVisualBuilder For(AxisID axis) => new WinFormsAxisVisualBuilder(_axisStyles, axis.Name);
 
-    public ICylinderVisualBuilder ForCylinder(CylinderID cylinder) => new WinFormsCylinderVisualBuilder(_cylinderStyles, cylinder.Name);
+    public ICylinderVisualBuilder For(CylinderID cylinder) => new WinFormsCylinderVisualBuilder(_cylinderStyles, cylinder.Name);
 
     public void Dispose()
     {
@@ -172,8 +172,13 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             canvas.Length = style.Length;
             canvas.SliderWidth = style.SliderWidth;
             canvas.Radius = style.Radius;
+            canvas.Vertical = style.IsVertical;
+            canvas.Reversed = style.IsReversed;
         }
-        canvas.Vertical = binding.Vertical == true;
+        else
+        {
+            canvas.Vertical = binding.Vertical == true;
+        }
 
         _subscriptions.Add(axis.StateStream
             .Sample(TimeSpan.FromMilliseconds(50))
@@ -210,8 +215,13 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             canvas.OpenWidth = style.OpenWidth;
             canvas.CloseWidth = style.CloseWidth;
             canvas.Diameter = style.Diameter;
+            canvas.Vertical = style.IsVertical;
+            canvas.Reversed = style.IsReversed;
         }
-        canvas.Vertical = binding.Vertical == true;
+        else
+        {
+            canvas.Vertical = binding.Vertical == true;
+        }
 
         _subscriptions.Add(cyl.StateStream
             .Subscribe(state =>
@@ -396,32 +406,38 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             _axisId = axisId;
         }
 
+        private AxisStyleConfig GetConfig()
+        {
+            if (!_styles.TryGetValue(_axisId, out var cfg))
+            {
+                cfg = new AxisStyleConfig();
+                _styles[_axisId] = cfg;
+            }
+            return cfg;
+        }
+
         public IAxisVisualBuilder AsLinearGuide(double length, double sliderWidth)
         {
-            _styles[_axisId] = new AxisStyleConfig
-            {
-                Style = AxisVisualStyle.LinearGuide,
-                Length = length,
-                SliderWidth = sliderWidth
-            };
+            var cfg = GetConfig();
+            cfg.Style = AxisVisualStyle.LinearGuide;
+            cfg.Length = length;
+            cfg.SliderWidth = sliderWidth;
             return this;
         }
 
         public IAxisVisualBuilder AsRotaryTable(double radius)
         {
-            _styles[_axisId] = new AxisStyleConfig
-            {
-                Style = AxisVisualStyle.RotaryTable,
-                Radius = radius
-            };
+            var cfg = GetConfig();
+            cfg.Style = AxisVisualStyle.RotaryTable;
+            cfg.Radius = radius;
             return this;
         }
 
         public IAxisVisualBuilder AsCustom(string modelPath) => this;
-        public IAxisVisualBuilder Horizontal() => this;
-        public IAxisVisualBuilder Vertical() => this;
-        public IAxisVisualBuilder Forward() => this;
-        public IAxisVisualBuilder Reversed() => this;
+        public IAxisVisualBuilder Horizontal() { GetConfig().IsVertical = false; return this; }
+        public IAxisVisualBuilder Vertical() { GetConfig().IsVertical = true; return this; }
+        public IAxisVisualBuilder Forward() { GetConfig().IsReversed = false; return this; }
+        public IAxisVisualBuilder Reversed() { GetConfig().IsReversed = true; return this; }
     }
 
     private sealed class WinFormsCylinderVisualBuilder : ICylinderVisualBuilder
@@ -435,42 +451,46 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             _cylinderId = cylinderId;
         }
 
+        private CylinderStyleConfig GetConfig()
+        {
+            if (!_styles.TryGetValue(_cylinderId, out var cfg))
+            {
+                cfg = new CylinderStyleConfig();
+                _styles[_cylinderId] = cfg;
+            }
+            return cfg;
+        }
+
         public ICylinderVisualBuilder AsSlideBlock(double? blockSize = null)
         {
-            _styles[_cylinderId] = new CylinderStyleConfig
-            {
-                Style = CylinderVisualStyle.SlideBlock,
-                BlockSize = blockSize
-            };
+            var cfg = GetConfig();
+            cfg.Style = CylinderVisualStyle.SlideBlock;
+            cfg.BlockSize = blockSize;
             return this;
         }
 
         public ICylinderVisualBuilder AsGripper(double openWidth, double closeWidth)
         {
-            _styles[_cylinderId] = new CylinderStyleConfig
-            {
-                Style = CylinderVisualStyle.Gripper,
-                OpenWidth = openWidth,
-                CloseWidth = closeWidth
-            };
+            var cfg = GetConfig();
+            cfg.Style = CylinderVisualStyle.Gripper;
+            cfg.OpenWidth = openWidth;
+            cfg.CloseWidth = closeWidth;
             return this;
         }
 
         public ICylinderVisualBuilder AsSuctionPen(double diameter)
         {
-            _styles[_cylinderId] = new CylinderStyleConfig
-            {
-                Style = CylinderVisualStyle.SuctionPen,
-                Diameter = diameter
-            };
+            var cfg = GetConfig();
+            cfg.Style = CylinderVisualStyle.SuctionPen;
+            cfg.Diameter = diameter;
             return this;
         }
 
         public ICylinderVisualBuilder AsCustom(string modelPath) => this;
-        public ICylinderVisualBuilder Horizontal() => this;
-        public ICylinderVisualBuilder Vertical() => this;
-        public ICylinderVisualBuilder Forward() => this;
-        public ICylinderVisualBuilder Reversed() => this;
+        public ICylinderVisualBuilder Horizontal() { GetConfig().IsVertical = false; return this; }
+        public ICylinderVisualBuilder Vertical() { GetConfig().IsVertical = true; return this; }
+        public ICylinderVisualBuilder Forward() { GetConfig().IsReversed = false; return this; }
+        public ICylinderVisualBuilder Reversed() { GetConfig().IsReversed = true; return this; }
     }
 
     private sealed class AxisStyleConfig
@@ -479,6 +499,8 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         public double Length { get; set; } = 120;
         public double SliderWidth { get; set; } = 18;
         public double Radius { get; set; } = 20;
+        public bool IsVertical { get; set; }
+        public bool IsReversed { get; set; }
     }
 
     private sealed class CylinderStyleConfig
@@ -488,5 +510,7 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         public double OpenWidth { get; set; } = 18;
         public double CloseWidth { get; set; } = 6;
         public double Diameter { get; set; } = 10;
+        public bool IsVertical { get; set; }
+        public bool IsReversed { get; set; }
     }
 }
