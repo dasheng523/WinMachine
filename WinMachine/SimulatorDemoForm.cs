@@ -8,9 +8,6 @@ using Machine.Framework.Visualization;
 
 namespace WinMachine
 {
-    // Demo Types
-    public enum DemoAxis { X, Z }
-    public enum DemoIO { PenA }
 
     public partial class SimulatorDemoForm : Form
     {
