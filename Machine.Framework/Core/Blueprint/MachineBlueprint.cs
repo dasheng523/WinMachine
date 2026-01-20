@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Configuration.Models;
 
-namespace Machine.Framework.Core.Simulation
+namespace Machine.Framework.Core.Blueprint
 {
     public static class MachineBlueprint
     {
-        public static IMachineBlueprintBuilder Define(string name) => new BlueprintBuilders.MachineBuilder(name);
+        public static IMachineBlueprintBuilder Define(string name) => new Builders.MachineBuilder(name);
     }
 
     public interface IMachineBlueprintBuilder

@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using Xunit;
-using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Blueprint;
 using Machine.Framework.Tests.BlueprintDsl;
 using Machine.Framework.Core.Primitives;
 

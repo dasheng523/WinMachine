@@ -1,9 +1,10 @@
 using System;
 using System.Linq;
 using Machine.Framework.Core.Configuration.Models;
-using Machine.Framework.Core.Simulation.BlueprintBuilders;
+using Machine.Framework.Core.Blueprint;
+using Machine.Framework.Core.Blueprint.Builders;
 
-namespace Machine.Framework.Core.Simulation
+namespace Machine.Framework.Interpreters.Configuration
 {
     public static class BlueprintInterpreter
     {

@@ -9,6 +9,8 @@ using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 using Machine.Framework.Core.Flow.Steps;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Blueprint;
+using Machine.Framework.Interpreters.Configuration;
 
 namespace Machine.Framework.Tests
 {

@@ -2,9 +2,9 @@ using System;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Flow;
 
-namespace Machine.Framework.Core.Simulation
+namespace Machine.Framework.Visualization
 {
-    public interface IVisualFlowInterpreter : Machine.Framework.Core.Flow.IFlowInterpreter
+    public interface IVisualFlowInterpreter : IFlowInterpreter
     {
         IObservable<ActiveStepUpdate> TraceStream { get; }
     }

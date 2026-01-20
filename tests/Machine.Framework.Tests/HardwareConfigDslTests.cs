@@ -2,7 +2,8 @@ using System;
 using System.Collections.Generic;
 using Machine.Framework.Core.Configuration;
 using Machine.Framework.Core.Configuration.Models;
-using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Blueprint;
+using Machine.Framework.Interpreters.Configuration;
 using Machine.Framework.Core.Primitives;
 using Xunit;
 

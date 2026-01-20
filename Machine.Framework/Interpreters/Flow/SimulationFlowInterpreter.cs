@@ -8,6 +8,7 @@ using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Flow.Dsl;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Core.Configuration.Models;
+using Machine.Framework.Visualization;
 
 namespace Machine.Framework.Interpreters.Flow
 {

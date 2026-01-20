@@ -1,7 +1,7 @@
 using System;
 using System.Linq;
 using Machine.Framework.Core.Primitives;
-using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Blueprint;
 
 namespace Machine.Framework.Tests
 {

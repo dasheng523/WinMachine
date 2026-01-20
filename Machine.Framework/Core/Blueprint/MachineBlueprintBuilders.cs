@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Core.Configuration.Models;
 
-namespace Machine.Framework.Core.Simulation.BlueprintBuilders
+namespace Machine.Framework.Core.Blueprint.Builders
 {
     internal sealed class BlueprintAssembly
     {

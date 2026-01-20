@@ -6,6 +6,8 @@ using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Flow.Dsl;
 using Machine.Framework.Core.Flow.Steps;
 using Machine.Framework.Core.Simulation;
+using Machine.Framework.Core.Blueprint;
+using Machine.Framework.Interpreters.Configuration;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 
 namespace WinMachine;
