@@ -9,6 +9,7 @@ using Machine.Framework.Core.Simulation;
 using Machine.Framework.Core.Blueprint;
 using Machine.Framework.Interpreters.Configuration;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
+using static WinMachine.MachineDevices;
 
 namespace WinMachine;
 
@@ -27,82 +28,148 @@ internal static class SimulationFlowScenarios
 {
     public static SimulationFlowScenario[] All =>
     [
-        TransferStation_Swap_Left_Then_Right(),
+        TransferStation_MultiGripper_Swap(),
     ];
 
-    private static SimulationFlowScenario TransferStation_Swap_Left_Then_Right() =>
+    private static SimulationFlowScenario TransferStation_MultiGripper_Swap() =>
         new(
-            "Demo_TransferStation_Swap_Left_Then_Right",
+            "Demo_MultiGripper_Swap",
             cts =>
             {
-                // 优化后的 DSL：设备定义直接在板卡内完成，物理映射与参数配置合二为一
-                var blueprint = MachineBlueprint.Define("WinMachine_Demo")
+                // 1. 定义物理蓝图 (Blueprint)
+                // 描述：左侧和右侧各有一个旋转台(R轴)，挂在升降轴(Z轴)上。
+                //       每个旋转台挂了4个夹爪，呈十字分布。
+                //       中间有一个滑台气缸用于移动料盘。
+                var blueprint = MachineBlueprint.Define("WinMachine_Turret_Swap")
                     .AddBoard("Main", 0, b => b
                         .UseSimulator()
-                        // 直接定义并映射气缸
-                        .AddCylinder(MachineDevices.SlideCyl, 10, 10, c => c.WithDynamics(500))
-                        .AddCylinder(MachineDevices.LeftLift, 20, 20, c => c.WithDynamics(260).Vertical())
-                        .AddCylinder(MachineDevices.RightLift, 21, 21, c => c.WithDynamics(260).Vertical())
-                        .AddCylinder(MachineDevices.LeftGrip, 22, 22, c => c.WithDynamics(180))
-                        .AddCylinder(MachineDevices.RightGrip, 23, 23, c => c.WithDynamics(180))
-                        // 直接定义并映射轴
-                        .AddAxis(MachineDevices.LeftRotate, 1, a => a.WithRange(0, 180))
-                        .AddAxis(MachineDevices.RightRotate, 2, a => a.WithRange(0, 180))
+                        
+                        // --- 基础运动部件定义 ---
+                        .AddCylinder(SlideCyl, 0, 0, c => c.WithDynamics(800).Horizontal()) // 滑台
+                        
+                        // 左侧部件
+                        .AddAxis(Z1_Lift, 1, a => a.WithRange(0, 200).Vertical())
+                        .AddAxis(R1_Rotate, 2, a => a.WithRange(0, 360))
+                        .AddCylinder(C1_Left_Grip1, 10, 10).AddCylinder(C1_Left_Grip2, 11, 11)
+                        .AddCylinder(C1_Left_Grip3, 12, 12).AddCylinder(C1_Left_Grip4, 13, 13)
+
+                        // 右侧部件
+                        .AddAxis(Z2_Lift, 3, a => a.WithRange(0, 200).Vertical())
+                        .AddAxis(R2_Rotate, 4, a => a.WithRange(0, 360))
+                        .AddCylinder(C2_Right_Grip1, 20, 20).AddCylinder(C2_Right_Grip2, 21, 21)
+                        .AddCylinder(C2_Right_Grip3, 22, 22).AddCylinder(C2_Right_Grip4, 23, 23)
+                    )
+
+                    // 2. 定义机械层级 (Kinematics Mount)
+                    // 左侧塔结构
+                    .Mount("Left_Tower_Assembly", tower => tower
+                        .LinkTo(Z1_Lift) // 整个塔随 Z1 升降
+                        .Mount("Left_Turret", turret => turret
+                            .LinkTo(R1_Rotate) // 塔头随 R1 旋转
+                            // 布局4个夹爪 (十字分布: 0, 90, 180, 270度)
+                            .Mount("L_Pos_0").LinkTo(C1_Left_Grip1).WithOffset(x: 50)
+                            .Mount("L_Pos_90").LinkTo(C1_Left_Grip2).WithOffset(y: 50)
+                            .Mount("L_Pos_180").LinkTo(C1_Left_Grip3).WithOffset(x: -50)
+                            .Mount("L_Pos_270").LinkTo(C1_Left_Grip4).WithOffset(y: -50)
+                        )
+                    )
+                    // 右侧塔结构
+                    .Mount("Right_Tower_Assembly", tower => tower
+                        .LinkTo(Z2_Lift)
+                        .Mount("Right_Turret", turret => turret
+                            .LinkTo(R2_Rotate)
+                            // 布局4个夹爪
+                            .Mount("R_Pos_0").LinkTo(C2_Right_Grip1).WithOffset(x: 50)
+                            .Mount("R_Pos_90").LinkTo(C2_Right_Grip2).WithOffset(y: 50)
+                            .Mount("R_Pos_180").LinkTo(C2_Right_Grip3).WithOffset(x: -50)
+                            .Mount("R_Pos_270").LinkTo(C2_Right_Grip4).WithOffset(y: -50)
+                        )
                     );
 
                 var config = BlueprintInterpreter.ToConfig(blueprint);
                 var context = new FlowContext(config, cts.Token);
 
+                // 3. 定义可复用的子流程 (Sub-Flows)
+                
+                // 子流程：同时张开某侧所有夹爪
+                Func<bool, Step<Unit>> OpenLeftGrippers = (isOpen) => 
+                     Step.InParallel(
+                         Cylinder(C1_Left_Grip1).Fire(isOpen),
+                         Cylinder(C1_Left_Grip2).Fire(isOpen),
+                         Cylinder(C1_Left_Grip3).Fire(isOpen),
+                         Cylinder(C1_Left_Grip4).Fire(isOpen)
+                     ).Select(_ => Unit.Default);
+
+                Func<bool, Step<Unit>> OpenRightGrippers = (isOpen) => 
+                     Step.InParallel(
+                         Cylinder(C2_Right_Grip1).Fire(isOpen),
+                         Cylinder(C2_Right_Grip2).Fire(isOpen),
+                         Cylinder(C2_Right_Grip3).Fire(isOpen),
+                         Cylinder(C2_Right_Grip4).Fire(isOpen)
+                     ).Select(_ => Unit.Default);
+
+                // 4. 定义主业务流程
                 var flow =
-                    (from _1 in Name("推拉到左侧").Next(Cylinder(MachineDevices.SlideCyl).FireAndWait(true))
-                     from _2 in Name("左侧夹爪闭合").Next(Cylinder(MachineDevices.LeftGrip).FireAndWait(true))
-                     from _3 in Name("左侧升起").Next(Cylinder(MachineDevices.LeftLift).FireAndWait(true))
-                     from _4 in Name("左侧旋转180").Next(Motion(MachineDevices.LeftRotate).MoveToAndWait(180))
-                     from _5 in Name("左侧下降").Next(Cylinder(MachineDevices.LeftLift).FireAndWait(false))
-                     from _6 in Name("左侧夹爪张开").Next(Cylinder(MachineDevices.LeftGrip).FireAndWait(false))
-                     from _7 in Name("推拉到右侧").Next(Cylinder(MachineDevices.SlideCyl).FireAndWait(false))
-                     from _8 in Name("右侧夹爪闭合").Next(Cylinder(MachineDevices.RightGrip).FireAndWait(true))
-                     from _9 in Name("右侧升起").Next(Cylinder(MachineDevices.RightLift).FireAndWait(true))
-                     from _10 in Name("右侧旋转180").Next(Motion(MachineDevices.RightRotate).MoveToAndWait(180))
-                     from _11 in Name("右侧下降").Next(Cylinder(MachineDevices.RightLift).FireAndWait(false))
-                     from _12 in Name("右侧夹爪张开").Next(Cylinder(MachineDevices.RightGrip).FireAndWait(false))
+                    (from _0 in Name("系统初始化").Next(
+                        Step.InParallel(
+                            OpenLeftGrippers(true),  // 先全部张开
+                            OpenRightGrippers(true),
+                            Motion(Z1_Lift).MoveTo(0), // 升至高位
+                            Motion(Z2_Lift).MoveTo(0),
+                            Cylinder(SlideCyl).Fire(false) // 滑台归位
+                        ))
+                     
+                     // 第一阶段：滑台出料，塔台取料
+                     from _1 in Name("滑台推出").Next(Cylinder(SlideCyl).FireAndWait(true))
+                     from _1b in Name("等待滑台到位稳定").Next(SystemStep.Delay(200)) // 增加显式等待，确保动作时序
+                     from _2 in Name("双塔旋转到位").Next(
+                         Step.InParallel(
+                            Motion(R1_Rotate).MoveTo(0),
+                            Motion(R2_Rotate).MoveTo(0)
+                         ))
+                     from _3 in Name("双塔下降取料").Next(
+                         Step.InParallel(
+                            Motion(Z1_Lift).MoveTo(150),
+                            Motion(Z2_Lift).MoveTo(150)
+                         ))
+                     from _4 in Name("所有夹爪闭合").Next(
+                         Step.InParallel(
+                            OpenLeftGrippers(false), // False = 闭合/夹紧
+                            OpenRightGrippers(false)
+                         ))
+                     from _5 in Name("双塔安全升起").Next(
+                         Step.InParallel(
+                            Motion(Z1_Lift).MoveTo(0),
+                            Motion(Z2_Lift).MoveTo(0)
+                         ))
+                         
+                     // 第二阶段：旋转180度交换
+                     from _6 in Name("旋转180度交换").Next(
+                         Step.InParallel(
+                            Motion(R1_Rotate).MoveTo(180),
+                            Motion(R2_Rotate).MoveTo(180)
+                         ))
+                     
+                     // 第三阶段：放料
+                     from _7 in Name("双塔下降放料").Next(
+                         Step.InParallel(
+                            Motion(Z1_Lift).MoveTo(150),
+                            Motion(Z2_Lift).MoveTo(150)
+                         ))
+                     from _8 in Name("放开夹爪").Next(
+                         Step.InParallel(
+                            OpenLeftGrippers(true),
+                            OpenRightGrippers(true)
+                         ))
+                     from _9 in Name("双塔升起复位").Next(
+                         Step.InParallel(
+                            Motion(Z1_Lift).MoveTo(0),
+                            Motion(Z2_Lift).MoveTo(0)
+                         ))
+                     
                      select Unit.Default).Definition;
 
-                var model = TransferStationModel.CreateDemo();
-                var events = new System.Reactive.Subjects.Subject<SimulationDomainEvent>();
-
-                Action<FlowContext, System.Reactive.Disposables.CompositeDisposable> beforeRun = (ctx, d) =>
-                {
-                    var leftGrip = ctx.GetDevice<ISimulatorCylinder>(MachineDevices.LeftGrip.Name);
-                    if (leftGrip != null)
-                    {
-                        d.Add(leftGrip.StateStream
-                            .Where(s => !s.IsMoving)
-                            .DistinctUntilChanged(s => s.IsExtended)
-                            .Subscribe(s =>
-                            {
-                                events.OnNext(s.IsExtended
-                                    ? new TransferGripEvent(TransferSide.Left, TransferGripAction.Grab)
-                                    : new TransferGripEvent(TransferSide.Left, TransferGripAction.ReleaseSwap));
-                            }));
-                    }
-
-                    var rightGrip = ctx.GetDevice<ISimulatorCylinder>(MachineDevices.RightGrip.Name);
-                    if (rightGrip != null)
-                    {
-                        d.Add(rightGrip.StateStream
-                            .Where(s => !s.IsMoving)
-                            .DistinctUntilChanged(s => s.IsExtended)
-                            .Subscribe(s =>
-                            {
-                                events.OnNext(s.IsExtended
-                                    ? new TransferGripEvent(TransferSide.Right, TransferGripAction.Grab)
-                                    : new TransferGripEvent(TransferSide.Right, TransferGripAction.ReleaseSwap));
-                            }));
-                    }
-                };
-
-                return new ScenarioRuntime(context, flow, beforeRun, events, model);
+                return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
             });
 }
 
