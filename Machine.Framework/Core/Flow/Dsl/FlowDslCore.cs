@@ -80,7 +80,7 @@ namespace Machine.Framework.Core.Flow.Dsl
             Args = Array.Empty<object>() 
         });
 
-        public static Step<object[]> Parallel(params Step<Unit>[] steps)
+        public static Step<object[]> InParallel(params Step<Unit>[] steps)
         {
             return new Step<object[]>(new ParallelStepDesc
             {
@@ -140,7 +140,7 @@ namespace Machine.Framework.Core.Flow.Dsl
                     var nextStep = collectionSelector(typedObj);
                     return nextStep.Definition; 
                 },
-                ResultSelector = (s, c) => resultSelector((TSource)s!, (TCollection)c!)!
+                ResultSelector = (s, c) => resultSelector((TSource)(s ?? default(TSource)!), (TCollection)(c ?? default(TCollection)!))!
             };
             
             return new Step<TResult>(seq);

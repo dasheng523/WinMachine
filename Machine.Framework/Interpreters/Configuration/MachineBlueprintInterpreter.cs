@@ -92,6 +92,9 @@ namespace Machine.Framework.Interpreters.Configuration
 
             foreach (var bus in asm.Buses)
                 config.AddBus(bus.Name, bus.Config);
+            
+            // 4. 复制机械结构树 (Kinematics)
+            config.MountPoints.AddRange(asm.MountPoints);
 
             return config;
         }

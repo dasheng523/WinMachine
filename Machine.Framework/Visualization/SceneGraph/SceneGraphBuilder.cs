@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Machine.Framework.Core.Blueprint.Builders;
+using Machine.Framework.Core.Configuration.Models;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Visualization;
 using Machine.Framework.Visualization.SceneGraph;
@@ -13,19 +13,19 @@ namespace Machine.Framework.Interpreters.Visualization
     /// </summary>
     public class SceneGraphBuilder
     {
-        private readonly BlueprintAssembly _assembly;
+        private readonly List<MountPointDefinition> _mountPoints;
         private readonly VisualDefinitionModel _styleModel;
 
-        public SceneGraphBuilder(BlueprintAssembly assembly, VisualDefinitionModel styleModel)
+        public SceneGraphBuilder(List<MountPointDefinition> mountPoints, VisualDefinitionModel styleModel)
         {
-            _assembly = assembly ?? throw new ArgumentNullException(nameof(assembly));
+            _mountPoints = mountPoints ?? throw new ArgumentNullException(nameof(mountPoints));
             _styleModel = styleModel ?? throw new ArgumentNullException(nameof(styleModel));
         }
 
         public SceneNode Build(string rootName)
         {
             // 1. 在 Blueprint 中查找根挂载点
-            var rootDef = _assembly.MountPoints.FirstOrDefault(m => m.Name == rootName);
+            var rootDef = _mountPoints.FirstOrDefault(m => m.Name == rootName);
             if (rootDef == null)
             {
                 // Fallback: 如果找不到定义的 Root，可能是一个虚拟 Root，创建一个空容器
@@ -55,10 +55,18 @@ namespace Machine.Framework.Interpreters.Visualization
                     {
                         axisNode.Length = (float)style.Param1;
                         axisNode.Width = (float)style.Param2;
+                        // Map Height from style if set, otherwise default to Width
+                        axisNode.Height = style.Height > 0 ? style.Height : axisNode.Width;
                     }
                     else if (style.Type == "RotaryTable")
                     {
                         axisNode.Width = (float)style.Param1; // Radius -> Width
+                    }
+                    else
+                    {
+                        // Generic/Default Axis Style
+                        axisNode.Width = style.Width;
+                        axisNode.Height = style.Height;
                     }
                 }
                 

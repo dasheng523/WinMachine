@@ -41,9 +41,9 @@ namespace Machine.Framework.Core.Flow.Steps
         public MotionBuilder(AxisID axis) => _axis = axis;
 
         // 非阻塞：仅启动运动
-        public Step<bool> MoveTo(double pos)
+        public Step<Unit> MoveTo(double pos)
         {
-            return new Step<bool>(new ActionStepDesc 
+            return new Step<Unit>(new ActionStepDesc 
             { 
                 Name = $"MoveTo_{_axis}_{pos}",
                 TargetDevice = _axis.Name, 
@@ -53,9 +53,9 @@ namespace Machine.Framework.Core.Flow.Steps
         }
 
         // 阻塞：启动运动并等待完成
-        public Step<bool> MoveToAndWait(double pos)
+        public Step<Unit> MoveToAndWait(double pos)
         {
-            return new Step<bool>(new ActionStepDesc
+            return new Step<Unit>(new ActionStepDesc
             {
                 Name = $"MoveToAndWait_{_axis}_{pos}",
                 TargetDevice = _axis.Name,

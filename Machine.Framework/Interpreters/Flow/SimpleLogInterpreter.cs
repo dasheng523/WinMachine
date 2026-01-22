@@ -75,7 +75,7 @@ namespace Machine.Framework.Interpreters.Flow
             }
             
             if (action.Operation == "CheckLevel") return true;
-            if (action.Operation == "MoveTo") return true;
+            if (action.Operation == "MoveTo") return new Unit();
             if (action.Operation == "Fire") return new Unit();
             if (action.Operation == "NoOp") return new Unit();
             if (action.Operation == "Delay") return new Unit();

@@ -6,6 +6,7 @@ using Machine.Framework.Core.Simulation;
 using Machine.Framework.Interpreters.Flow;
 using Machine.Framework.Visualization;
 using Machine.Framework.Core.Primitives; // 引入 AxisID/CylinderID 等类型
+using Machine.Framework.Visualization.WinForms;
 using static WinMachine.MachineDevices;  // 引入静态设备定义
 
 namespace WinMachine
@@ -23,7 +24,7 @@ namespace WinMachine
             UI.UseFactory(form =>
             {
                 if (form is Control control)
-                    return new WinFormsUIVisualizer(control);
+                    return new KinematicVisualizer(control);
 
                 return UI.CreateStub();
             });
@@ -113,46 +114,32 @@ namespace WinMachine
 
         private void ConfigureVisualizationBindings(FlowContext context, IVisualFlowInterpreter interpreter)
         {
-            // 使用全新的 Hybrid Layout 语法
-            // 宏观布局 (Bind/TargetRoot) + 微观控制 (WithPivot/WithSize)
-            
-            var layout =
-                from v in Visuals.Start()
-                select v
-                    // --- 定义视觉模型 (外观与锚点) ---
-                    // 左侧塔
-                    .For(Z1_Lift).AsLinearGuide(180, 16).Vertical().Done()
-                    .For(R1_Rotate).AsRotaryTable(60).WithPivot(0.5, 0.5).Done() // 确保以中心旋转
-                    
-                    // 夹爪因为是十字布局，需要精细定义尺寸以便计算偏移
-                    .For(C1_Left_Grip1).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done() // 以底部中心为支点
-                    .For(C1_Left_Grip2).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    .For(C1_Left_Grip3).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    .For(C1_Left_Grip4).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    
-                    // 右侧塔 (镜像定义)
-                    .For(Z2_Lift).AsLinearGuide(180, 16).Vertical().Done()
-                    .For(R2_Rotate).AsRotaryTable(60).WithPivot(0.5, 0.5).Done()
-                    .For(C2_Right_Grip1).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    .For(C2_Right_Grip2).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    .For(C2_Right_Grip3).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    .For(C2_Right_Grip4).AsGripper(15, 5).WithSize(20, 30).WithPivot(0.5, 0).Done()
-                    
-                    // 滑台
-                    .For(SlideCyl).AsSlideBlock().Horizontal().Reversed().Done()
+            // --- 视觉布局定义 (Layout DSL) ---
+            var layout = Visuals.Start()
+                // 1. 左侧结构样式
+                .For(Z1_Lift).AsLinearGuide(180, 20).Vertical().Done()
+                .For(R1_Rotate).AsRotaryTable(60).Done()
+                .For(C1_Left_Grip1).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C1_Left_Grip2).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C1_Left_Grip3).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C1_Left_Grip4).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
 
-                    // --- 绑定到 UI 控件 (Binding) ---
-                    
-                    // 1. 左塔绑定：直接将 Blueprint 中的 MountPoint "Root" 绑定到 Panel
-                    //    假设我们 Blueprint 中左塔的根是 "Left_Tower_Assembly"，但实际上它挂在 Machine 上
-                    //    我们这里演示直接绑定两个根级 Assembly
-                    .Bind(pnlAxisZ1).TargetRoot("Left_Tower_Assembly").Done()
-                    
-                    // 2. 右塔绑定
-                    .Bind(pnlAxisZ2).TargetRoot("Right_Tower_Assembly").Done()
-                    
-                    // 3. 滑台 (目前是孤立组件，没有复杂的 Mount 树)
-                    .Bind(pnlCylinderSlide).ToCylinder(SlideCyl).Done();
+                // 2. 右侧结构样式
+                .For(Z2_Lift).AsLinearGuide(180, 20).Vertical().Done()
+                .For(R2_Rotate).AsRotaryTable(60).Done()
+                .For(C2_Right_Grip1).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C2_Right_Grip2).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C2_Right_Grip3).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C2_Right_Grip4).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+
+                // 3. 通用样式
+                .For(SlideCyl).AsSlideBlock(120).Horizontal().Done()
+
+                // 4. 定义绑定关系 (Binding)
+                .Bind(pnlCanvas)
+                    .TargetRoot("Machine")
+                    .ToCylinder(SlideCyl)
+                .Done();
 
             UI.Link(this)
               .ObserveInterpreter(interpreter)

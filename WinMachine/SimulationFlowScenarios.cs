@@ -28,19 +28,42 @@ internal static class SimulationFlowScenarios
 {
     public static SimulationFlowScenario[] All =>
     [
+        System_Initialization(),
         TransferStation_MultiGripper_Swap(),
     ];
 
-    private static SimulationFlowScenario TransferStation_MultiGripper_Swap() =>
+    private static SimulationFlowScenario System_Initialization() =>
         new(
-            "Demo_MultiGripper_Swap",
+            "System_Initialization",
             cts =>
             {
-                // 1. 定义物理蓝图 (Blueprint)
-                // 描述：左侧和右侧各有一个旋转台(R轴)，挂在升降轴(Z轴)上。
-                //       每个旋转台挂了4个夹爪，呈十字分布。
-                //       中间有一个滑台气缸用于移动料盘。
-                var blueprint = MachineBlueprint.Define("WinMachine_Turret_Swap")
+                var bp = DefineBlueprint();
+                var config = BlueprintInterpreter.ToConfig(bp);
+                var context = new FlowContext(config, cts.Token);
+                
+                var flow =
+                    (from _ in Name("执行设备初始化").Next(
+                        Step.InParallel(
+                            Cylinder(C1_Left_Grip1).Fire(true),
+                            Cylinder(C1_Left_Grip2).Fire(true),
+                            Cylinder(C1_Left_Grip3).Fire(true),
+                            Cylinder(C1_Left_Grip4).Fire(true),
+                            Cylinder(C2_Right_Grip1).Fire(true),
+                            Cylinder(C2_Right_Grip2).Fire(true),
+                            Cylinder(C2_Right_Grip3).Fire(true),
+                            Cylinder(C2_Right_Grip4).Fire(true),
+                            Motion(Z1_Lift).MoveTo(0),
+                            Motion(Z2_Lift).MoveTo(0),
+                            Cylinder(SlideCyl).Fire(false)
+                        ))
+                     select Unit.Default).Definition;
+
+                return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
+            });
+
+    private static IMachineBlueprintBuilder DefineBlueprint()
+    {
+         return MachineBlueprint.Define("WinMachine_Turret_Swap")
                     .AddBoard("Main", 0, b => b
                         .UseSimulator()
                         
@@ -50,41 +73,55 @@ internal static class SimulationFlowScenarios
                         // 左侧部件
                         .AddAxis(Z1_Lift, 1, a => a.WithRange(0, 200).Vertical())
                         .AddAxis(R1_Rotate, 2, a => a.WithRange(0, 360))
-                        .AddCylinder(C1_Left_Grip1, 10, 10).AddCylinder(C1_Left_Grip2, 11, 11)
-                        .AddCylinder(C1_Left_Grip3, 12, 12).AddCylinder(C1_Left_Grip4, 13, 13)
+                        .AddCylinder(C1_Left_Grip1, 10, 10)
+                        .AddCylinder(C1_Left_Grip2, 11, 11)
+                        .AddCylinder(C1_Left_Grip3, 12, 12)
+                        .AddCylinder(C1_Left_Grip4, 13, 13)
 
                         // 右侧部件
                         .AddAxis(Z2_Lift, 3, a => a.WithRange(0, 200).Vertical())
                         .AddAxis(R2_Rotate, 4, a => a.WithRange(0, 360))
-                        .AddCylinder(C2_Right_Grip1, 20, 20).AddCylinder(C2_Right_Grip2, 21, 21)
-                        .AddCylinder(C2_Right_Grip3, 22, 22).AddCylinder(C2_Right_Grip4, 23, 23)
+                        .AddCylinder(C2_Right_Grip1, 20, 20)
+                        .AddCylinder(C2_Right_Grip2, 21, 21)
+                        .AddCylinder(C2_Right_Grip3, 22, 22)
+                        .AddCylinder(C2_Right_Grip4, 23, 23)
                     )
 
                     // 2. 定义机械层级 (Kinematics Mount)
-                    // 左侧塔结构
-                    .Mount("Left_Tower_Assembly", tower => tower
-                        .LinkTo(Z1_Lift) // 整个塔随 Z1 升降
-                        .Mount("Left_Turret", turret => turret
-                            .LinkTo(R1_Rotate) // 塔头随 R1 旋转
-                            // 布局4个夹爪 (十字分布: 0, 90, 180, 270度)
-                            .Mount("L_Pos_0").LinkTo(C1_Left_Grip1).WithOffset(x: 50)
-                            .Mount("L_Pos_90").LinkTo(C1_Left_Grip2).WithOffset(y: 50)
-                            .Mount("L_Pos_180").LinkTo(C1_Left_Grip3).WithOffset(x: -50)
-                            .Mount("L_Pos_270").LinkTo(C1_Left_Grip4).WithOffset(y: -50)
+                    .Mount("Machine", machine => machine
+                        // 左侧塔结构
+                        .Mount("Left_Tower_Assembly", tower => tower
+                            .LinkTo(Z1_Lift) // 整个塔随 Z1 升降
+                            .Mount("Left_Turret", turret => turret
+                                .LinkTo(R1_Rotate) // 塔头随 R1 旋转
+                                .Mount("L_Pos_0").LinkTo(C1_Left_Grip1).WithOffset(x: 50)
+                                .Mount("L_Pos_90").LinkTo(C1_Left_Grip2).WithOffset(y: 50)
+                                .Mount("L_Pos_180").LinkTo(C1_Left_Grip3).WithOffset(x: -50)
+                                .Mount("L_Pos_270").LinkTo(C1_Left_Grip4).WithOffset(y: -50)
+                            )
                         )
-                    )
-                    // 右侧塔结构
-                    .Mount("Right_Tower_Assembly", tower => tower
-                        .LinkTo(Z2_Lift)
-                        .Mount("Right_Turret", turret => turret
-                            .LinkTo(R2_Rotate)
-                            // 布局4个夹爪
-                            .Mount("R_Pos_0").LinkTo(C2_Right_Grip1).WithOffset(x: 50)
-                            .Mount("R_Pos_90").LinkTo(C2_Right_Grip2).WithOffset(y: 50)
-                            .Mount("R_Pos_180").LinkTo(C2_Right_Grip3).WithOffset(x: -50)
-                            .Mount("R_Pos_270").LinkTo(C2_Right_Grip4).WithOffset(y: -50)
+                        // 右侧塔结构
+                        .Mount("Right_Tower_Assembly", tower => tower
+                            .WithOffset(x: 400) // 平移右侧塔
+                            .LinkTo(Z2_Lift)
+                            .Mount("Right_Turret", turret => turret
+                                .LinkTo(R2_Rotate)
+                                .Mount("R_Pos_0").LinkTo(C2_Right_Grip1).WithOffset(x: 50)
+                                .Mount("R_Pos_90").LinkTo(C2_Right_Grip2).WithOffset(y: 50)
+                                .Mount("R_Pos_180").LinkTo(C2_Right_Grip3).WithOffset(x: -50)
+                                .Mount("R_Pos_270").LinkTo(C2_Right_Grip4).WithOffset(y: -50)
+                            )
                         )
                     );
+    }
+
+    private static SimulationFlowScenario TransferStation_MultiGripper_Swap() =>
+        new(
+            "TransferStation_MultiGripper_Swap",
+            cts =>
+            {
+                // 1. 定义物理蓝图 (Blueprint)
+                var blueprint = DefineBlueprint();
 
                 var config = BlueprintInterpreter.ToConfig(blueprint);
                 var context = new FlowContext(config, cts.Token);

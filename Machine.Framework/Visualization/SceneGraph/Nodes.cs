@@ -22,6 +22,7 @@ namespace Machine.Framework.Visualization.SceneGraph
 
         // 绑定设备 (用于从 Interpreter 获取状态)
         public DeviceID? BoundDeviceId { get; set; }
+        public Color? HighlightColor { get; set; }
 
         public void AddChild(SceneNode child)
         {
@@ -80,6 +81,7 @@ namespace Machine.Framework.Visualization.SceneGraph
         // 视觉属性
         public float Length { get; set; } = 100;
         public float Width { get; set; } = 20;
+        public float Height { get; set; } = 20; // Added Height for slider dimension
 
         public override void Update(double pos)
         {
@@ -97,22 +99,41 @@ namespace Machine.Framework.Visualization.SceneGraph
 
         protected override void Draw(Graphics g)
         {
-            // 绘制轴本身的样子（可选，通常只是为了调试或者显示导轨）
-            // 如果是旋转台，可能画个圆
+            // Highlight check
+            if (HighlightColor.HasValue)
+            {
+                using var haloPen = new Pen(HighlightColor.Value, 4);
+                float r = Width + 4;
+                if (IsRotary) g.DrawEllipse(haloPen, -r, -r, r * 2, r * 2);
+                else 
+                {
+                     float w = (Width > 0 ? Width : 20) + 4;
+                     float h = (Height > 0 ? Height : 20) + 4;
+                     g.DrawRectangle(haloPen, -w/2, -h/2, w, h);
+                }
+            }
+
+            // 绘制轴本身的样子
             using var pen = new Pen(Color.Gray, 1);
+            using var brush = new SolidBrush(Color.FromArgb(100, Color.LightGray)); // Translucent
+
             if (IsRotary)
             {
                 float r = Width; // Use Width as radius
+                g.FillEllipse(brush, -r, -r, r * 2, r * 2);
                 g.DrawEllipse(pen, -r, -r, r * 2, r * 2);
                 // 画个十字指示方向
                 g.DrawLine(pen, 0, 0, r, 0); 
             }
             else
             {
-               // 只是一个虚拟的导轨节点，通常看不见，看见的是滑块（子节点）
-               // 但在这里，AxisNode 本身就是运动部分？
-               // 不，通常 Axis 是静止的导轨，Slider 是动的。
-               // 在我们的简化模型里，AxisNode 代表 *那个会动的部件* (如旋转台面)。
+               // 绘制滑块
+               float w = Width > 0 ? Width : 20;
+               float h = Height > 0 ? Height : 20;
+               
+               // Center based (similar to default Pivot 0.5)
+               g.FillRectangle(brush, -w/2, -h/2, w, h);
+               g.DrawRectangle(pen, -w/2, -h/2, w, h);
             }
         }
     }
@@ -134,6 +155,13 @@ namespace Machine.Framework.Visualization.SceneGraph
             // 计算绘制原点偏移
             float dx = -Width * PivotX;
             float dy = -Height * PivotY;
+
+             // Highlight
+            if (HighlightColor.HasValue)
+            {
+                using var halo = new Pen(HighlightColor.Value, 3);
+                g.DrawRectangle(halo, dx - 2, dy - 2, Width + 4, Height + 4);
+            }
 
             if (CustomDraw != null)
             {

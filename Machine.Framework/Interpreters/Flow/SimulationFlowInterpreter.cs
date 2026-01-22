@@ -135,7 +135,7 @@ namespace Machine.Framework.Interpreters.Flow
             
             // 为了确轴已经切换到 IsMoving = true 状态，稍微等一帧
             await Task.Delay(10);
-            return true;
+            return new Unit();
         }
 
         // 阻塞：启动并等待
@@ -160,7 +160,7 @@ namespace Machine.Framework.Interpreters.Flow
                 throw;
             }
 
-            return true;
+            return new Unit();
         }
 
         // 寻碰逻辑：移动直到传感器报错或到达极限

@@ -388,6 +388,13 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
             return this;
         }
 
+        public IBindingBuilder TargetRoot(string rootName)
+        {
+            // WinFormsUIVisualizer 不支持 TargetRoot 渲染，这是 KinematicVisualizer 的特性
+            // 作为一个 fallback，我们可以记录日志或者忽略
+            return this;
+        }
+
         public IBindingBuilder Map(Func<double, object> mapper)
         {
             _binding.Mapper = mapper;
@@ -438,6 +445,9 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         public IAxisVisualBuilder Vertical() { GetConfig().IsVertical = true; return this; }
         public IAxisVisualBuilder Forward() { GetConfig().IsReversed = false; return this; }
         public IAxisVisualBuilder Reversed() { GetConfig().IsReversed = true; return this; }
+
+        public IAxisVisualBuilder WithPivot(double x, double y) => this; // Stub for compatibility
+        public IAxisVisualBuilder WithSize(double w, double h) => this; // Stub for compatibility
     }
 
     private sealed class WinFormsCylinderVisualBuilder : ICylinderVisualBuilder
@@ -491,6 +501,9 @@ public sealed class WinFormsUIVisualizer : IUIVisualizer, IDeviceVisualRegistry,
         public ICylinderVisualBuilder Vertical() { GetConfig().IsVertical = true; return this; }
         public ICylinderVisualBuilder Forward() { GetConfig().IsReversed = false; return this; }
         public ICylinderVisualBuilder Reversed() { GetConfig().IsReversed = true; return this; }
+        
+        public ICylinderVisualBuilder WithPivot(double x, double y) => this; 
+        public ICylinderVisualBuilder WithSize(double w, double h) => this;
     }
 
     private sealed class AxisStyleConfig

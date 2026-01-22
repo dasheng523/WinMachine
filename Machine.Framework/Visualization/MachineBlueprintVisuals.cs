@@ -251,6 +251,13 @@ namespace Machine.Framework.Visualization
         public VisualBindingBuilder Vertical() { _steps.Add(b => b.Vertical()); return this; }
         public VisualBindingBuilder Horizontal() { _steps.Add(b => b.Horizontal()); return this; }
         public VisualLayout Done() { _layout.AddAction(r => { var b = r.Bind(_panel); foreach(var s in _steps) s(b); }); return _layout; }
+        
+        // LINQ Support
+        public VisualLayout Select(Func<VisualBindingBuilder, VisualLayout> s) => s(this);
+        public TResult SelectMany<TIntermediate, TResult>(
+            Func<VisualBindingBuilder, TIntermediate> intermediateSelector,
+            Func<VisualBindingBuilder, TIntermediate, TResult> resultSelector)
+            => resultSelector(this, intermediateSelector(this));
     }
 
 

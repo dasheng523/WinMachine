@@ -13,6 +13,9 @@ namespace Machine.Framework.Core.Configuration.Models
         public Dictionary<string, AxisConfig> AxisConfigs { get; set; } = new Dictionary<string, AxisConfig>();
         public Dictionary<string, CylinderConfig> CylinderConfigs { get; set; } = new Dictionary<string, CylinderConfig>();
 
+        // Added MountPoints for Kinematics
+        public List<MountPointDefinition> MountPoints { get; set; } = new List<MountPointDefinition>();
+        
         internal static MachineConfig Create()
         {
             return new MachineConfig();
@@ -129,4 +132,12 @@ namespace Machine.Framework.Core.Configuration.Models
             return board;
         }
     }
+
+    public record MountPointDefinition(
+        string Name,
+        string? ParentName,       
+        object? LinkedDevice,     
+        double OffsetX, double OffsetY, double OffsetZ,
+        List<MountPointDefinition> Children
+    );
 }
