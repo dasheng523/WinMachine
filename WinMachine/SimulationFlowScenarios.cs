@@ -38,6 +38,7 @@ internal static class SimulationFlowScenarios
         Test_Shape_Cylinder_Suction(),
         Test_Shape_Axis_Linear(),
         Test_Shape_Axis_Rotary(),
+        Rotary_Dual_Pair_Grippers(),
     ];
 
     private static SimulationFlowScenario System_Initialization() =>
@@ -60,8 +61,8 @@ internal static class SimulationFlowScenarios
                             Cylinder(C2_Right_Grip2).Fire(true),
                             Cylinder(C2_Right_Grip3).Fire(true),
                             Cylinder(C2_Right_Grip4).Fire(true),
-                            Motion(Z1_Lift).MoveTo(0),
-                            Motion(Z2_Lift).MoveTo(0),
+                            Motion(Z1_Lift).MoveToAndWait(0),
+                            Motion(Z2_Lift).MoveToAndWait(0),
                             Cylinder(SlideCyl).Fire(false)
                         ))
                      select Unit.Default).Definition;
@@ -159,8 +160,8 @@ internal static class SimulationFlowScenarios
                         Step.InParallel(
                             OpenLeftGrippers(true),  // 先全部张开
                             OpenRightGrippers(true),
-                            Motion(Z1_Lift).MoveTo(0), // 升至高位
-                            Motion(Z2_Lift).MoveTo(0),
+                            Motion(Z1_Lift).MoveToAndWait(0), // 升至高位
+                            Motion(Z2_Lift).MoveToAndWait(0),
                             Cylinder(SlideCyl).Fire(false) // 滑台归位
                         ))
                      
@@ -169,13 +170,13 @@ internal static class SimulationFlowScenarios
                      from _1b in Name("等待滑台到位稳定").Next(SystemStep.Delay(200)) // 增加显式等待，确保动作时序
                      from _2 in Name("双塔旋转到位").Next(
                          Step.InParallel(
-                            Motion(R1_Rotate).MoveTo(0),
-                            Motion(R2_Rotate).MoveTo(0)
+                            Motion(R1_Rotate).MoveToAndWait(0),
+                            Motion(R2_Rotate).MoveToAndWait(0)
                          ))
                      from _3 in Name("双塔下降取料").Next(
                          Step.InParallel(
-                            Motion(Z1_Lift).MoveTo(150),
-                            Motion(Z2_Lift).MoveTo(150)
+                            Motion(Z1_Lift).MoveToAndWait(150),
+                            Motion(Z2_Lift).MoveToAndWait(150)
                          ))
                      from _4 in Name("所有夹爪闭合").Next(
                          Step.InParallel(
@@ -184,22 +185,22 @@ internal static class SimulationFlowScenarios
                          ))
                      from _5 in Name("双塔安全升起").Next(
                          Step.InParallel(
-                            Motion(Z1_Lift).MoveTo(0),
-                            Motion(Z2_Lift).MoveTo(0)
+                            Motion(Z1_Lift).MoveToAndWait(0),
+                            Motion(Z2_Lift).MoveToAndWait(0)
                          ))
-                         
+                     
                      // 第二阶段：旋转180度交换
                      from _6 in Name("旋转180度交换").Next(
                          Step.InParallel(
-                            Motion(R1_Rotate).MoveTo(180),
-                            Motion(R2_Rotate).MoveTo(180)
+                            Motion(R1_Rotate).MoveToAndWait(180),
+                            Motion(R2_Rotate).MoveToAndWait(180)
                          ))
                      
                      // 第三阶段：放料
                      from _7 in Name("双塔下降放料").Next(
                          Step.InParallel(
-                            Motion(Z1_Lift).MoveTo(150),
-                            Motion(Z2_Lift).MoveTo(150)
+                            Motion(Z1_Lift).MoveToAndWait(150),
+                            Motion(Z2_Lift).MoveToAndWait(150)
                          ))
                      from _8 in Name("放开夹爪").Next(
                          Step.InParallel(
@@ -208,8 +209,8 @@ internal static class SimulationFlowScenarios
                          ))
                      from _9 in Name("双塔升起复位").Next(
                          Step.InParallel(
-                            Motion(Z1_Lift).MoveTo(0),
-                            Motion(Z2_Lift).MoveTo(0)
+                            Motion(Z1_Lift).MoveToAndWait(0),
+                            Motion(Z2_Lift).MoveToAndWait(0)
                          ))
                      
                      select Unit.Default).Definition;
@@ -235,6 +236,49 @@ internal static class SimulationFlowScenarios
     private static SimulationFlowScenario Test_Shape_Axis_Rotary() =>
         new("马达：旋转工作台", cts => CreateSingleAxisScenario(cts, Test_Rotary, "马达：旋转移动", 90));
 
+    private static SimulationFlowScenario Rotary_Dual_Pair_Grippers() =>
+        new(
+            "业务：旋转盘双对夹爪同步动作",
+            cts =>
+            {
+                var bp = MachineBlueprint.Define("Test_Rotary_Grippers")
+                    .AddBoard("Main", 0, b => b.UseSimulator()
+                        .AddAxis(Test_Rotary, 0, a => a.WithRange(0, 360))
+                        .AddCylinder(C1_Left_Grip1, 10, 10)
+                        .AddCylinder(C1_Left_Grip2, 11, 11)
+                        .AddCylinder(C1_Left_Grip3, 12, 12)
+                        .AddCylinder(C1_Left_Grip4, 13, 13))
+                    .Mount("Machine", m => m
+                        .Mount("Disk", d => d
+                            .LinkTo(Test_Rotary)
+                            // 左右各安装一对 (左侧 2个, 右侧 2个)
+                            .Mount("Left_Pair_1").LinkTo(C1_Left_Grip1).WithOffset(x: -80, y: -30)
+                            .Mount("Left_Pair_2").LinkTo(C1_Left_Grip2).WithOffset(x: -80, y: 30)
+                            .Mount("Right_Pair_1").LinkTo(C1_Left_Grip3).WithOffset(x: 80, y: -30)
+                            .Mount("Right_Pair_2").LinkTo(C1_Left_Grip4).WithOffset(x: 80, y: 30)
+                        )
+                    );
+
+                var config = BlueprintInterpreter.ToConfig(bp);
+                var context = new FlowContext(config, cts.Token);
+
+                // 定义同步动作：False 为闭合，True 为松开
+                Func<bool, Step<Unit>> FireAll = (state) => Step.InParallel(
+                    Cylinder(C1_Left_Grip1).FireAndWait(state),
+                    Cylinder(C1_Left_Grip2).FireAndWait(state),
+                    Cylinder(C1_Left_Grip3).FireAndWait(state),
+                    Cylinder(C1_Left_Grip4).FireAndWait(state)
+                ).Select(_ => Unit.Default);
+
+                var flow = (from _1 in Name("4个夹爪同步闭合").Next(FireAll(false))
+                            from _2 in Name("旋转盘旋转180度").Next(Motion(Test_Rotary).MoveToAndWait(180))
+                            from _3 in Name("4个夹爪同步松开").Next(FireAll(true))
+                            from _4 in Name("复位旋转盘").Next(Motion(Test_Rotary).MoveToAndWait(0))
+                            select Unit.Default).Definition;
+
+                return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
+            });
+
     private static ScenarioRuntime CreateSingleCylinderScenario(CancellationTokenSource cts, CylinderID id, string stepName)
     {
         var bp = MachineBlueprint.Define($"Test_{id.Name}")
@@ -253,13 +297,13 @@ internal static class SimulationFlowScenarios
     private static ScenarioRuntime CreateSingleAxisScenario(CancellationTokenSource cts, AxisID id, string stepName, double target)
     {
         var bp = MachineBlueprint.Define($"Test_{id.Name}")
-            .AddBoard("Main", 0, b => b.UseSimulator().AddAxis(id, 0, a => a.WithRange(0, 500).WithKinematics(200, 100)))
+            .AddBoard("Main", 0, b => b.UseSimulator().AddAxis(id, 0, a => a.WithRange(0, 180).WithKinematics(200, 100)))
             .Mount("Machine", m => m.Mount(id.Name, n => n.LinkTo(id)));
         
         var config = BlueprintInterpreter.ToConfig(bp);
         var context = new FlowContext(config, cts.Token);
-        var flow = (from _ in Name(stepName).Next(Motion(id).MoveTo(target))
-                    from __ in Name("回正").Next(Motion(id).MoveTo(0))
+        var flow = (from _ in Name(stepName).Next(Motion(id).MoveToAndWait(target))
+                    from __ in Name("回正").Next(Motion(id).MoveToAndWait(0))
                     select Unit.Default).Definition;
         
         return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);

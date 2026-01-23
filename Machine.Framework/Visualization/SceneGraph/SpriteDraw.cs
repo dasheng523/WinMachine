@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 
 namespace Machine.Framework.Visualization.SceneGraph;
 
@@ -118,28 +119,102 @@ internal static class SpriteDraw
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
             var stroke = MathF.Max(1.5f, MathF.Min(w, h) * 0.06f);
-            using var blockFill = new SolidBrush(Color.FromArgb(110, 70, 140, 200));
             using var blockStroke = new Pen(Color.FromArgb(230, 210, 230, 245), stroke);
-            using var shadow = new SolidBrush(Color.FromArgb(40, 0, 0, 0));
-
-            var bx = 0f;
-            var by = 0f;
+            using var shadow = new SolidBrush(Color.FromArgb(60, 0, 0, 0));
 
             // Shadow
-            g.FillRectangle(shadow, bx + 2, by + 2, w, h);
+            g.FillRectangle(shadow, 2, 2, w, h);
 
-            using (var path = RoundedRect(bx, by, w, h, MathF.Min(w, h) * 0.18f))
+            using (var path = RoundedRect(0, 0, w, h, MathF.Min(w, h) * 0.18f))
             {
-                g.FillPath(blockFill, path);
+                // Metallic gradient
+                using var lg = new LinearGradientBrush(new RectangleF(0, 0, w, h), 
+                    Color.FromArgb(100, 140, 180), Color.FromArgb(60, 90, 120), 45f);
+                g.FillPath(lg, path);
                 g.DrawPath(blockStroke, path);
             }
 
+            // Mounting holes
             var holeR = MathF.Max(2, MathF.Min(w, h) * 0.08f);
-            using var hole = new SolidBrush(Color.FromArgb(130, 30, 40, 55));
-            g.FillEllipse(hole, bx + w * 0.25f - holeR, by + h * 0.30f - holeR, holeR * 2, holeR * 2);
-            g.FillEllipse(hole, bx + w * 0.75f - holeR, by + h * 0.30f - holeR, holeR * 2, holeR * 2);
-            g.FillEllipse(hole, bx + w * 0.25f - holeR, by + h * 0.70f - holeR, holeR * 2, holeR * 2);
-            g.FillEllipse(hole, bx + w * 0.75f - holeR, by + h * 0.70f - holeR, holeR * 2, holeR * 2);
+            using var holeInner = new SolidBrush(Color.FromArgb(160, 20, 25, 35));
+            g.FillEllipse(holeInner, w * 0.25f - holeR, h * 0.30f - holeR, holeR * 2, holeR * 2);
+            g.FillEllipse(holeInner, w * 0.75f - holeR, h * 0.30f - holeR, holeR * 2, holeR * 2);
+            g.FillEllipse(holeInner, w * 0.25f - holeR, h * 0.70f - holeR, holeR * 2, holeR * 2);
+            g.FillEllipse(holeInner, w * 0.75f - holeR, h * 0.70f - holeR, holeR * 2, holeR * 2);
+        };
+    }
+
+    public static Action<Graphics, float, float> CreateGripperDraw(Func<double> getValue, bool isReversed)
+    {
+        return (g, w, h) =>
+        {
+            var t = (float)Math.Clamp(getValue() / 100.0, 0, 1);
+            if (isReversed) t = 1 - t;
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            // Base Body
+            var baseH = h * 0.35f;
+            using var baseFill = new LinearGradientBrush(new RectangleF(-w/2, 0, w, baseH), 
+                Color.FromArgb(140, 150, 160), Color.FromArgb(80, 90, 100), 90f);
+            g.FillRectangle(baseFill, -w/2, 0, w, baseH);
+            g.DrawRectangle(Pens.Gray, -w/2, 0, w, baseH);
+
+            // Jaws (Two L-shaped parts moving inward)
+            var jawW = w * 0.22f;
+            var jawH = h * 0.65f;
+            var openGap = w * 0.45f;
+            var currentGap = openGap * (1 - t); 
+
+            void DrawJaw(float x, bool isRight)
+            {
+                using var jawFill = new SolidBrush(Color.FromArgb(190, 40, 50, 65));
+                using var accent = new Pen(Color.FromArgb(120, 200, 210, 220), 1);
+                g.FillRectangle(jawFill, x, baseH, jawW, jawH);
+                g.DrawRectangle(accent, x, baseH, jawW, jawH);
+
+                // Toe (the L-hook)
+                var toeW = w * 0.3f;
+                var toeH = h * 0.12f;
+                var toeX = isRight ? x - toeW : x + jawW;
+                g.FillRectangle(jawFill, toeX, baseH + jawH - toeH, toeW, toeH);
+                g.DrawRectangle(accent, toeX, baseH + jawH - toeH, toeW, toeH);
+            }
+
+            DrawJaw(-currentGap / 2 - jawW, false);
+            DrawJaw(currentGap / 2, true);
+        };
+    }
+
+    public static Action<Graphics, float, float> CreateSuctionPenDraw(Func<double> getValue)
+    {
+        return (g, w, h) =>
+        {
+            var t = (float)Math.Clamp(getValue() / 100.0, 0, 1); 
+
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            // Shank
+            var tubeW = w * 0.2f;
+            var tubeH = h * 0.55f;
+            using var tubeFill = new LinearGradientBrush(new RectangleF(-tubeW/2, 0, tubeW, tubeH), 
+                Color.Silver, Color.Gray, 0f);
+            g.FillRectangle(tubeFill, -tubeW/2, 0, tubeW, tubeH);
+            g.DrawRectangle(Pens.DimGray, -tubeW/2, 0, tubeW, tubeH);
+
+            // Bellows Tip (Orange/Amber)
+            var cupR = w * 0.4f;
+            var cupH = h * 0.45f;
+            var cupColor = t > 0.5f ? Color.FromArgb(255, 120, 40) : Color.FromArgb(180, 80, 30);
+            using var cupFill = new SolidBrush(cupColor);
+
+            for (int i = 0; i < 3; i++)
+            {
+                var ly = tubeH + i * (cupH / 3.5f);
+                var lw = cupR * 2 * (0.7f + 0.3f * (i / 2f));
+                g.FillEllipse(cupFill, -lw / 2, ly, lw, cupH / 2.5f);
+                g.DrawEllipse(Pens.Black, -lw / 2, ly, lw, cupH / 2.5f);
+            }
         };
     }
 
@@ -251,6 +326,137 @@ internal static class SpriteDraw
         g.FillEllipse(hole, blockX + blockW * 0.75f - holeR, blockY + blockH * 0.30f - holeR, holeR * 2, holeR * 2);
         g.FillEllipse(hole, blockX + blockW * 0.25f - holeR, blockY + blockH * 0.70f - holeR, holeR * 2, holeR * 2);
         g.FillEllipse(hole, blockX + blockW * 0.75f - holeR, blockY + blockH * 0.70f - holeR, holeR * 2, holeR * 2);
+    }
+
+    public static void DrawLinearAxis(Graphics g, float w, float h)
+    {
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        // 1. Carriage Body (More vibrant metallic)
+        using var bodyStroke = new Pen(Color.FromArgb(200, 220, 230, 240), 1.5f);
+        using var lg = new LinearGradientBrush(new RectangleF(-w/2, -h/2, w, h), 
+            Color.FromArgb(110, 130, 150), Color.FromArgb(70, 90, 110), 45f);
+        
+        g.FillRectangle(lg, -w/2, -h/2, w, h);
+        g.DrawRectangle(bodyStroke, -w/2, -h/2, w, h);
+
+        // 2. Linear Rails shadow (Indicate it sits on a rail)
+        using var railPen = new Pen(Color.FromArgb(80, 0, 0, 0), 2);
+        g.DrawLine(railPen, -w/2 + 3, -h/2, -w/2 + 3, h/2);
+        g.DrawLine(railPen, w/2 - 3, -h/2, w/2 - 3, h/2);
+
+        // 3. Mounting details
+        var r = Math.Min(w, h) * 0.1f;
+        using var hole = new SolidBrush(Color.FromArgb(160, 20, 25, 30));
+        g.FillEllipse(hole, -w/4 - r, -h/4 - r, r*2, r*2);
+        g.FillEllipse(hole, w/4 - r, -h/4 - r, r*2, r*2);
+        g.FillEllipse(hole, -w/4 - r, h/4 - r, r*2, r*2);
+        g.FillEllipse(hole, w/4 - r, h/4 - r, r*2, r*2);
+    }
+
+    public static void DrawRotaryAxis(Graphics g, float radius)
+    {
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+
+        // 1. Main Disk
+        using var diskFill = new LinearGradientBrush(new RectangleF(-radius, -radius, radius * 2, radius * 2), 
+            Color.FromArgb(160, 170, 180), Color.FromArgb(90, 100, 110), 45f);
+        g.FillEllipse(diskFill, -radius, -radius, radius * 2, radius * 2);
+        g.DrawEllipse(Pens.DimGray, -radius, -radius, radius * 2, radius * 2);
+
+        // 2. Central Flange (Shaft)
+        var flangeR = radius * 0.35f;
+        using var flangeFill = new LinearGradientBrush(new RectangleF(-flangeR, -flangeR, flangeR * 2, flangeR * 2), 
+            Color.FromArgb(220, 230, 240), Color.FromArgb(140, 150, 160), 135f);
+        g.FillEllipse(flangeFill, -flangeR, -flangeR, flangeR * 2, flangeR * 2);
+        g.DrawEllipse(Pens.Gray, -flangeR, -flangeR, flangeR * 2, flangeR * 2);
+
+        // 3. Scale markings / Index holes
+        using var markPen = new Pen(Color.FromArgb(100, 20, 25, 30), 2);
+        for (int i = 0; i < 8; i++)
+        {
+            var angle = i * 45;
+            var holeR = radius * 0.08f;
+            var dist = radius * 0.7f;
+            var hx = (float)(Math.Cos(angle * Math.PI / 180) * dist);
+            var hy = (float)(Math.Sin(angle * Math.PI / 180) * dist);
+            g.FillEllipse(Brushes.Black, hx - holeR, hy - holeR, holeR * 2, holeR * 2);
+        }
+
+        // 4. Highlight current direction
+        using var dirPen = new Pen(Color.FromArgb(200, 255, 100, 0), 2);
+        g.DrawLine(dirPen, 0, 0, radius, 0);
+    }
+
+    public static Action<Graphics, float, float> CreateMotorRailDraw(bool isVertical, double min, double max)
+    {
+        return (g, w, h) =>
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+
+            // 视觉余量：在真实行程两端增加 15 像素的基座延伸，防止滑块挂在边缘
+            float padding = 15;
+            float drawW = isVertical ? w : w + padding * 2;
+            float drawH = isVertical ? h + padding * 2 : h;
+
+            // 1. Rail Base (Extended for safety)
+            using var railFill = new LinearGradientBrush(new RectangleF(-drawW/2, -drawH/2, drawW, drawH), 
+                Color.FromArgb(90, 100, 110), Color.FromArgb(50, 60, 70), isVertical ? 0f : 90f);
+            using var path = RoundedRect(-drawW/2, -drawH/2, drawW, drawH, Math.Min(w, h) * 0.2f);
+            g.FillPath(railFill, path);
+            g.DrawPath(Pens.Black, path);
+
+            // 2. Linear guides (Bright steel lines)
+            using var guidePen = new Pen(Color.FromArgb(180, 200, 210, 220), 1.5f);
+            if (!isVertical)
+            {
+                g.DrawLine(guidePen, -drawW/2, -h * 0.25f, drawW/2, -h * 0.25f);
+                g.DrawLine(guidePen, -drawW/2, h * 0.25f, drawW/2, h * 0.25f);
+            }
+            else
+            {
+                g.DrawLine(guidePen, -w * 0.25f, -drawH/2, -w * 0.25f, drawH/2);
+                g.DrawLine(guidePen, w * 0.25f, -drawH/2, w * 0.25f, drawH/2);
+            }
+
+            // 3. Markings (Logical positions)
+            using var font = new Font("Segoe UI", MathF.Max(8, MathF.Min(w, h) * 0.35f), FontStyle.Bold);
+            using var textBrush = new SolidBrush(Color.FromArgb(200, 255, 255, 255));
+            
+            void DrawLabel(string text, float val)
+            {
+                float ratio = (float)((val - min) / (max - min));
+                float gx = isVertical ? 0 : -w/2 + w * ratio;
+                float gy = isVertical ? -h/2 + h * ratio : 0;
+                
+                var size = g.MeasureString(text, font);
+                float tx = isVertical ? -w/2 - size.Width - 4 : gx - size.Width / 2;
+                float ty = isVertical ? gy - size.Height / 2 : h/2 + 4;
+
+                g.DrawString(text, font, textBrush, tx, ty);
+                
+                using var tickPen = new Pen(Color.Orange, 2);
+                if (isVertical) g.DrawLine(tickPen, -w/2, gy, -w/2 + 6, gy);
+                else g.DrawLine(tickPen, gx, h/2, gx, h/2 - 6);
+            }
+
+            DrawLabel("-", (float)min);
+            if (min < 0 && max > 0) DrawLabel("0", 0);
+            DrawLabel("+", (float)max);
+
+            // 4. Heavy Duty End Caps
+            using var capBrush = new SolidBrush(Color.FromArgb(240, 30, 35, 40));
+            if (!isVertical)
+            {
+                g.FillRectangle(capBrush, -drawW/2, -h/2 - 2, 8, h + 4);
+                g.FillRectangle(capBrush, drawW/2 - 8, -h/2 - 2, 8, h + 4);
+            }
+            else
+            {
+                g.FillRectangle(capBrush, -w/2 - 2, -drawH/2, w + 4, 8);
+                g.FillRectangle(capBrush, -w/2 - 2, drawH/2 - 8, w + 4, 8);
+            }
+        };
     }
 
     private static void DrawHorizontalRailOnly(

@@ -23,7 +23,6 @@ namespace Machine.Framework.Visualization.WinForms
         private readonly List<IDisposable> _subscriptions = new();
         private System.Windows.Forms.Timer? _renderTimer;
         
-        // Tracking nodes for highlighting
         private readonly Dictionary<string, SceneNode> _deviceNodeMap = new();
 
         public KinematicVisualizer(Control entryControl)
@@ -51,15 +50,8 @@ namespace Machine.Framework.Visualization.WinForms
             return this;
         }
 
-        public IBindingBuilder Bind(object panel)
-        {
-            return _registry.Bind(panel);
-        }
-
-        public IUIVisualizer AutoHighlight(object panel, DeviceID id)
-        {
-            return this;
-        }
+        public IBindingBuilder Bind(object panel) => _registry.Bind(panel);
+        public IUIVisualizer AutoHighlight(object panel, DeviceID id) => this;
 
         private void InitializeVisualization()
         {
@@ -93,39 +85,67 @@ namespace Machine.Framework.Visualization.WinForms
 
                 if (!string.IsNullOrEmpty(binding.TargetRootName))
                 {
-                    // Case A: Kinematic Mount Binding
                     var rawRoot = builder.Build(binding.TargetRootName!);
-                    
-                    // Frame wrap for centering/visibility (offset 0,0 to 80,50)
                     var frame = new GroupNode { Name = "Frame_" + binding.TargetRootName };
-                    frame.LocalX = 80; 
-                    frame.LocalY = 50; 
+                    frame.LocalX = 80; frame.LocalY = 50; 
                     frame.AddChild(rawRoot);
-                    
                     rootNode = frame;
                 }
                 else if (binding.TargetDeviceNames.Count > 0)
                 {
-                    // Case B: Discrete Device Binding
                     var group = new GroupNode { Name = "AutoRoot" };
-                    group.LocalX = 50; group.LocalY = 50; // Padding
+                    group.LocalX = 50; group.LocalY = 50; 
 
                     foreach(var devName in binding.TargetDeviceNames)
                     {
                          SceneNode? devNode = null;
                          if (model.Styles.TryGetValue(devName, out var style))
                          {
-                             if (style.Type == "RotaryTable" || style.Type == "LinearGuide" || style.Type == "Default") 
+                             if (style.Type == "LinearGuide" || style.Type == "Default") 
                              {
                                  var axisNode = new AxisNode { Name = devName, BoundDeviceId = new AxisID(devName) };
-                                 if (style.Type == "RotaryTable") axisNode.IsRotary = true;
+                                 axisNode.IsVertical = style.IsVertical;
+
                                  if (style.Type == "LinearGuide") 
                                  { 
                                      axisNode.Length = (float)style.Param1; 
-                                     axisNode.Width = (float)style.Param2; 
-                                     axisNode.Height = (float)(style.Height > 0 ? style.Height : style.Width); 
+                                     axisNode.Width = (float)(style.Param2 > 0 ? style.Param2 : 40); 
+                                     axisNode.Height = (float)(style.Height > 0 ? style.Height : axisNode.Width); 
+
+                                     // Retrieve travel range 
+                                     double min = 0, max = axisNode.Length > 0 ? axisNode.Length : 200;
+                                     if (config.AxisConfigs.TryGetValue(devName, out var ax))
+                                     {
+                                         min = ax.SoftLimits?.Min ?? 0;
+                                         max = ax.SoftLimits?.Max ?? (axisNode.Length > 0 ? axisNode.Length : 200);
+                                     }
+ 
+                                     var rail = new SpriteNode { Name = devName + "_Rail" };
+                                     rail.PivotX = 0.5f; rail.PivotY = 0.5f;
+                                     float rLen = (float)(max - min);
+                                     float rWid = axisNode.Width * 0.6f;
+                                     rail.Width = axisNode.IsVertical ? rWid : rLen;
+                                     rail.Height = axisNode.IsVertical ? rLen : rWid;
+                                     
+                                     if (axisNode.IsVertical) rail.LocalY = rLen / 2f + (float)min;
+                                     else rail.LocalX = rLen / 2f + (float)min;
+ 
+                                     rail.CustomDraw = SpriteDraw.CreateMotorRailDraw(axisNode.IsVertical, min, max);
+ 
+                                     var slideGroup = new GroupNode { Name = devName + "_LinearGroup" };
+                                     slideGroup.AddChild(rail);
+                                     slideGroup.AddChild(axisNode);
+                                     devNode = slideGroup;
                                  }
-                                 axisNode.IsVertical = style.IsVertical;
+                                 else {
+                                     devNode = axisNode;
+                                 }
+                             }
+                             else if (style.Type == "RotaryTable")
+                             {
+                                 var axisNode = new AxisNode { Name = devName, BoundDeviceId = new AxisID(devName) };
+                                 axisNode.IsRotary = true;
+                                 axisNode.Width = (float)(style.Param1 > 0 ? style.Param1 : 40);
                                  devNode = axisNode;
                              }
                              else if (style.Type == "Gripper")
@@ -133,20 +153,7 @@ namespace Machine.Framework.Visualization.WinForms
                                  var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
                                  sprite.Width = style.Width; sprite.Height = style.Height;
                                  sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
-                                 sprite.CustomDraw = (g, w, h) => {
-                                      float t = (float)Math.Clamp(sprite.CurrentValue / 100.0, 0, 1);
-                                      if (style.IsReversed) t = 1 - t;
-                                      float openWidth = (float)style.Param1;
-                                      float closeWidth = (float)style.Param2;
-                                      float gap = (closeWidth + (openWidth - closeWidth) * (1 - t)) / 2f;
-                                      float jawLen = w * 0.4f;
-                                      float jawThk = h * 0.15f;
-                                      using var brush = new SolidBrush(Color.FromArgb(120, 170, 200));
-                                      g.FillRectangle(brush, -gap - jawLen, -jawThk/2, jawLen, jawThk);
-                                      g.FillRectangle(brush, gap, -jawThk/2, jawLen, jawThk);
-                                      using var hub = new SolidBrush(Color.FromArgb(80, 100, 130));
-                                      g.FillEllipse(hub, -w/6f, -h/6f, w/3f, h/3f);
-                                 };
+                                 sprite.CustomDraw = SpriteDraw.CreateGripperDraw(() => sprite.CurrentValue, style.IsReversed);
                                  devNode = sprite;
                              }
                              else if (style.Type == "SuctionPen")
@@ -154,77 +161,56 @@ namespace Machine.Framework.Visualization.WinForms
                                  var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
                                  sprite.Width = style.Width; sprite.Height = style.Height;
                                  sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
-                                 sprite.CustomDraw = (g, w, h) => {
-                                      float t = (float)Math.Clamp(sprite.CurrentValue / 100.0, 0, 1);
-                                      float r = (float)style.Param1 / 2f;
-                                      using var p = new Pen(Color.FromArgb(140, 180, 200), 2);
-                                      g.DrawEllipse(p, -r, -r, r*2, r*2);
-                                      using var fill = new SolidBrush(Color.FromArgb((int)(60 + 120 * t), 120, 180, 220));
-                                      g.FillEllipse(fill, -r+2, -r+2, r*2-4, r*2-4);
-                                 };
+                                 sprite.CustomDraw = SpriteDraw.CreateSuctionPenDraw(() => sprite.CurrentValue);
                                  devNode = sprite;
                              }
-                             else 
+                             else if (style.Type == "SlideBlock")
                              {
-                                 if (style.Type == "SlideBlock")
+                                 var length = (float)(style.Param1 > 0 ? style.Param1 : (style.Width > 0 ? style.Width : 120));
+                                 var thickness = style.Height > 0 ? style.Height : 32;
+                                 var isVertical = style.IsVertical;
+
+                                 var rail = new SpriteNode { Name = devName + "_Rail" };
+                                 rail.PivotX = 0; rail.PivotY = 0.5f;
+                                 rail.Width = isVertical ? thickness : length;
+                                 rail.Height = isVertical ? length : thickness;
+                                 rail.CustomDraw = SpriteDraw.CreateSlideRailDraw(isVertical);
+
+                                 var pad = MathF.Max(2, MathF.Min(rail.Width, rail.Height) * 0.08f);
+                                 var railW = (isVertical ? rail.Height : rail.Width) - pad * 2;
+                                 var railH = MathF.Max(6, (isVertical ? rail.Width : rail.Height) * 0.22f);
+                                 var blockW = MathF.Max(18, MathF.Min(railW * 0.30f, 60));
+                                 var travel = MathF.Max(0, railW - blockW);
+
+                                 var output = new StrokeNode
                                  {
-                                     var length = (float)(style.Param1 > 0 ? style.Param1 : (style.Width > 0 ? style.Width : 120));
-                                     var thickness = style.Height > 0 ? style.Height : 32;
-                                     var isVertical = style.IsVertical;
+                                     Name = devName, BoundDeviceId = new CylinderID(devName),
+                                     IsVertical = isVertical, IsReversed = style.IsReversed,
+                                     Stroke = travel, BaseX = 0, BaseY = 0
+                                 };
 
-                                     var rail = new SpriteNode { Name = devName + "_Rail" };
-                                     rail.PivotX = style.PivotX;
-                                     rail.PivotY = style.PivotY;
-                                     rail.Width = isVertical ? thickness : length;
-                                     rail.Height = isVertical ? length : thickness;
-                                     rail.CustomDraw = SpriteDraw.CreateSlideRailDraw(isVertical);
+                                 var carriage = new SpriteNode { Name = devName + "_Carriage" };
+                                 carriage.PivotX = 0.5f; carriage.PivotY = 0.5f;
+                                 carriage.Width = blockW; carriage.Height = MathF.Max(railH * 1.8f, (isVertical ? rail.Width : rail.Height) * 0.55f);
+                                 carriage.CustomDraw = SpriteDraw.CreateSlideCarriageDraw();
+                                 output.AddChild(carriage);
 
-                                     var pad = MathF.Max(2, MathF.Min(rail.Width, rail.Height) * 0.08f);
-                                     var railW = (isVertical ? rail.Height : rail.Width) - pad * 2;
-                                     var railH = MathF.Max(6, (isVertical ? rail.Width : rail.Height) * 0.22f);
-                                     var blockW = MathF.Max(18, MathF.Min(railW * 0.30f, 60));
-                                     var travel = MathF.Max(0, railW - blockW);
-
-                                     var output = new StrokeNode
-                                     {
-                                         Name = devName,
-                                         BoundDeviceId = new CylinderID(devName),
-                                         IsVertical = isVertical,
-                                         IsReversed = style.IsReversed,
-                                         Stroke = travel,
-                                         BaseX = isVertical ? 0 : -travel / 2f,
-                                         BaseY = isVertical ? -travel / 2f : 0
-                                     };
- 
-                                     var carriage = new SpriteNode { Name = devName + "_Carriage" };
-                                     carriage.PivotX = 0.5f;
-                                     carriage.PivotY = 0.5f;
-                                     carriage.Width = blockW;
-                                     carriage.Height = MathF.Max(railH * 1.8f, (isVertical ? rail.Width : rail.Height) * 0.55f);
-                                     carriage.CustomDraw = SpriteDraw.CreateSlideCarriageDraw();
-                                     output.AddChild(carriage);
-
-                                     var slideGroup = new GroupNode { Name = devName + "_Slide" };
-                                     slideGroup.AddChild(rail);
-                                     slideGroup.AddChild(output);
-                                     devNode = slideGroup;
-                                 }
-                                 else
-                                 {
-                                     var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
-                                     sprite.Width = style.Width; sprite.Height = style.Height;
-                                     sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
-
-                                     if (style.Type != "Custom")
-                                         sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, style.IsVertical, style.IsReversed);
-
-                                     devNode = sprite;
-                                 }
+                                 var slideGroup = new GroupNode { Name = devName + "_Slide" };
+                                 slideGroup.AddChild(rail); slideGroup.AddChild(output);
+                                 devNode = slideGroup;
+                             }
+                             else
+                             {
+                                 var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
+                                 sprite.Width = style.Width; sprite.Height = style.Height;
+                                 sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
+                                 if (style.Type != "Custom")
+                                     sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, style.IsVertical, style.IsReversed);
+                                 devNode = sprite;
                              }
                          }
                          else
                          {
-                             // Default fallback
                              var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName), Width = 60, Height = 24 };
                              sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, isVertical: false, isReversed: false);
                              devNode = sprite;
@@ -232,7 +218,6 @@ namespace Machine.Framework.Visualization.WinForms
 
                          if (devNode != null)
                          {
-                             // Stack horizontally
                              devNode.LocalX = group.Children.Count * 120;
                              group.AddChild(devNode);
                          }
@@ -243,71 +228,46 @@ namespace Machine.Framework.Visualization.WinForms
                 if (rootNode != null)
                 {
                     RegisterNodesCached(rootNode); 
-
-                    // Setup Canvas
                     panel.Controls.Clear();
                     var canvas = new SceneGraphCanvas { Dock = DockStyle.Fill };
                     canvas.SetRoot(rootNode);
                     panel.Controls.Add(canvas);
 
-                    // Collect update targets
                     void CollectUpdates(SceneNode n)
                     {
                         if (n.BoundDeviceId != null)
                         {
                             string name = n.BoundDeviceId.Name;
-                            // Ensure we get the actual simulator instance, even if it's inside a DeviceHub
                             object? dev = (object?)_context.GetDevice<ISimulatorAxis>(name)
                                         ?? _context.GetDevice<ISimulatorCylinder>(name)
                                         ?? _context.GetDevice<ISimulatorVacuum>(name)
                                         ?? _context.GetDevice<object>(name);
-
                             if (dev != null) updateList.Add((n, dev));
                         }
                         foreach(var c in n.Children) CollectUpdates(c);
                     }
                     CollectUpdates(rootNode);
-                    
                     _subscriptions.Add(System.Reactive.Disposables.Disposable.Create(() => canvas.Dispose()));
                 }
             }
 
-            // Highlighting Subscription
             if (_interpreter != null)
             {
                var sync = SynchronizationContext.Current;
                if (sync != null)
                {
-                   _subscriptions.Add(
-                       _interpreter.TraceStream
-                       .ObserveOn(sync)
-                       .Subscribe(evt => 
-                       {
-                           if (_deviceNodeMap.TryGetValue(evt.TargetDevice, out var node))
-                           {
-                               if (evt.Status == StepStatus.Running)
-                                   node.HighlightColor = System.Drawing.Color.LimeGreen;
-                               else if (evt.Status == StepStatus.Error)
-                                   node.HighlightColor = System.Drawing.Color.Red;
-                               else
-                                   node.HighlightColor = null; // Clear
-                               
-                               if (evt.Status == StepStatus.Completed)
-                                   node.HighlightColor = null; 
-                           }
-                       })
-                   );
+                   _subscriptions.Add(_interpreter.TraceStream.ObserveOn(sync).Subscribe(evt => 
+                   {
+                       // We no longer draw ugly borders on devices. 
+                       // The realistic animation itself provides the active feedback.
+                   }));
                }
             }
 
-            // Start Render Loop
             _renderTimer = new System.Windows.Forms.Timer { Interval = 30 };
             _renderTimer.Tick += (s, e) => 
             {
-                // Update Nodes
                 foreach(var item in updateList) UpdateNodeFromDevice(item.Node, item.Device);
-                
-                // Redraw
                 foreach(var binding in model.Bindings)
                 {
                     if (binding.Panel is Control p && p.Controls.Count > 0 && p.Controls[0] is SceneGraphCanvas c)
@@ -319,10 +279,7 @@ namespace Machine.Framework.Visualization.WinForms
 
         private void RegisterNodesCached(SceneNode node)
         {
-            if (node.BoundDeviceId != null)
-            {
-                _deviceNodeMap[node.BoundDeviceId.Name] = node;
-            }
+            if (node.BoundDeviceId != null) _deviceNodeMap[node.BoundDeviceId.Name] = node;
             foreach (var child in node.Children) RegisterNodesCached(child);
         }
 
@@ -330,32 +287,16 @@ namespace Machine.Framework.Visualization.WinForms
         {
             try
             {
-                if (device is ISimulatorAxis axis)
-                {
-                    node.Update(axis.CurrentState.Position);
-                }
-                else if (device is ISimulatorCylinder cyl)
-                {
-                    node.Update(cyl.CurrentState.Position * 100.0);
-                }
-                else if (device is ISimulatorVacuum vac)
-                {
-                     node.Update(vac.CurrentState.IsOn ? 1.0 : 0.0);
-                }
-                else
-                {
-                    // Fallback
-                    dynamic d = device;
-                    double val = 0;
-                    try { val = d.Position; } 
-                    catch 
-                    {
-                         try { val = d.IsOut ? 100 : 0; } catch { val = 0; }
-                    }
+                if (device is ISimulatorAxis axis) node.Update(axis.CurrentState.Position);
+                else if (device is ISimulatorCylinder cyl) node.Update(cyl.CurrentState.Position * 100.0);
+                else if (device is ISimulatorVacuum vac) node.Update(vac.CurrentState.IsOn ? 1.0 : 0.0);
+                else {
+                    dynamic d = device; double val = 0;
+                    try { val = d.Position; } catch { try { val = d.IsOut ? 100 : 0; } catch { } }
                     node.Update(val);
                 }
             }
-            catch { /* Ignore */ }
+            catch { }
         }
     }
 }
