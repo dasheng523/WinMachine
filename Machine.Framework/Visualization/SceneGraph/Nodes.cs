@@ -22,6 +22,7 @@ namespace Machine.Framework.Visualization.SceneGraph
 
         // 绑定设备 (用于从 Interpreter 获取状态)
         public DeviceID? BoundDeviceId { get; set; }
+        public double CurrentValue { get; set; }
         public Color? HighlightColor { get; set; }
 
         public void AddChild(SceneNode child)
@@ -65,7 +66,7 @@ namespace Machine.Framework.Visualization.SceneGraph
         protected virtual void Draw(Graphics g) { }
 
         // --- 状态更新 ---
-        public virtual void Update(double stateValue) { }
+        public virtual void Update(double stateValue) { CurrentValue = stateValue; }
     }
 
     // --- 容器节点 (Group) ---
@@ -85,6 +86,7 @@ namespace Machine.Framework.Visualization.SceneGraph
 
         public override void Update(double pos)
         {
+            base.Update(pos);
             // 根据设备状态更新局部变换
             if (IsRotary)
             {
@@ -177,6 +179,31 @@ namespace Machine.Framework.Visualization.SceneGraph
                 using var border = new Pen(Color.Black, 1);
                 g.DrawRectangle(border, dx, dy, Width, Height);
             }
+        }
+    }
+
+    /// <summary>
+    /// 线性行程驱动节点：根据 CurrentValue(0..100) 将自身在 X/Y 方向偏移，用于气缸滑台/升降台等输出端随行程移动。
+    /// </summary>
+    public sealed class StrokeNode : SceneNode
+    {
+        public bool IsVertical { get; set; }
+        public bool IsReversed { get; set; }
+        public float Stroke { get; set; }
+
+        public float BaseX { get; set; }
+        public float BaseY { get; set; }
+
+        public override void Update(double stateValue)
+        {
+            base.Update(stateValue);
+
+            var t = Math.Clamp(stateValue / 100.0, 0.0, 1.0);
+            if (IsReversed) t = 1.0 - t;
+
+            var delta = (float)(Stroke * t);
+            LocalX = BaseX + (IsVertical ? 0 : delta);
+            LocalY = BaseY + (IsVertical ? delta : 0);
         }
     }
 }

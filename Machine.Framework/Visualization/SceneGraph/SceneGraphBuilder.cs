@@ -76,21 +76,91 @@ namespace Machine.Framework.Interpreters.Visualization
             {
                 _styleModel.Styles.TryGetValue(cylId.Name, out style);
 
-                // 气缸通常用 Sprite 表示
+                if (style != null && style.Type == "SlideBlock")
+                {
+                    // SlideBlock = Rail(fixed) + Carriage(moving) + (children mounted on output)
+                    var length = (float)(style.Param1 > 0 ? style.Param1 : (style.Width > 0 ? style.Width : 120));
+                    var thickness = style.Height > 0 ? style.Height : 32;
+                    var isVertical = style.IsVertical;
+                    var isReversed = style.IsReversed;
+
+                    var rail = new SpriteNode { Name = def.Name + "_Rail" };
+                    rail.PivotX = style.PivotX;
+                    rail.PivotY = style.PivotY;
+                    rail.Width = isVertical ? thickness : length;
+                    rail.Height = isVertical ? length : thickness;
+                    rail.CustomDraw = SpriteDraw.CreateSlideRailDraw(isVertical);
+
+                    // Compute travel in pixels so carriage and mounted children really move.
+                    var drawW = rail.Width;
+                    var drawH = rail.Height;
+                    var pad = MathF.Max(2, MathF.Min(drawW, drawH) * 0.08f);
+                    var railW = (isVertical ? drawH : drawW) - pad * 2;
+                    var railH = MathF.Max(6, (isVertical ? drawW : drawH) * 0.22f);
+                    var blockW = MathF.Max(18, MathF.Min(railW * 0.30f, 60));
+                    var travel = MathF.Max(0, railW - blockW);
+
+                    var output = new StrokeNode
+                    {
+                        Name = def.Name,
+                        BoundDeviceId = cylId,
+                        IsVertical = isVertical,
+                        IsReversed = isReversed,
+                        Stroke = travel,
+                        BaseX = isVertical ? 0 : -travel / 2f,
+                        BaseY = isVertical ? -travel / 2f : 0
+                    };
+
+                    var carriage = new SpriteNode { Name = def.Name + "_Carriage" };
+                    // Carriage centered on the stroke line
+                    carriage.PivotX = 0.5f;
+                    carriage.PivotY = 0.5f;
+                    carriage.Width = blockW;
+                    carriage.Height = MathF.Max(railH * 1.8f, (isVertical ? drawW : drawH) * 0.55f);
+                    carriage.CustomDraw = SpriteDraw.CreateSlideCarriageDraw();
+                    output.AddChild(carriage);
+
+                    // Container node at mount offset
+                    var container = new GroupNode { Name = def.Name + "_Slide" };
+                    container.AddChild(rail);
+                    container.AddChild(output);
+
+                    node = container;
+
+                    // Children should be mounted on the output end (carriage)
+                    foreach (var childDef in def.Children)
+                    {
+                        var childNode = BuildRecursive(childDef);
+                        output.AddChild(childNode);
+                    }
+
+                    // Apply mount offset to container
+                    node.LocalX = (float)def.OffsetX;
+                    node.LocalY = (float)def.OffsetY;
+                    return node;
+                }
+
+                // Default cylinder = Sprite
                 var sprite = new SpriteNode { Name = def.Name, BoundDeviceId = cylId };
-                sprite.Color = System.Drawing.Color.Orange; 
-                
+                sprite.Color = System.Drawing.Color.Orange;
+
                 if (style != null)
                 {
                     sprite.Width = style.Width;
                     sprite.Height = style.Height;
                     sprite.PivotX = style.PivotX;
                     sprite.PivotY = style.PivotY;
-                    
+
                     if (style.Type == "Gripper") sprite.Color = System.Drawing.Color.MediumPurple;
-                    else if (style.Type == "SlideBlock") sprite.Color = System.Drawing.Color.SteelBlue;
+
+                    if (style.Type != "Gripper" && style.Type != "SuctionPen" && style.Type != "Custom")
+                        sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, style.IsVertical, style.IsReversed);
                 }
-                
+                else
+                {
+                    sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, isVertical: false, isReversed: false);
+                }
+
                 node = sprite;
             }
             else

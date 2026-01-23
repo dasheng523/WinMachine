@@ -17,7 +17,7 @@ namespace Machine.Framework.Visualization.WinForms
     public class KinematicVisualizer : IUIVisualizer
     {
         private readonly Form _form;
-        private readonly CaptureVisualRegistry _registry = new CaptureVisualRegistry();
+        private CaptureVisualRegistry _registry = new CaptureVisualRegistry();
         private FlowContext? _context;
         private IVisualFlowInterpreter? _interpreter;
         private readonly List<IDisposable> _subscriptions = new();
@@ -28,7 +28,7 @@ namespace Machine.Framework.Visualization.WinForms
 
         public KinematicVisualizer(Control entryControl)
         {
-            _form = entryControl.FindForm();
+            _form = entryControl?.FindForm() ?? throw new InvalidOperationException("KinematicVisualizer requires a control hosted in a Form.");
         }
 
         public IUIVisualizer ObserveInterpreter(IVisualFlowInterpreter interpreter)
@@ -46,6 +46,7 @@ namespace Machine.Framework.Visualization.WinForms
 
         public IUIVisualizer Visuals(Action<IDeviceVisualRegistry> registryConfig)
         {
+            _registry = new CaptureVisualRegistry();
             registryConfig(_registry);
             return this;
         }
@@ -127,19 +128,106 @@ namespace Machine.Framework.Visualization.WinForms
                                  axisNode.IsVertical = style.IsVertical;
                                  devNode = axisNode;
                              }
-                             else 
+                             else if (style.Type == "Gripper")
                              {
                                  var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
                                  sprite.Width = style.Width; sprite.Height = style.Height;
                                  sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
-                                 if (style.Type == "SlideBlock") sprite.Color = System.Drawing.Color.SteelBlue;
+                                 sprite.CustomDraw = (g, w, h) => {
+                                      float t = (float)Math.Clamp(sprite.CurrentValue / 100.0, 0, 1);
+                                      if (style.IsReversed) t = 1 - t;
+                                      float openWidth = (float)style.Param1;
+                                      float closeWidth = (float)style.Param2;
+                                      float gap = (closeWidth + (openWidth - closeWidth) * (1 - t)) / 2f;
+                                      float jawLen = w * 0.4f;
+                                      float jawThk = h * 0.15f;
+                                      using var brush = new SolidBrush(Color.FromArgb(120, 170, 200));
+                                      g.FillRectangle(brush, -gap - jawLen, -jawThk/2, jawLen, jawThk);
+                                      g.FillRectangle(brush, gap, -jawThk/2, jawLen, jawThk);
+                                      using var hub = new SolidBrush(Color.FromArgb(80, 100, 130));
+                                      g.FillEllipse(hub, -w/6f, -h/6f, w/3f, h/3f);
+                                 };
                                  devNode = sprite;
+                             }
+                             else if (style.Type == "SuctionPen")
+                             {
+                                 var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
+                                 sprite.Width = style.Width; sprite.Height = style.Height;
+                                 sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
+                                 sprite.CustomDraw = (g, w, h) => {
+                                      float t = (float)Math.Clamp(sprite.CurrentValue / 100.0, 0, 1);
+                                      float r = (float)style.Param1 / 2f;
+                                      using var p = new Pen(Color.FromArgb(140, 180, 200), 2);
+                                      g.DrawEllipse(p, -r, -r, r*2, r*2);
+                                      using var fill = new SolidBrush(Color.FromArgb((int)(60 + 120 * t), 120, 180, 220));
+                                      g.FillEllipse(fill, -r+2, -r+2, r*2-4, r*2-4);
+                                 };
+                                 devNode = sprite;
+                             }
+                             else 
+                             {
+                                 if (style.Type == "SlideBlock")
+                                 {
+                                     var length = (float)(style.Param1 > 0 ? style.Param1 : (style.Width > 0 ? style.Width : 120));
+                                     var thickness = style.Height > 0 ? style.Height : 32;
+                                     var isVertical = style.IsVertical;
+
+                                     var rail = new SpriteNode { Name = devName + "_Rail" };
+                                     rail.PivotX = style.PivotX;
+                                     rail.PivotY = style.PivotY;
+                                     rail.Width = isVertical ? thickness : length;
+                                     rail.Height = isVertical ? length : thickness;
+                                     rail.CustomDraw = SpriteDraw.CreateSlideRailDraw(isVertical);
+
+                                     var pad = MathF.Max(2, MathF.Min(rail.Width, rail.Height) * 0.08f);
+                                     var railW = (isVertical ? rail.Height : rail.Width) - pad * 2;
+                                     var railH = MathF.Max(6, (isVertical ? rail.Width : rail.Height) * 0.22f);
+                                     var blockW = MathF.Max(18, MathF.Min(railW * 0.30f, 60));
+                                     var travel = MathF.Max(0, railW - blockW);
+
+                                     var output = new StrokeNode
+                                     {
+                                         Name = devName,
+                                         BoundDeviceId = new CylinderID(devName),
+                                         IsVertical = isVertical,
+                                         IsReversed = style.IsReversed,
+                                         Stroke = travel,
+                                         BaseX = isVertical ? 0 : -travel / 2f,
+                                         BaseY = isVertical ? -travel / 2f : 0
+                                     };
+ 
+                                     var carriage = new SpriteNode { Name = devName + "_Carriage" };
+                                     carriage.PivotX = 0.5f;
+                                     carriage.PivotY = 0.5f;
+                                     carriage.Width = blockW;
+                                     carriage.Height = MathF.Max(railH * 1.8f, (isVertical ? rail.Width : rail.Height) * 0.55f);
+                                     carriage.CustomDraw = SpriteDraw.CreateSlideCarriageDraw();
+                                     output.AddChild(carriage);
+
+                                     var slideGroup = new GroupNode { Name = devName + "_Slide" };
+                                     slideGroup.AddChild(rail);
+                                     slideGroup.AddChild(output);
+                                     devNode = slideGroup;
+                                 }
+                                 else
+                                 {
+                                     var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName) };
+                                     sprite.Width = style.Width; sprite.Height = style.Height;
+                                     sprite.PivotX = style.PivotX; sprite.PivotY = style.PivotY;
+
+                                     if (style.Type != "Custom")
+                                         sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, style.IsVertical, style.IsReversed);
+
+                                     devNode = sprite;
+                                 }
                              }
                          }
                          else
                          {
                              // Default fallback
-                             devNode = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName), Width=20, Height=20 };
+                             var sprite = new SpriteNode { Name = devName, BoundDeviceId = new CylinderID(devName), Width = 60, Height = 24 };
+                             sprite.CustomDraw = SpriteDraw.CreateDefaultCylinderDraw(() => sprite.CurrentValue, isVertical: false, isReversed: false);
+                             devNode = sprite;
                          }
 
                          if (devNode != null)
@@ -167,7 +255,13 @@ namespace Machine.Framework.Visualization.WinForms
                     {
                         if (n.BoundDeviceId != null)
                         {
-                            var dev = _context.GetDevice<object>(n.BoundDeviceId.Name); 
+                            string name = n.BoundDeviceId.Name;
+                            // Ensure we get the actual simulator instance, even if it's inside a DeviceHub
+                            object? dev = (object?)_context.GetDevice<ISimulatorAxis>(name)
+                                        ?? _context.GetDevice<ISimulatorCylinder>(name)
+                                        ?? _context.GetDevice<ISimulatorVacuum>(name)
+                                        ?? _context.GetDevice<object>(name);
+
                             if (dev != null) updateList.Add((n, dev));
                         }
                         foreach(var c in n.Children) CollectUpdates(c);

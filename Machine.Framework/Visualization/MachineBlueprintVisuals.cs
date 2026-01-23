@@ -146,7 +146,7 @@ namespace Machine.Framework.Visualization
         private readonly VisualStyleDef _def;
         public CaptureCylinderBuilder(VisualStyleDef def) => _def = def;
 
-        public ICylinderVisualBuilder AsSlideBlock(double? s) { _def.Type = "SlideBlock"; if(s.HasValue) _def.Width = (float)s.Value; return this; }
+        public ICylinderVisualBuilder AsSlideBlock(double? s) { _def.Type = "SlideBlock"; if(s.HasValue) _def.Param1 = s.Value; return this; }
         public ICylinderVisualBuilder AsGripper(double o, double c) { _def.Type = "Gripper"; _def.Param1 = o; _def.Param2 = c; return this; }
         public ICylinderVisualBuilder AsSuctionPen(double d) { _def.Type = "SuctionPen"; _def.Param1 = d; return this; }
         public ICylinderVisualBuilder AsCustom(string p) { _def.Type = "Custom"; return this; }

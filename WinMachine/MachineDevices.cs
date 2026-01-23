@@ -23,6 +23,14 @@ public static class MachineDevices
     // --- 公共机构 ---
     public static readonly CylinderID SlideCyl = new("Slide");       // 滑台气缸
 
+    // --- 测试专用设备 ---
+    public static readonly CylinderID Test_Slide = new("Test_Slide");
+    public static readonly CylinderID Test_Elevator = new("Test_Elevator");
+    public static readonly CylinderID Test_Gripper = new("Test_Gripper");
+    public static readonly CylinderID Test_Suction = new("Test_Suction");
+    public static readonly AxisID Test_Linear = new("Test_Linear");
+    public static readonly AxisID Test_Rotary = new("Test_Rotary");
+
     // 辅助定义：保留旧的以防编译错误，后续可以逐步清理
     public static readonly AxisID X_Axis = new("X");
     public static readonly AxisID LeftRotate = R1_Rotate;

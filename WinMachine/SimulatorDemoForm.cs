@@ -14,8 +14,13 @@ namespace WinMachine
     public partial class SimulatorDemoForm : Form
     {
         private readonly SimulationFlowScenario[] _scenarios = SimulationFlowScenarios.All;
+        private readonly IUIVisualizer _visualizer;
+
         private CancellationTokenSource? _cts;
         private CompositeDisposable? _subscriptions;
+
+        private CancellationTokenSource? _previewCts;
+        private CompositeDisposable? _previewSubscriptions;
 
         public SimulatorDemoForm()
         {
@@ -32,8 +37,41 @@ namespace WinMachine
             lstScenarios.DataSource = _scenarios;
             lstScenarios.DisplayMember = nameof(SimulationFlowScenario.Name);
 
+            _visualizer = UI.Link(this);
+
             btnRun.Click += async (_, __) => await RunSelectedAsync();
             btnCancel.Click += (_, __) => _cts?.Cancel();
+
+            lstScenarios.SelectedIndexChanged += (_, __) => ShowPreview();
+            ShowPreview();
+        }
+
+        private void ShowPreview()
+        {
+            // Running 时不打断（Run 会切换到运行态上下文）
+            if (_cts != null && !_cts.IsCancellationRequested)
+                return;
+
+            if (lstScenarios.SelectedItem is not SimulationFlowScenario scenario)
+                return;
+
+            _previewSubscriptions?.Dispose();
+            _previewSubscriptions = new CompositeDisposable();
+
+            _previewCts?.Dispose();
+            _previewCts = new CancellationTokenSource();
+
+            txtLog.Clear();
+            lblActiveStep.Text = $"Preview: {scenario.Name}";
+            ResetHighlights();
+
+            var runtime = scenario.Create(_previewCts);
+            var context = runtime.Context;
+            var interpreter = new SimulationFlowInterpreter();
+            interpreter.InitializeDevices(context);
+
+            ConfigureVisualizationBindings(context, interpreter);
+            runtime.BeforeRun?.Invoke(context, _previewSubscriptions);
         }
 
         private async System.Threading.Tasks.Task RunSelectedAsync()
@@ -43,6 +81,7 @@ namespace WinMachine
 
             btnRun.Enabled = false;
             btnCancel.Enabled = true;
+            lstScenarios.Enabled = false;
             txtLog.Clear();
             lblActiveStep.Text = "Active: -";
             ResetHighlights();
@@ -78,8 +117,17 @@ namespace WinMachine
             }
             finally
             {
+                _cts?.Dispose();
+                _cts = null;
+                _subscriptions?.Dispose();
+                _subscriptions = null;
+
                 btnRun.Enabled = true;
                 btnCancel.Enabled = false;
+                lstScenarios.Enabled = true;
+
+                // Run 结束后回到静态预览态（选中项对应画面）
+                ShowPreview();
             }
         }
 
@@ -132,19 +180,24 @@ namespace WinMachine
                 .For(C2_Right_Grip3).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
                 .For(C2_Right_Grip4).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
 
-                // 3. 通用样式
+                // 3. 通用/单体测试样式
                 .For(SlideCyl).AsSlideBlock(120).Horizontal().Done()
+                .For(Test_Slide).AsSlideBlock(120).Horizontal().Done()
+                .For(Test_Elevator).AsSlideBlock(120).Vertical().Done()
+                .For(Test_Gripper).AsGripper(20, 5).WithSize(32, 48).Done()
+                .For(Test_Suction).AsSuctionPen(30).Done()
+                .For(Test_Linear).AsLinearGuide(180, 24).Vertical().Done()
+                .For(Test_Rotary).AsRotaryTable(64).Done()
 
                 // 4. 定义绑定关系 (Binding)
                 .Bind(pnlCanvas)
                     .TargetRoot("Machine")
-                    .ToCylinder(SlideCyl)
                 .Done();
 
-            UI.Link(this)
-              .ObserveInterpreter(interpreter)
-              .ObserveContext(context)
-              .Visuals(layout.Build());
+            _visualizer
+                .Visuals(layout.Build())
+                .ObserveInterpreter(interpreter)
+                .ObserveContext(context);
         }
     }
 }

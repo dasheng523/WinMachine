@@ -8,6 +8,7 @@ using Machine.Framework.Core.Flow.Steps;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Core.Blueprint;
 using Machine.Framework.Interpreters.Configuration;
+using Machine.Framework.Core.Primitives;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 using static WinMachine.MachineDevices;
 
@@ -30,6 +31,13 @@ internal static class SimulationFlowScenarios
     [
         System_Initialization(),
         TransferStation_MultiGripper_Swap(),
+        // 单体组件形状与动作测试
+        Test_Shape_Cylinder_Slide(),
+        Test_Shape_Cylinder_Elevator(),
+        Test_Shape_Cylinder_Gripper(),
+        Test_Shape_Cylinder_Suction(),
+        Test_Shape_Axis_Linear(),
+        Test_Shape_Axis_Rotary(),
     ];
 
     private static SimulationFlowScenario System_Initialization() =>
@@ -208,6 +216,54 @@ internal static class SimulationFlowScenarios
 
                 return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
             });
+
+    private static SimulationFlowScenario Test_Shape_Cylinder_Slide() =>
+        new("气缸：横向滑台", cts => CreateSingleCylinderScenario(cts, Test_Slide, "气缸：横向滑台行动"));
+
+    private static SimulationFlowScenario Test_Shape_Cylinder_Elevator() =>
+        new("气缸：升降台", cts => CreateSingleCylinderScenario(cts, Test_Elevator, "气缸：升降台行动"));
+
+    private static SimulationFlowScenario Test_Shape_Cylinder_Gripper() =>
+        new("气缸：夹爪", cts => CreateSingleCylinderScenario(cts, Test_Gripper, "气缸：夹爪行动"));
+
+    private static SimulationFlowScenario Test_Shape_Cylinder_Suction() =>
+        new("气缸：吸笔", cts => CreateSingleCylinderScenario(cts, Test_Suction, "气缸：吸笔行动"));
+
+    private static SimulationFlowScenario Test_Shape_Axis_Linear() =>
+        new("马达：直线线性轴", cts => CreateSingleAxisScenario(cts, Test_Linear, "马达：线性移动", 150));
+
+    private static SimulationFlowScenario Test_Shape_Axis_Rotary() =>
+        new("马达：旋转工作台", cts => CreateSingleAxisScenario(cts, Test_Rotary, "马达：旋转移动", 90));
+
+    private static ScenarioRuntime CreateSingleCylinderScenario(CancellationTokenSource cts, CylinderID id, string stepName)
+    {
+        var bp = MachineBlueprint.Define($"Test_{id.Name}")
+            .AddBoard("Main", 0, b => b.UseSimulator().AddCylinder(id, 0, 0, c => c.WithDynamics(800)))
+            .Mount("Machine", m => m.Mount(id.Name, n => n.LinkTo(id)));
+        
+        var config = BlueprintInterpreter.ToConfig(bp);
+        var context = new FlowContext(config, cts.Token);
+        var flow = (from _ in Name(stepName).Next(Cylinder(id).FireAndWait(true))
+                    from __ in Name("回退").Next(Cylinder(id).FireAndWait(false))
+                    select Unit.Default).Definition;
+        
+        return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
+    }
+
+    private static ScenarioRuntime CreateSingleAxisScenario(CancellationTokenSource cts, AxisID id, string stepName, double target)
+    {
+        var bp = MachineBlueprint.Define($"Test_{id.Name}")
+            .AddBoard("Main", 0, b => b.UseSimulator().AddAxis(id, 0, a => a.WithRange(0, 500).WithKinematics(200, 100)))
+            .Mount("Machine", m => m.Mount(id.Name, n => n.LinkTo(id)));
+        
+        var config = BlueprintInterpreter.ToConfig(bp);
+        var context = new FlowContext(config, cts.Token);
+        var flow = (from _ in Name(stepName).Next(Motion(id).MoveTo(target))
+                    from __ in Name("回正").Next(Motion(id).MoveTo(0))
+                    select Unit.Default).Definition;
+        
+        return new ScenarioRuntime(context, flow, null, Observable.Empty<SimulationDomainEvent>(), null);
+    }
 }
 
 internal static class StepNextExtensions
