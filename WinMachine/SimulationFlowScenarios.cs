@@ -103,10 +103,10 @@ internal static class SimulationFlowScenarios
                             .LinkTo(Z1_Lift) // 整个塔随 Z1 升降
                             .Mount("Left_Turret", turret => turret
                                 .LinkTo(R1_Rotate) // 塔头随 R1 旋转
-                                .Mount("L_Pos_0").LinkTo(C1_Left_Grip1).WithOffset(x: 50)
-                                .Mount("L_Pos_90").LinkTo(C1_Left_Grip2).WithOffset(y: 50)
-                                .Mount("L_Pos_180").LinkTo(C1_Left_Grip3).WithOffset(x: -50)
-                                .Mount("L_Pos_270").LinkTo(C1_Left_Grip4).WithOffset(y: -50)
+                                .Mount("L_Pos_0", g => g.LinkTo(C1_Left_Grip1).WithOffset(x: 50))
+                                .Mount("L_Pos_90", g => g.LinkTo(C1_Left_Grip2).WithOffset(y: 50))
+                                .Mount("L_Pos_180", g => g.LinkTo(C1_Left_Grip3).WithOffset(x: -50))
+                                .Mount("L_Pos_270", g => g.LinkTo(C1_Left_Grip4).WithOffset(y: -50))
                             )
                         )
                         // 右侧塔结构
@@ -115,10 +115,10 @@ internal static class SimulationFlowScenarios
                             .LinkTo(Z2_Lift)
                             .Mount("Right_Turret", turret => turret
                                 .LinkTo(R2_Rotate)
-                                .Mount("R_Pos_0").LinkTo(C2_Right_Grip1).WithOffset(x: 50)
-                                .Mount("R_Pos_90").LinkTo(C2_Right_Grip2).WithOffset(y: 50)
-                                .Mount("R_Pos_180").LinkTo(C2_Right_Grip3).WithOffset(x: -50)
-                                .Mount("R_Pos_270").LinkTo(C2_Right_Grip4).WithOffset(y: -50)
+                                .Mount("R_Pos_0", g => g.LinkTo(C2_Right_Grip1).WithOffset(x: 50))
+                                .Mount("R_Pos_90", g => g.LinkTo(C2_Right_Grip2).WithOffset(y: 50))
+                                .Mount("R_Pos_180", g => g.LinkTo(C2_Right_Grip3).WithOffset(x: -50))
+                                .Mount("R_Pos_270", g => g.LinkTo(C2_Right_Grip4).WithOffset(y: -50))
                             )
                         )
                     );
@@ -246,16 +246,16 @@ internal static class SimulationFlowScenarios
                         .AddAxis(Test_Rotary, 0, a => a.WithRange(0, 360))
                         .AddCylinder(C1_Left_Grip1, 10, 10)
                         .AddCylinder(C1_Left_Grip2, 11, 11)
-                        .AddCylinder(C1_Left_Grip3, 12, 12)
-                        .AddCylinder(C1_Left_Grip4, 13, 13))
+                        .AddCylinder(C2_Right_Grip1, 12, 12)
+                        .AddCylinder(C2_Right_Grip2, 13, 13))
                     .Mount("Machine", m => m
                         .Mount("Disk", d => d
                             .LinkTo(Test_Rotary)
-                            // 左右各安装一对 (左侧 2个, 右侧 2个)
-                            .Mount("Left_Pair_1").LinkTo(C1_Left_Grip1).WithOffset(x: -80, y: -30)
-                            .Mount("Left_Pair_2").LinkTo(C1_Left_Grip2).WithOffset(x: -80, y: 30)
-                            .Mount("Right_Pair_1").LinkTo(C1_Left_Grip3).WithOffset(x: 80, y: -30)
-                            .Mount("Right_Pair_2").LinkTo(C1_Left_Grip4).WithOffset(x: 80, y: 30)
+                            // 左右各安装一对 (左侧 2个, 右侧 2个) - 使用委托语法确保并列
+                            .Mount("Left_Pair_1", g => g.LinkTo(C1_Left_Grip1).WithOffset(x: -80, y: -30))
+                            .Mount("Left_Pair_2", g => g.LinkTo(C1_Left_Grip2).WithOffset(x: -80, y: 30))
+                            .Mount("Right_Pair_1", g => g.LinkTo(C2_Right_Grip1).WithOffset(x: 80, y: -30))
+                            .Mount("Right_Pair_2", g => g.LinkTo(C2_Right_Grip2).WithOffset(x: 80, y: 30))
                         )
                     );
 
@@ -266,8 +266,8 @@ internal static class SimulationFlowScenarios
                 Func<bool, Step<Unit>> FireAll = (state) => Step.InParallel(
                     Cylinder(C1_Left_Grip1).FireAndWait(state),
                     Cylinder(C1_Left_Grip2).FireAndWait(state),
-                    Cylinder(C1_Left_Grip3).FireAndWait(state),
-                    Cylinder(C1_Left_Grip4).FireAndWait(state)
+                    Cylinder(C2_Right_Grip1).FireAndWait(state),
+                    Cylinder(C2_Right_Grip2).FireAndWait(state)
                 ).Select(_ => Unit.Default);
 
                 var flow = (from _1 in Name("4个夹爪同步闭合").Next(FireAll(false))

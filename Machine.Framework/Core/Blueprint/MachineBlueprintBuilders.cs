@@ -158,41 +158,45 @@ namespace Machine.Framework.Core.Blueprint.Builders
         private object? _linkedDevice;
         private double _ox, _oy, _oz;
         
-        // 用于构建子节点
-        private readonly List<MountPointDefinition> _children = new();
+        // 存储子 Builder（而非定义），以支持链式调用时的延迟求值
+        private readonly List<MountPointBuilder> _childBuilders = new();
 
         public MountPointBuilder(string name, MountPointBuilder? parent, BlueprintAssembly? asm)
         {
             _name = name;
             _parent = parent;
             _asm = asm;
+            
+            // 如果有父节点，则自动注册到父节点的子列表中
+            _parent?._childBuilders.Add(this);
         }
 
         public IMountPointBuilder AttachedTo(object p) 
         { 
-            // 语义上的 AttachedTo在链式 Mount 中通常隐含了，这里保留给顶层调用
             return this; 
         }
 
         public IMountPointBuilder LinkTo(object a) 
         { 
             _linkedDevice = a; 
-            UpdateDefinition();
+            PropagateUpdate();
             return this; 
         }
         
-        public IMountPointBuilder WithTransform(Func<double, double> t) => this; // 暂未存储 Transform
+        public IMountPointBuilder WithTransform(Func<double, double> t) => this;
 
         public IMountPointBuilder WithOffset(double x, double y, double z) 
         { 
             _ox = x; _oy = y; _oz = z;
-            UpdateDefinition();
+            PropagateUpdate();
             return this; 
         }
 
         public IMountPointBuilder Mount(string n) 
         { 
+            // 创建子 Builder，它会在构造函数中自动注册到本节点的 _childBuilders
             var child = new MountPointBuilder(n, this, null);
+            PropagateUpdate();
             return child; 
         }
         
@@ -200,24 +204,20 @@ namespace Machine.Framework.Core.Blueprint.Builders
         {
             var childBuilder = new MountPointBuilder(n, this, null);
             c(childBuilder);
-            
-            // 将构建好的子节点定义加入当前节点的子列表
-            // 注意：这里需要递归地拿到 childBuilder 的定义
-            var childDef = childBuilder.ToDefinition();
-            _children.Add(childDef);
-            
-            UpdateDefinition();
+            PropagateUpdate();
             return this; 
         }
 
-        private void UpdateDefinition()
+        /// <summary>
+        /// 向上冒泡通知根节点更新 Assembly 中的定义
+        /// </summary>
+        private void PropagateUpdate()
         {
-            // 如果是根节点，直接更新 Assembly 中的列表
-            // 注意：这是一个简化实现。对于深层嵌套，我们通常只在 Build 结束时生成一次树。
-            // 但在这里为了支持 fluent API 的随时更新，我们采用"最终提交"策略比较复杂。
-            // 简单的做法是：MountPointBuilder 不直接操作 Assembly，而是只有根 Builder 操作。
-            
-            if (_parent == null && _asm != null)
+            if (_parent != null)
+            {
+                _parent.PropagateUpdate();
+            }
+            else if (_asm != null)
             {
                 // 根节点：更新或添加到 Assembly
                 var def = ToDefinition();
@@ -229,12 +229,19 @@ namespace Machine.Framework.Core.Blueprint.Builders
 
         public MountPointDefinition ToDefinition()
         {
+            // 递归地将所有子 Builder 转换为定义
+            var childDefs = new List<MountPointDefinition>();
+            foreach (var cb in _childBuilders)
+            {
+                childDefs.Add(cb.ToDefinition());
+            }
+            
             return new MountPointDefinition(
                 _name, 
                 _parent?._name, 
                 _linkedDevice, 
                 _ox, _oy, _oz, 
-                new List<MountPointDefinition>(_children) // Copy
+                childDefs
             );
         }
     }

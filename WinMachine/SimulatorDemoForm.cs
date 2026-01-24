@@ -187,7 +187,13 @@ namespace WinMachine
                 .For(Test_Gripper).AsGripper(20, 5).WithSize(32, 48).Done()
                 .For(Test_Suction).AsSuctionPen(30).Done()
                 .For(Test_Linear).AsLinearGuide(180, 24).Vertical().Done()
+                
+                // 确保 Test_Rotary 及其挂载的夹爪有明确样式
                 .For(Test_Rotary).AsRotaryTable(64).Done()
+                .For(C1_Left_Grip1).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C1_Left_Grip2).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C2_Right_Grip1).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
+                .For(C2_Right_Grip2).AsGripper(15, 5).WithSize(24, 32).WithPivot(0.5, 0).Done()
 
                 // 4. 定义绑定关系 (Binding)
                 .Bind(pnlCanvas)
