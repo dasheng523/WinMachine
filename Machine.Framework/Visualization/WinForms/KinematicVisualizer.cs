@@ -5,7 +5,7 @@ using System.Reactive.Linq;
 using System.Windows.Forms;
 using Machine.Framework.Core.Flow;
 using Machine.Framework.Core.Primitives;
-using Machine.Framework.Interpreters.Visualization;
+
 using Machine.Framework.Visualization;
 using Machine.Framework.Visualization.SceneGraph;
 using Machine.Framework.Core.Simulation;
@@ -119,6 +119,10 @@ namespace Machine.Framework.Visualization.WinForms
                                          min = ax.SoftLimits?.Min ?? 0;
                                          max = ax.SoftLimits?.Max ?? (axisNode.Length > 0 ? axisNode.Length : 200);
                                      }
+                                     
+                                     // 设置行程范围以正确映射位置到视觉坐标
+                                     axisNode.TravelMin = (float)min;
+                                     axisNode.TravelMax = (float)max;
  
                                      var rail = new SpriteNode { Name = devName + "_Rail" };
                                      rail.PivotX = 0.5f; rail.PivotY = 0.5f;

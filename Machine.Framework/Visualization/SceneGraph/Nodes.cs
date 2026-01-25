@@ -82,20 +82,35 @@ namespace Machine.Framework.Visualization.SceneGraph
         // 视觉属性
         public float Length { get; set; } = 100;
         public float Width { get; set; } = 20;
-        public float Height { get; set; } = 20; // Added Height for slider dimension
+        public float Height { get; set; } = 20; // 滑块尺寸
+
+        // 行程范围：用于将轴位置映射到视觉长度
+        public float TravelMin { get; set; } = 0;
+        public float TravelMax { get; set; } = 100;
 
         public override void Update(double pos)
         {
             base.Update(pos);
-            // 根据设备状态更新局部变换
             if (IsRotary)
             {
                 LocalRotation = (float)pos;
             }
             else
             {
-                if (IsVertical) LocalY = (float)pos;
-                else LocalX = (float)pos;
+                // 如果 TravelMax 还是默认值 100，但 Length 已设置且不同，使用 Length 作为有效范围
+                float effectiveTravelMax = TravelMax;
+                if (TravelMax == 100 && Length > 0 && Length != 100)
+                {
+                    effectiveTravelMax = Length;
+                }
+                
+                // 将轴位置从 [TravelMin, effectiveTravelMax] 映射到 [0, Length]
+                float range = effectiveTravelMax - TravelMin;
+                float normalizedPos = range > 0 ? (float)((pos - TravelMin) / range) : 0;
+                float visualPos = normalizedPos * Length;
+                
+                if (IsVertical) LocalY = visualPos;
+                else LocalX = visualPos;
             }
         }
 

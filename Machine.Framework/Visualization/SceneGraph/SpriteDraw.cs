@@ -96,18 +96,30 @@ internal static class SpriteDraw
             using var railFill = new SolidBrush(Color.FromArgb(55, 150, 160, 175));
             using var railStroke = new Pen(Color.FromArgb(200, 190, 205, 220), MathF.Max(1, stroke * 0.8f));
 
+            // 使用 (0,0) 到 (w,h) 的坐标系
             if (!isVertical)
             {
-                DrawHorizontalRailOnly(g, w, h, pad, railFill, railStroke);
+                // 水平导轨：在 Y 方向居中的细槽
+                var railH = MathF.Max(6, h * 0.22f);
+                var railY = (h - railH) / 2f;
+                var railX = pad;
+                var railW = w - pad * 2;
+
+                using var path = RoundedRect(railX, railY, railW, railH, railH * 0.35f);
+                g.FillPath(railFill, path);
+                g.DrawPath(railStroke, path);
             }
             else
             {
-                var state = g.Save();
-                g.TranslateTransform(w / 2f, h / 2f);
-                g.RotateTransform(-90);
-                g.TranslateTransform(-h / 2f, -w / 2f);
-                DrawHorizontalRailOnly(g, h, w, pad, railFill, railStroke);
-                g.Restore(state);
+                // 垂直导轨：在 X 方向居中的细槽
+                var railW = MathF.Max(6, w * 0.22f);
+                var railX = (w - railW) / 2f;
+                var railY = pad;
+                var railH = h - pad * 2;
+
+                using var path = RoundedRect(railX, railY, railW, railH, railW * 0.35f);
+                g.FillPath(railFill, path);
+                g.DrawPath(railStroke, path);
             }
         };
     }
@@ -394,15 +406,22 @@ internal static class SpriteDraw
         {
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            // 视觉余量：在真实行程两端增加 15 像素的基座延伸，防止滑块挂在边缘
+            // 使用 (0,0) 到 (w,h) 的坐标系，与 PivotY=0 的 SpriteNode 配合
+            // 视觉余量：在真实行程两端增加 15 像素的基座延伸
             float padding = 15;
+            float padLeft = isVertical ? 0 : padding;
+            float padTop = isVertical ? padding : 0;
             float drawW = isVertical ? w : w + padding * 2;
             float drawH = isVertical ? h + padding * 2 : h;
+            float offsetX = isVertical ? 0 : -padding;
+            float offsetY = isVertical ? -padding : 0;
 
-            // 1. Rail Base (Extended for safety)
-            using var railFill = new LinearGradientBrush(new RectangleF(-drawW/2, -drawH/2, drawW, drawH), 
-                Color.FromArgb(90, 100, 110), Color.FromArgb(50, 60, 70), isVertical ? 0f : 90f);
-            using var path = RoundedRect(-drawW/2, -drawH/2, drawW, drawH, Math.Min(w, h) * 0.2f);
+            // 1. Rail Base
+            using var railFill = new LinearGradientBrush(
+                new RectangleF(offsetX, offsetY, drawW, drawH), 
+                Color.FromArgb(90, 100, 110), Color.FromArgb(50, 60, 70), 
+                isVertical ? 0f : 90f);
+            using var path = RoundedRect(offsetX, offsetY, drawW, drawH, Math.Min(w, h) * 0.2f);
             g.FillPath(railFill, path);
             g.DrawPath(Pens.Black, path);
 
@@ -410,13 +429,13 @@ internal static class SpriteDraw
             using var guidePen = new Pen(Color.FromArgb(180, 200, 210, 220), 1.5f);
             if (!isVertical)
             {
-                g.DrawLine(guidePen, -drawW/2, -h * 0.25f, drawW/2, -h * 0.25f);
-                g.DrawLine(guidePen, -drawW/2, h * 0.25f, drawW/2, h * 0.25f);
+                g.DrawLine(guidePen, offsetX, h * 0.25f, offsetX + drawW, h * 0.25f);
+                g.DrawLine(guidePen, offsetX, h * 0.75f, offsetX + drawW, h * 0.75f);
             }
             else
             {
-                g.DrawLine(guidePen, -w * 0.25f, -drawH/2, -w * 0.25f, drawH/2);
-                g.DrawLine(guidePen, w * 0.25f, -drawH/2, w * 0.25f, drawH/2);
+                g.DrawLine(guidePen, w * 0.25f, offsetY, w * 0.25f, offsetY + drawH);
+                g.DrawLine(guidePen, w * 0.75f, offsetY, w * 0.75f, offsetY + drawH);
             }
 
             // 3. Markings (Logical positions)
@@ -426,18 +445,18 @@ internal static class SpriteDraw
             void DrawLabel(string text, float val)
             {
                 float ratio = (float)((val - min) / (max - min));
-                float gx = isVertical ? 0 : -w/2 + w * ratio;
-                float gy = isVertical ? -h/2 + h * ratio : 0;
+                float gx = isVertical ? w / 2 : w * ratio;
+                float gy = isVertical ? h * ratio : h / 2;
                 
                 var size = g.MeasureString(text, font);
-                float tx = isVertical ? -w/2 - size.Width - 4 : gx - size.Width / 2;
-                float ty = isVertical ? gy - size.Height / 2 : h/2 + 4;
+                float tx = isVertical ? -size.Width - 4 : gx - size.Width / 2;
+                float ty = isVertical ? gy - size.Height / 2 : h + 4;
 
                 g.DrawString(text, font, textBrush, tx, ty);
                 
                 using var tickPen = new Pen(Color.Orange, 2);
-                if (isVertical) g.DrawLine(tickPen, -w/2, gy, -w/2 + 6, gy);
-                else g.DrawLine(tickPen, gx, h/2, gx, h/2 - 6);
+                if (isVertical) g.DrawLine(tickPen, 0, gy, 6, gy);
+                else g.DrawLine(tickPen, gx, h, gx, h - 6);
             }
 
             DrawLabel("-", (float)min);
@@ -448,13 +467,13 @@ internal static class SpriteDraw
             using var capBrush = new SolidBrush(Color.FromArgb(240, 30, 35, 40));
             if (!isVertical)
             {
-                g.FillRectangle(capBrush, -drawW/2, -h/2 - 2, 8, h + 4);
-                g.FillRectangle(capBrush, drawW/2 - 8, -h/2 - 2, 8, h + 4);
+                g.FillRectangle(capBrush, offsetX, -2, 8, h + 4);
+                g.FillRectangle(capBrush, offsetX + drawW - 8, -2, 8, h + 4);
             }
             else
             {
-                g.FillRectangle(capBrush, -w/2 - 2, -drawH/2, w + 4, 8);
-                g.FillRectangle(capBrush, -w/2 - 2, drawH/2 - 8, w + 4, 8);
+                g.FillRectangle(capBrush, -2, offsetY, w + 4, 8);
+                g.FillRectangle(capBrush, -2, offsetY + drawH - 8, w + 4, 8);
             }
         };
     }
