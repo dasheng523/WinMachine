@@ -26,9 +26,31 @@ public static class ServerApp
 
         var scenarios = new ScenarioRegistry();
 
-        app.MapGet("/api/machine/schema", (string name) =>
+        app.MapGet("/api/machine/scenarios", () =>
         {
-            var schema = scenarios.BuildSchema(name);
+            var list = scenarios.Names.OrderBy(x => x).ToArray();
+            return Results.Json(list);
+        });
+
+        app.MapGet("/api/machine/schema", (string? name) =>
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return Results.BadRequest(new ErrorResponse(
+                    Code: "ERR_SCENARIO_REQUIRED",
+                    Message: "Query parameter 'name' is required.",
+                    KnownScenarios: scenarios.Names.OrderBy(x => x).ToArray()));
+            }
+
+            if (!scenarios.TryGet(name, out var scenario) || scenario is null)
+            {
+                return Results.NotFound(new ErrorResponse(
+                    Code: "ERR_SCENARIO_NOT_FOUND",
+                    Message: $"Unknown scenario '{name}'.",
+                    KnownScenarios: scenarios.Names.OrderBy(x => x).ToArray()));
+            }
+
+            var schema = scenario.BuildSchema();
             return Results.Json(schema);
         });
 
@@ -49,4 +71,6 @@ public static class ServerApp
 
         return app;
     }
+
+    private sealed record ErrorResponse(string Code, string Message, string[] KnownScenarios);
 }

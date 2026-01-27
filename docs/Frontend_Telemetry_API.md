@@ -19,9 +19,15 @@
 ```json
 {
   "cmd": "Start",
-  "scenario": "Complex_Rotary_Assembly" // 必须与后端 SimulationFlowScenarios.cs 定义一致
+  "scenario": "Complex_Rotary_Assembly" // 必须与后端 ScenarioRegistry 中注册的名称一致
 }
 ```
+
+**错误语义 (Unknown Scenario)**
+
+- 如果 `scenario` 不存在，后端不会断开连接；会返回一个数据包，其中 `e` 里按顺序包含：
+  1) `Error(code="ERR_SCENARIO_NOT_FOUND", source=<scenario>)`
+  2) `FlowStopped(reason="Error")`
 
 ### 2.2 停止/中断 (Stop)
 - **说明**: 幂等操作。无论当前是否运行，均可发送。
@@ -188,12 +194,37 @@ type EventType = "FlowStarted" | "FlowStopped" | "Error" | "Attach" | "Detach" |
     - `DeviceID` 全局唯一。
     - `m` 字段中的 Key 必须与 JSON `deviceRegistry[].id` 完全匹配。
 
+### 5.1 可用场景列表
+
+前端可以通过该接口列出所有可用场景（用于下拉选择/自动补全）：
+
+- HTTP GET `http://{server}/api/machine/scenarios`
+- 响应：JSON 字符串数组
+
+```json
+["Complex_Rotary_Assembly"]
+```
+
+**错误语义**
+
+- `name` 缺失/空白：HTTP 400
+- `name` 不存在：HTTP 404
+- 错误响应示例：
+
+```json
+{
+  "code": "ERR_SCENARIO_NOT_FOUND",
+  "message": "Unknown scenario 'Foo'.",
+  "knownScenarios": ["Complex_Rotary_Assembly"]
+}
+```
+
 ## 6. 前端最佳实践 (Best Practices)
 
 1.  **插值与缓冲**: 建议维护 `RenderingBuffer`。收到 `t=100` 的包时，不要立即渲染，而是与 `t=67` 的包进行插值。保持 ~33ms 的渲染延迟以换取丝滑流畅度。
 2.  **全量/增量处理**: 
     - 不要假设每帧都有 `m` 数据。
-    - 也不要假设 start 时所有设备都在原点。必须以 `FlowStarted` 后收到的第一帧 `m` 或 `io` 为准。
+  - 也不要假设 start 时所有设备都在原点。必须以包含 `FlowStarted` 的首包，以及随后收到的 `m`/`io`（可能包含 Snapshot 全量 `m`）为准。
 3.  **容错**: 
     - 如果 WebSocket 断开，自动重连。
     - 重连后，后端可能会发送当前最新的 Snapshot（全量 `m`），前端应能平滑过渡。

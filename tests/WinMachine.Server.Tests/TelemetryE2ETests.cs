@@ -21,6 +21,28 @@ public sealed class TelemetryE2ETests
     private const string ScenarioName = "Complex_Rotary_Assembly";
 
     [Fact]
+    public async Task Scenarios_endpoint_returns_registered_scenarios()
+    {
+        await using var host = await TestServerHost.StartAsync();
+
+        using var http = new HttpClient { BaseAddress = host.BaseUri };
+        using var resp = await http.GetAsync("/api/machine/scenarios");
+
+        resp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var json = await resp.Content.ReadAsStringAsync();
+
+        using var doc = JsonDocument.Parse(json);
+        doc.RootElement.ValueKind.Should().Be(JsonValueKind.Array);
+
+        var scenarios = doc.RootElement.EnumerateArray()
+            .Select(x => x.GetString())
+            .Where(x => !string.IsNullOrWhiteSpace(x))
+            .ToArray();
+
+        scenarios.Should().Contain(ScenarioName);
+    }
+
+    [Fact]
     public async Task Schema_endpoint_returns_rotary_lift_schema()
     {
         await using var host = await TestServerHost.StartAsync();

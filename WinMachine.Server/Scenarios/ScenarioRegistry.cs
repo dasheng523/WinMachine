@@ -20,6 +20,20 @@ internal sealed class ScenarioRegistry
         _scenarios = list.ToDictionary(s => s.Name, s => s, StringComparer.Ordinal);
     }
 
+    public IReadOnlyCollection<string> Names => _scenarios.Keys;
+
+    public bool TryGet(string name, out IScenarioFactory? scenario)
+    {
+        scenario = null;
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return false;
+        }
+
+        return _scenarios.TryGetValue(name, out scenario);
+    }
+
     public IScenarioFactory Get(string name)
     {
         if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Scenario name is required.", nameof(name));
