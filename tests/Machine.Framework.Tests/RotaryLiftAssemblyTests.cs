@@ -11,6 +11,11 @@ using Machine.Framework.Core.Configuration.Models;
 using Machine.Framework.Core.Primitives;
 using Machine.Framework.Interpreters.Configuration;
 
+using Machine.Framework.Core.Flow;
+using Machine.Framework.Core.Flow.Dsl;
+using Machine.Framework.Core.Flow.Steps;
+using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
+
 namespace Machine.Framework.Tests.WebParams
 {
     using Machine.Framework.Visualization;
@@ -28,18 +33,12 @@ namespace Machine.Framework.Tests.WebParams
         // Left Assembly
         public static readonly CylinderID Cyl_R_Lift = new CylinderID("Cyl_R_Lift");
         public static readonly AxisID Axis_R_Table = new AxisID("Axis_R_Table");
-        public static readonly CylinderID Cyl_Grip_L1 = new CylinderID("Cyl_Grip_L1");
-        public static readonly CylinderID Cyl_Grip_L2 = new CylinderID("Cyl_Grip_L2");
-        public static readonly CylinderID Cyl_Grip_R1 = new CylinderID("Cyl_Grip_R1");
-        public static readonly CylinderID Cyl_Grip_R2 = new CylinderID("Cyl_Grip_R2");
-
+        public static readonly CylinderID Cyl_Grips_Left = new CylinderID("Cyl_Grips_Left"); // 4 Grippers shared
+        
         // Right Assembly
         public static readonly CylinderID Cyl_Lift_Right = new CylinderID("Cyl_Lift_Right");
         public static readonly AxisID Axis_Table_Right = new AxisID("Axis_Table_Right");
-        public static readonly CylinderID Cyl_Grip_Right_L1 = new CylinderID("Cyl_Grip_Right_L1");
-        public static readonly CylinderID Cyl_Grip_Right_L2 = new CylinderID("Cyl_Grip_Right_L2");
-        public static readonly CylinderID Cyl_Grip_Right_R1 = new CylinderID("Cyl_Grip_Right_R1");
-        public static readonly CylinderID Cyl_Grip_Right_R2 = new CylinderID("Cyl_Grip_Right_R2");
+        public static readonly CylinderID Cyl_Grips_Right = new CylinderID("Cyl_Grips_Right"); // 4 Grippers shared
 
         // Middle Slide Module
         public static readonly CylinderID Cyl_Middle_Slide = new CylinderID("Cyl_Middle_Slide");
@@ -66,13 +65,12 @@ namespace Machine.Framework.Tests.WebParams
                     // Left Components
                     .AddCylinder(Cyl_R_Lift, 0, 0)
                     .AddAxis(Axis_R_Table, 0, a => a.WithRange(0, 360))
-                    .AddCylinder(Cyl_Grip_L1, 1, 1).AddCylinder(Cyl_Grip_L2, 2, 2)
-                    .AddCylinder(Cyl_Grip_R1, 3, 3).AddCylinder(Cyl_Grip_R2, 4, 4)
+                    .AddCylinder(Cyl_Grips_Left, 1, 1) // Shared ID for all 4 Left Grippers
+                    
                     // Right Components
                     .AddCylinder(Cyl_Lift_Right, 10, 10)
                     .AddAxis(Axis_Table_Right, 1, a => a.WithRange(0, 360))
-                    .AddCylinder(Cyl_Grip_Right_L1, 11, 11).AddCylinder(Cyl_Grip_Right_L2, 12, 12)
-                    .AddCylinder(Cyl_Grip_Right_R1, 13, 13).AddCylinder(Cyl_Grip_Right_R2, 14, 14)
+                    .AddCylinder(Cyl_Grips_Right, 11, 11) // Shared ID for all 4 Right Grippers
                     // Middle Module
                     .AddCylinder(Cyl_Middle_Slide, 20, 20)
                     .AddCylinder(Cyl_Mid_Vac1, 21, 21).AddCylinder(Cyl_Mid_Vac2, 22, 22)
@@ -104,12 +102,12 @@ namespace Machine.Framework.Tests.WebParams
                         .Mount("Lifter_Column", l => l.LinkTo(Cyl_R_Lift).WithOffset(0, 0, 0)
                             .Mount("Rotary_Table", r => r.LinkTo(Axis_R_Table).WithOffset(0, 0, 100)
                                 .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
-                                    .Mount("Grip_L1", grip => grip.LinkTo(Cyl_Grip_L1).WithOffset(0, -40, 0))
-                                    .Mount("Grip_L2", grip => grip.LinkTo(Cyl_Grip_L2).WithOffset(0, 40, 0))
+                                    .Mount("Grip_L1", grip => grip.LinkTo(Cyl_Grips_Left).WithOffset(0, -40, 0))
+                                    .Mount("Grip_L2", grip => grip.LinkTo(Cyl_Grips_Left).WithOffset(0, 40, 0))
                                 )
                                 .Mount("Mount_Right", g => g.WithOffset(x: 120, y: 0, z: 0)
-                                    .Mount("Grip_R1", grip => grip.LinkTo(Cyl_Grip_R1).WithOffset(0, -40, 0))
-                                    .Mount("Grip_R2", grip => grip.LinkTo(Cyl_Grip_R2).WithOffset(0, 40, 0))
+                                    .Mount("Grip_R1", grip => grip.LinkTo(Cyl_Grips_Left).WithOffset(0, -40, 0))
+                                    .Mount("Grip_R2", grip => grip.LinkTo(Cyl_Grips_Left).WithOffset(0, 40, 0))
                                 )
                             )
                         )
@@ -119,12 +117,12 @@ namespace Machine.Framework.Tests.WebParams
                         .Mount("Lifter_Column", l => l.LinkTo(Cyl_Lift_Right).WithOffset(0, 0, 0)
                             .Mount("Rotary_Table", r => r.LinkTo(Axis_Table_Right).WithOffset(0, 0, 100)
                                 .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
-                                    .Mount("Grip_L1", grip => grip.LinkTo(Cyl_Grip_Right_L1).WithOffset(0, -40, 0))
-                                    .Mount("Grip_L2", grip => grip.LinkTo(Cyl_Grip_Right_L2).WithOffset(0, 40, 0))
+                                    .Mount("Grip_L1", grip => grip.LinkTo(Cyl_Grips_Right).WithOffset(0, -40, 0))
+                                    .Mount("Grip_L2", grip => grip.LinkTo(Cyl_Grips_Right).WithOffset(0, 40, 0))
                                 )
                                 .Mount("Mount_Right", g => g.WithOffset(x: 120, y: 0, z: 0)
-                                    .Mount("Grip_R1", grip => grip.LinkTo(Cyl_Grip_Right_R1).WithOffset(0, -40, 0))
-                                    .Mount("Grip_R2", grip => grip.LinkTo(Cyl_Grip_Right_R2).WithOffset(0, 40, 0))
+                                    .Mount("Grip_R1", grip => grip.LinkTo(Cyl_Grips_Right).WithOffset(0, -40, 0))
+                                    .Mount("Grip_R2", grip => grip.LinkTo(Cyl_Grips_Right).WithOffset(0, 40, 0))
                                 )
                             )
                         )
@@ -136,18 +134,12 @@ namespace Machine.Framework.Tests.WebParams
                 // --- Left Styles ---
                 v.For(Cyl_R_Lift).AsSlideBlock(size: 80).Vertical(); 
                 v.For(Axis_R_Table).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
-                v.For(Cyl_Grip_L1).AsGripper(open: 40, close: 10).Horizontal().Reversed();
-                v.For(Cyl_Grip_L2).AsGripper(open: 40, close: 10).Horizontal().Reversed();
-                v.For(Cyl_Grip_R1).AsGripper(open: 40, close: 10).Horizontal();
-                v.For(Cyl_Grip_R2).AsGripper(open: 40, close: 10).Horizontal();
+                v.For(Cyl_Grips_Left).AsGripper(open: 40, close: 10).Horizontal().Reversed();
 
                 // --- Right Styles ---
                 v.For(Cyl_Lift_Right).AsSlideBlock(size: 80).Vertical(); 
                 v.For(Axis_Table_Right).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
-                v.For(Cyl_Grip_Right_L1).AsGripper(open: 40, close: 10).Horizontal().Reversed();
-                v.For(Cyl_Grip_Right_L2).AsGripper(open: 40, close: 10).Horizontal().Reversed();
-                v.For(Cyl_Grip_Right_R1).AsGripper(open: 40, close: 10).Horizontal();
-                v.For(Cyl_Grip_Right_R2).AsGripper(open: 40, close: 10).Horizontal();
+                v.For(Cyl_Grips_Right).AsGripper(open: 40, close: 10).Horizontal();
 
                 // --- Middle Styles ---
                 v.For(Cyl_Middle_Slide).AsSlideBlock(size: 120).Horizontal(); 
@@ -155,7 +147,46 @@ namespace Machine.Framework.Tests.WebParams
                 v.For(Cyl_Mid_Vac2).AsSuctionPen(diameter: 8).Vertical();
                 v.For(Cyl_Mid_Vac3).AsSuctionPen(diameter: 8).Vertical();
                 v.For(Cyl_Mid_Vac4).AsSuctionPen(diameter: 8).Vertical();
+                v.For(Cyl_Middle_Slide).AsSlideBlock(size: 120).Horizontal(); 
+                v.For(Cyl_Mid_Vac1).AsSuctionPen(diameter: 8).Vertical();
+                v.For(Cyl_Mid_Vac2).AsSuctionPen(diameter: 8).Vertical();
+                v.For(Cyl_Mid_Vac3).AsSuctionPen(diameter: 8).Vertical();
+                v.For(Cyl_Mid_Vac4).AsSuctionPen(diameter: 8).Vertical();
             });
+
+            // =========================================================================
+            //  Flow DSL Logic 
+            // =========================================================================
+            // 1. Right Module: Close Grippers -> Lift Up -> Rotate 180 -> Lift Down -> Open Grippers
+            // 2. Middle Slide: Move Left
+            // 3. Left Module: Close Grippers -> Lift Up -> Rotate 180 -> Lift Down
+            // 4. Middle Slide: Return
+            
+            var flow = 
+                // --- Phase 1: Right Module Action ---
+                from _1 in Name("右侧夹爪闭合(夹取)").Next(Cylinder(Cyl_Grips_Right).FireAndWait(false)) // False=Close
+                from _2 in Name("右侧升起").Next(Cylinder(Cyl_Lift_Right).FireAndWait(false)) // False=Retracted=Up
+                from _3 in Name("右侧旋转180").Next(Motion(Axis_Table_Right).MoveToAndWait(180))
+                from _4 in Name("右侧降下").Next(Cylinder(Cyl_Lift_Right).FireAndWait(true)) // True=Extended=Down
+                from _5 in Name("右侧夹爪松开(放料)").Next(Cylinder(Cyl_Grips_Right).FireAndWait(true)) // True=Open
+
+                // --- Phase 2: Transfer Slide ---
+                // Pre-Check: Ensure Right Grippers are OPEN before sliding to avoid collision
+                from _check1 in Name("检查:右侧夹爪是否松开").Next(Check(() => Cylinder(Cyl_Grips_Right).Is(false), "右侧夹爪必须松开！"))
+                from _6 in Name("中间滑台向左").Next(Cylinder(Cyl_Middle_Slide).FireAndWait(true)) 
+                // Post-Check: Ensure Slide is at position
+                from _check2 in Name("检查:滑台是否到位").Next(Check(() => Cylinder(Cyl_Middle_Slide).Is(true), "滑台未到位！")) 
+
+                // --- Phase 3: Left Module Action ---
+                from _7 in Name("左侧夹爪闭合").Next(Cylinder(Cyl_Grips_Left).FireAndWait(false))
+                from _8 in Name("左侧升起").Next(Cylinder(Cyl_R_Lift).FireAndWait(false))
+                from _9 in Name("左侧旋转180").Next(Motion(Axis_R_Table).MoveToAndWait(180))
+                from _10 in Name("左侧降下").Next(Cylinder(Cyl_R_Lift).FireAndWait(true))
+
+                // --- Phase 4: Return ---
+                from _11 in Name("中间滑台回原位").Next(Cylinder(Cyl_Middle_Slide).FireAndWait(false))
+                
+                select new Unit();
 
             // Capture & Export
             var visRegistry = new CaptureVisualRegistry();
@@ -176,6 +207,65 @@ namespace Machine.Framework.Tests.WebParams
 
             _output.WriteLine("JSON Output (Rotary Lift) >>>");
             _output.WriteLine(json);
+        }
+
+        // ===================================
+        // Telemetry Data Structure Definition
+        // ===================================
+
+        /// <summary>
+        /// 遥测数据包：后端 -> 前端 (30Hz Push)
+        /// </summary>
+        public class TelemetryPacket
+        {
+            /// <summary>
+            /// 逻辑时钟/时间戳 (Tick) - 用于消抖和排序
+            /// </summary>
+            [JsonPropertyName("t")]
+            public long Tick { get; set; }
+
+            /// <summary>
+            /// 当前正在执行的步骤名称 (Context) - 用于UI高亮显示流程进度
+            /// </summary>
+            [JsonPropertyName("step")]
+            public string StepName { get; set; }
+
+            /// <summary>
+            /// 视觉/动画位置 (Animation Targets)
+            /// Key: DeviceID
+            /// Value: 归一化浮点数 (0.0 - 1.0) 或 物理量 (mm/degree)
+            /// 仅包含“正在运动”或“状态变化”的设备，以节省带宽
+            /// </summary>
+            [JsonPropertyName("m")]
+            public Dictionary<string, float> Motions { get; set; } = new();
+
+            /// <summary>
+            /// 真实IO/传感器状态 (Business Logic Truth)
+            /// Key: SignalName (e.g., "Cyl_In", "Cyl_Out", "Pressure_1")
+            /// Value: Boolean (Digital) or Float (Analog)
+            /// 前端用于点亮虚拟面板上的指示灯
+            /// </summary>
+            [JsonPropertyName("io")]
+            public Dictionary<string, object> IOs { get; set; } = new();
+
+            /// <summary>
+            /// 离散业务事件 (Discrete Events)
+            /// 如：报警、提示、物流变更(Reparent)
+            /// </summary>
+            [JsonPropertyName("e")]
+            public List<TelemetryEvent> Events { get; set; } = new();
+        }
+
+        public class TelemetryEvent
+        {
+            [JsonPropertyName("type")]
+            public string Type { get; set; } // "Log", "Error", "Attach", "Detach", "Spawn"
+
+            [JsonPropertyName("msg")]
+            public string Message { get; set; } // Human readable message
+
+            [JsonPropertyName("payload")]
+            public object Payload { get; set; } // Extra data (e.g., childId, parentId)
         }
     }
 }
