@@ -65,8 +65,8 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
                 .AddCylinder(cylMidVac4, 24, 24))
                 .Mount("MachineBase", m => m
                 .Mount("Middle_Module", mid => mid.WithOffset(0, 0, 0)
-                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0).WithStroke(-80, 0, 0)
-                        .Mount("Vac_Plate", p => p.WithOffset(0, 0, 50)
+                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0).WithStroke(-160, 0, 0)
+                        .Mount("Vac_Plate", p => p.WithOffset(0, 0, 60)
                             .Mount("Vac_Group_L", g => g.WithOffset(-50, 0, 0)
                                 .Mount("Vac1", v => v.LinkTo(cylMidVac1).WithOffset(0, -40, 0))
                                 .Mount("Vac2", v => v.LinkTo(cylMidVac2).WithOffset(0, 40, 0)))
@@ -74,8 +74,8 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
                                 .Mount("Vac3", v => v.LinkTo(cylMidVac3).WithOffset(0, -40, 0))
                                 .Mount("Vac4", v => v.LinkTo(cylMidVac4).WithOffset(0, 40, 0))))))
                 .Mount("Assembly_Left", assembly => assembly.WithOffset(x: -250, y: 0, z: 0)
-                    .Mount("Lifter_Column", l => l.LinkTo(cylR_Lift).WithOffset(0, 0, 0)
-                        .Mount("Rotary_Table", r => r.LinkTo(axisR_Table).WithOffset(0, 0, 100)
+                    .Mount("Lifter_Column", l => l.LinkTo(cylR_Lift).WithOffset(0, 0, 0).WithStroke(0, 0, -50)
+                        .Mount("Rotary_Table", r => r.LinkTo(axisR_Table).WithOffset(0, 0, 120)
                             .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
                                 .Mount("Grip_L1", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, -40, 0))
                                 .Mount("Grip_L2", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, 40, 0)))
@@ -83,8 +83,8 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
                                 .Mount("Grip_R1", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, -40, 0))
                                 .Mount("Grip_R2", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, 40, 0))))))
                 .Mount("Assembly_Right", assembly => assembly.WithOffset(x: 250, y: 0, z: 0)
-                    .Mount("Lifter_Column", l => l.LinkTo(cylLiftRight).WithOffset(0, 0, 0)
-                        .Mount("Rotary_Table", r => r.LinkTo(axisTableRight).WithOffset(0, 0, 100)
+                    .Mount("Lifter_Column", l => l.LinkTo(cylLiftRight).WithOffset(0, 0, 0).WithStroke(0, 0, -50)
+                        .Mount("Rotary_Table", r => r.LinkTo(axisTableRight).WithOffset(0, 0, 120)
                             .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
                                 .Mount("Grip_L1", grip => grip.LinkTo(cylGripsRight).WithOffset(0, -40, 0))
                                 .Mount("Grip_L2", grip => grip.LinkTo(cylGripsRight).WithOffset(0, 40, 0)))
@@ -102,7 +102,7 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
             v.For(axisTableRight).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
             v.For(cylGripsRight).AsGripper(open: 40, close: 10).Horizontal();
 
-            v.For(cylMiddleSlide).AsSlideBlock(size: 120).Horizontal();
+            v.For(cylMiddleSlide).AsSlideBlock(size: 50).Horizontal();
             v.For(cylMidVac1).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac2).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac3).AsSuctionPen(diameter: 8).Vertical();
