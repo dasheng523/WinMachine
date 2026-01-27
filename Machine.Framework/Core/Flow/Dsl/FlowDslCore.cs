@@ -56,6 +56,12 @@ namespace Machine.Framework.Core.Flow.Dsl
         public required StepDesc[] Steps { get; set; }
     }
 
+    public class LoopStepDesc : StepDesc
+    {
+        public required StepDesc InnerStep { get; set; }
+        public int Count { get; set; } = -1; // -1 for infinite
+    }
+
     // --- Fluent API Wrapper ---
 
     public struct Unit 
@@ -186,6 +192,16 @@ namespace Machine.Framework.Core.Flow.Dsl
                 ResultSelector = (s, c) => (T)s!
             };
             return new Step<T>(seq);
+        }
+
+        public static Step<T> Loop<T>(this Step<T> step, int count = -1)
+        {
+            return new Step<T>(new LoopStepDesc
+            {
+                Name = "Loop",
+                InnerStep = step.Definition,
+                Count = count
+            });
         }
     }
 }

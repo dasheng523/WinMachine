@@ -76,6 +76,7 @@ namespace Machine.Framework.Interpreters.Flow
                         ParallelStepDesc parallel => ExecuteParallelAsync(parallel, context),
                         MapStepDesc map => ExecuteMapAsync(map, context),
                         ScopeStepDesc scope => ExecuteStepAsync(scope.InnerStep, context),
+                        LoopStepDesc loop => ExecuteLoopAsync(loop, context),
                         _ => throw new NotSupportedException($"Unsupported step type: {step.GetType().Name}")
                     });
 
@@ -130,7 +131,16 @@ namespace Machine.Framework.Interpreters.Flow
             var axis = context.GetDevice<SimulatorAxis>(action.TargetDevice);
             if (axis == null) throw new InvalidOperationException($"SimulatorAxis '{action.TargetDevice}' not found.");
 
-            double targetPos = Convert.ToDouble(action.Args[0]);
+            double targetPos;
+            if (action.Args[0] is Func<double, double> selector)
+            {
+                targetPos = selector(axis.CurrentState.Position);
+            }
+            else
+            {
+                targetPos = Convert.ToDouble(action.Args[0]);
+            }
+
             axis.StartMove(targetPos, axis.MaxSpeed);
             
             // 为了确轴已经切换到 IsMoving = true 状态，稍微等一帧
@@ -144,7 +154,16 @@ namespace Machine.Framework.Interpreters.Flow
             var axis = context.GetDevice<SimulatorAxis>(action.TargetDevice);
             if (axis == null) throw new InvalidOperationException($"SimulatorAxis '{action.TargetDevice}' not found.");
 
-            double targetPos = Convert.ToDouble(action.Args[0]);
+            double targetPos;
+            if (action.Args[0] is Func<double, double> selector)
+            {
+                targetPos = selector(axis.CurrentState.Position);
+            }
+            else
+            {
+                targetPos = Convert.ToDouble(action.Args[0]);
+            }
+
             axis.StartMove(targetPos, axis.MaxSpeed);
 
             try
@@ -338,6 +357,23 @@ namespace Machine.Framework.Interpreters.Flow
         {
             var tasks = parallel.Steps.Select(s => ExecuteStepAsync(s, context));
             return await Task.WhenAll(tasks);
+        }
+
+        private async Task<object?> ExecuteLoopAsync(LoopStepDesc loop, FlowContext context)
+        {
+            object? result = null;
+            int count = 0;
+            
+            while (loop.Count == -1 || count < loop.Count)
+            {
+                result = await ExecuteStepAsync(loop.InnerStep, context);
+                count++;
+                
+                // 给系统一点喘息时间，防止完全阻塞
+                await Task.Yield();
+            }
+            
+            return result;
         }
 
         private void EnsureDevicesInitialized(FlowContext context)

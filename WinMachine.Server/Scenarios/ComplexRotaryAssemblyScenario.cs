@@ -130,24 +130,35 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
 
         var cylMiddleSlide = new CylinderID("Cyl_Middle_Slide");
 
-        var flow =
-            from _1 in Name("右侧夹爪闭合(夹取)").Next(Cylinder(cylGripsRight).FireAndWait(false))
-            from _2 in Name("右侧升起").Next(Cylinder(cylLiftRight).FireAndWait(false))
-            from _3 in Name("右侧旋转180").Next(Motion(axisTableRight).MoveToAndWait(180))
-            from _4 in Name("右侧降下").Next(Cylinder(cylLiftRight).FireAndWait(true))
-            from _5 in Name("右侧夹爪松开(放料)").Next(Cylinder(cylGripsRight).FireAndWait(true))
+            var cycle = 
+                from _1 in Name("右侧夹爪闭合").Next(Cylinder(cylGripsRight).FireAndWait(false)) // False=Close
+                from _2 in Name("右侧升起").Next(Cylinder(cylLiftRight).FireAndWait(false)) // False=Up (assuming)
+                from _3 in Name("右侧旋转到另一头").Next(Motion(axisTableRight).MoveToAndWait(pos => Math.Abs(pos - 0) < 1.0 ? 180 : 0))
+                from _4 in Name("右侧降下").Next(Cylinder(cylLiftRight).FireAndWait(true)) // True=Down
+                
+                from _5 in Name("右侧夹爪松开(放料)").Next(Cylinder(cylGripsRight).FireAndWait(true)) // True=Open
 
-            from _6 in Name("中间滑台向左").Next(Cylinder(cylMiddleSlide).FireAndWait(true))
+                // --- Phase 2: Transfer Slide ---
+                // Pre-Check: Ensure Right Grippers are OPEN before sliding to avoid collision
+                // from _check1 in Name("检查:右侧夹爪是否松开").Next(Check(() => Cylinder(cylGripsRight).Is(true), "右侧夹爪必须松开！"))
+                from _6 in Name("中间滑台向左").Next(Cylinder(cylMiddleSlide).FireAndWait(true)) 
+                // Post-Check: Ensure Slide is at position
+                // from _check2 in Name("检查:滑台是否到位").Next(Check(() => Cylinder(cylMiddleSlide).Is(true), "滑台必须到达左侧！"))
 
-            from _7 in Name("左侧夹爪闭合").Next(Cylinder(cylGripsLeft).FireAndWait(false))
-            from _8 in Name("左侧升起").Next(Cylinder(cylR_Lift).FireAndWait(false))
-            from _9 in Name("左侧旋转180").Next(Motion(axisR_Table).MoveToAndWait(180))
-            from _10 in Name("左侧降下").Next(Cylinder(cylR_Lift).FireAndWait(true))
-            from _11 in Name("左侧夹爪松开(放料)").Next(Cylinder(cylGripsLeft).FireAndWait(true))
+                // --- Phase 3: Left Module Pick & Place ---
+                from _7 in Name("左侧夹爪闭合").Next(Cylinder(cylGripsLeft).FireAndWait(false))
+                from _8 in Name("左侧升起").Next(Cylinder(cylR_Lift).FireAndWait(false))
+                from _9 in Name("左侧旋转到另一头").Next(Motion(axisR_Table).MoveToAndWait(pos => Math.Abs(pos - 0) < 1.0 ? 180 : 0))
+                from _10 in Name("左侧降下").Next(Cylinder(cylR_Lift).FireAndWait(true))
+                from _11 in Name("左侧夹爪松开(放料)").Next(Cylinder(cylGripsLeft).FireAndWait(true))
 
-            from _12 in Name("中间滑台回原位").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
-            select Unit.Default;
+                from _12 in Name("中间滑台回原位").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
 
-        return flow.Definition;
+                // --- Reset Phase: Prepare for Next Cycle ---
+                // 智能AB位逻辑不需要强制复位
+                
+                select Unit.Default;
+
+            return cycle.Loop().Definition;
     }
 }

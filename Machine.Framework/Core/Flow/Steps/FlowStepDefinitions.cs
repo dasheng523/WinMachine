@@ -52,6 +52,29 @@ namespace Machine.Framework.Core.Flow.Steps
             });
         }
 
+        // 动态计算目标位置
+        public Step<Unit> MoveTo(Func<double, double> targetSelector)
+        {
+            return new Step<Unit>(new ActionStepDesc 
+            { 
+                Name = $"MoveTo_Dynamic",
+                TargetDevice = _axis.Name, 
+                Operation = "MoveTo", 
+                Args = new object[] { targetSelector } 
+            });
+        }
+
+        public Step<Unit> MoveToAndWait(Func<double, double> targetSelector)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"MoveToAndWait_Dynamic",
+                TargetDevice = _axis.Name,
+                Operation = "MoveToAndWait",
+                Args = new object[] { targetSelector }
+            });
+        }
+
         // 阻塞：启动运动并等待完成
         public Step<Unit> MoveToAndWait(double pos)
         {
