@@ -25,7 +25,8 @@ public static class TelemetryMotionSampler
             var cyl = context.GetDevice<ISimulatorCylinder>(id);
             if (cyl != null)
             {
-                snapshot[id] = cyl.CurrentState.Position;
+                // v2.1: 返回目标二值状态 (0/1)，由前端根据动作时间播放动画
+                snapshot[id] = cyl.CurrentState.IsExtended ? 1.0 : 0.0;
                 continue;
             }
         }

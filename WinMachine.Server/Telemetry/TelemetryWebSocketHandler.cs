@@ -122,7 +122,7 @@ internal sealed class TelemetryWebSocketHandler
                     var session = new TelemetrySession(
                         runtime.Context,
                         interpreter.TraceStream,
-                        interval: TimeSpan.FromMilliseconds(33));
+                        interval: TimeSpan.FromSeconds(1));
 
                     session.ForceSnapshot();
 

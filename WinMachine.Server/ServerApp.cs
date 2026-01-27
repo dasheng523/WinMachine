@@ -22,7 +22,14 @@ public static class ServerApp
             o.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
 
+        builder.Services.AddCors();
+
         var app = builder.Build();
+
+        app.UseCors(policy => policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod());
 
         var scenarios = new ScenarioRegistry();
 
@@ -64,9 +71,20 @@ public static class ServerApp
                 return;
             }
 
+            Console.WriteLine($"[WS] Incoming request from {context.Connection.RemoteIpAddress}");
+
             using var ws = await context.WebSockets.AcceptWebSocketAsync();
+            Console.WriteLine("[WS] Connection accepted.");
+
             var handler = new TelemetryWebSocketHandler(scenarios);
-            await handler.RunAsync(ws, context.RequestAborted);
+            try
+            {
+                await handler.RunAsync(ws, context.RequestAborted);
+            }
+            finally
+            {
+                Console.WriteLine("[WS] Connection closed.");
+            }
         });
 
         return app;

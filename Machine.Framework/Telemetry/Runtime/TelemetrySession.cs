@@ -32,6 +32,7 @@ public sealed class TelemetrySession : IDisposable
     private readonly IDisposable _timerSub;
 
     private volatile string _currentStep = "";
+    private string _lastSentStep = "";
     private volatile bool _forceSnapshot = true;
 
     public TelemetrySession(FlowContext context, IObservable<ActiveStepUpdate> traceStream, TimeSpan interval, double epsilon = 0.001)
@@ -93,6 +94,12 @@ public sealed class TelemetrySession : IDisposable
             evts.Add(e);
         }
 
+        // 如果没有运动变化、没有事件、且步骤名称未改变，则跳过推送（除非是强制快照）
+        if (!_forceSnapshot && motions == null && evts == null && step == _lastSentStep)
+        {
+            return;
+        }
+
         var packet = new TelemetryPacket
         {
             Tick = tick,
@@ -101,6 +108,7 @@ public sealed class TelemetrySession : IDisposable
             Events = evts
         };
 
+        _lastSentStep = step;
         _subject.OnNext(packet);
     }
 

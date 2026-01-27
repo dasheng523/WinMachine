@@ -1,38 +1,67 @@
-# WinMachine 前端实时遥测 API 文档 (v2.0)
+# WinMachine 前端实时遥测 API 文档 (v2.1)
 
-本文档定义了 WinMachine 仿真后端与前端可视化界面之间的通信协议。
+本文档面向 Web 渲染端开发人员，详细定义了从后端获取机器模型（静态）及实时运行数据（动态）的完整协议。
 
-## 1. 连接协议 (Connection)
+---
 
-- **协议**: WebSocket
-- **URL**: `ws://{server_address}/ws/telemetry`
-- **频率**: 后端主动推送，约 30Hz (每 ~33ms 一帧)
-- **时钟同步**: 后端使用统一服务器时间 (Unix Timestamp Milliseconds)。前端需根据首帧 `t` 值建立本地时间偏移。
+## 1. 通信基础 (Transport)
 
-## 2. 客户端指令 (Client -> Server)
+- **协议**: WebSocket (用于实时数据) & HTTP (用于初始化加载)
+- **WebSocket URL**: `ws://{server_address}/ws/telemetry`
+- **默认推送频率**: 后端根据变化情况推送 (Quiet Mode)，最高频率 ~30Hz。调试模式下建议设为 1Hz。
 
-前端通过 WebSocket 发送 JSON 格式指令控制流程。
+---
 
-### 2.1 启动流程 (Start)
-- **说明**: 幂等操作。如果已有流程在运行，后端会先自动 `Stop` 再启动新流程。
-- **响应**: 成功启动后，后端会在首个数据包中发送 `FlowStarted` 事件。
+## 2. 静态模型加载 (Machine Schema)
+
+在建立实时连接前，前端必须先加载静态模型以构建场景树和设备寄存器。
+
+- **接口**: HTTP GET `http://{server}/api/machine/schema?name={scenario}`
+- **响应体说明**: 
+
+### 2.1 WebMachineModel
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| **machineName** | string | 机器的人类可读名称 |
+| **schemaVersion** | string | 模型协议版本（当前为 "1.0"） |
+| **scene** | `WebSceneNode` | 根节点模型，包含完整的场景层级树 |
+| **deviceRegistry** | `WebDeviceInfo[]` | 设备库，定义了所有可动部件的物理属性和动画参数 |
+
+### 2.2 WebDeviceInfo (设备详细定义)
+用于定义某个 `deviceId` 的物理特征。
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| **id** | string | 设备唯一识别符（如 "Cyl_Grips_Right"） |
+| **type** | string | 视图类型（如 "Gripper", "SlideBlock", "RotaryTable"） |
+| **baseType** | string | **核心逻辑类型**：`Axis` (连续轴) 或 `Cylinder` (二进制气缸) |
+| **meta** | object | 设备元数据，具体字段见下表 |
+
+**meta 字段详情 (根据 BaseType 不同)**
+- **共通**: `isVertical` (bool), `isReversed` (bool), `board` (string), `channel` (int)
+- **BaseType == "Axis"**:
+    - `min`: 软限位最小值 (mm/deg)
+    - `max`: 软限位最大值 (mm/deg)
+    - 其他: `radius` (旋转半径), `length` (导轨长度)
+- **BaseType == "Cylinder"**:
+    - `moveTime`: **动作设计耗时 (ms)**。前端在收到状态切换指令时，应在此时间内匀速播放动画。
+    - `openWidth`: 张开时的物理宽度 (mm)
+    - `closeWidth`: 闭合时的物理宽度 (mm)
+
+---
+
+## 3. 客户端指令 (Client -> Server)
+
+指令通过 WebSocket 发送 JSON。
+
+### 3.1 启动 (Start)
 ```json
 {
   "cmd": "Start",
-  "scenario": "Complex_Rotary_Assembly" // 必须与后端 ScenarioRegistry 中注册的名称一致
+  "scenario": "Complex_Rotary_Assembly"
 }
 ```
 
-**错误语义 (Unknown Scenario)**
-
-- 如果 `scenario` 不存在，后端不会断开连接；会返回一个数据包，其中 `e` 里按顺序包含：
-  1) `Error(code="ERR_SCENARIO_NOT_FOUND", source=<scenario>)`
-  2) `FlowStopped(reason="Error")`
-
-### 2.2 停止/中断 (Stop)
-- **说明**: 幂等操作。无论当前是否运行，均可发送。
-- **响应**: 必然触发 `FlowStopped` 事件（Reason="UserStop"）。
-- **注意**: 文档约定 Stop 后可能会收到少量残余运动帧，前端应丢弃这些帧或做平滑处理，直到收到 FlowStopped。
+### 3.2 停止 (Stop)
 ```json
 {
   "cmd": "Stop"
@@ -41,190 +70,55 @@
 
 ---
 
-## 3. 遥测数据包 (Server -> Client)
+## 4. 实时遥测数据 (Server -> Client)
 
-后端推送的每一帧 JSON 数据包 (`TelemetryPacket`) 结构如下。
-
-### 3.1 核心结构
-
-```typescript
-interface TelemetryPacket {
-  /** 
-   * [必需] 服务器时间戳 (Unix Milliseconds)
-   * 类型: long (e.g., 1706325000123)
-   * 规则: 单调递增。重连后不归零。前端可用此计算 DeltaTime 或进行网络延迟补偿。
-   */
-  t: number; 
-
-  /**
-   * [必需] 当前业务步骤名称 (Context Step)
-   * 用途: 显示在 UI 顶部，告知用户机器当前在干什么（如 "右侧旋转180"）。
-   * 规则: 对应 DSL `Name("...")`。若当前无步骤，为空字符串。
-   */
-  step: string;
-
-  /** 
-   * [可选] 视觉/动画位置增量 (Motion Targets)
-   * Key: DeviceID (必须与静态 JSON ID 一致)
-   * Value: 物理量 (mm / degrees / width)
-   * 
-   * 规则 1: **物理单位**。禁止 0.0-1.0 归一化。前端需结合静态配置的 Max/Min 渲染。
-   * 规则 2: **增量更新 (Delta/Dirty only)**。
-   *         - 后端会进行抖动过滤 (Epsilon > 0.001)。小于此变化的不会发送。
-   *         - 前端必须缓存上一帧状态。若 Map 中缺某 ID，则保持上一帧的值。
-   * 规则 3: **一对多驱动**。如果 DeviceID 绑定了多个 SceneNode，所有节点同时应用该值。
-   */
-  m?: Record<string, number>;
-
-  /** 
-   * [可选] 真实 IO/传感器状态 (Business Logic Truth)
-   * Key: SignalName (e.g., "Cyl_In", "Cyl_Out", "Pressure_1")
-   * Value: boolean (数字量) or number (模拟量)
-   * 用途: UI 面板指示灯。直接显示，不插值。
-   */
-  io?: Record<string, boolean | number>;
-
-  /** 
-   * [可选] 离散业务事件列表
-   * 规则: 事件是有序的。前端必须按数组顺序处理。
-   */
-  e?: TelemetryEvent[];
-}
-
-interface TelemetryEvent {
-  type: EventType;
-  msg: string;      // 人类可读消息 (Log)
-  payload?: any;    // 根据 type 强类型定义
-}
-
-type EventType = "FlowStarted" | "FlowStopped" | "Error" | "Attach" | "Detach" | "Spawn";
-```
+### 4.1 遥测包结构 (TelemetryPacket)
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| **t** | long | 服务器 Unix 时间戳 (ms)。单调递增，用于算 DeltaTime。 |
+| **step** | string | 当前业务步骤名称（对应 DSL 中的 `Name("...")`）。 |
+| **m** | object | **运动指令图**。Key 为 DeviceID，Value 含义见下节。 |
+| **io** | object | 传感器原始状态字典。Key 为信号 ID，Value 为 `bool` 或 `number`。 |
+| **e** | object[] | 事件列表，如 `FlowStarted`, `FlowStopped`, `Error`。 |
 
 ---
 
-## 4. 关键事件 Payload 定义 (Schema)
+### 4.2 运动指令 (`m` 字段) 的渲染逻辑
 
-### 4.1 流程开始 (FlowStarted)
-作为 Start 指令的 ACK，包含初始化信息。
+前端必须根据设备的 `BaseType` 采用不同的渲染策略：
 
-```typescript
-{
-  type: "FlowStarted",
-  payload: {
-    scenario: "Complex_Rotary_Assembly",
-    tickBase: 1706325000000, // 启动时的服务器时间
-    schemaVersion: "1.0"
-  }
-}
-```
+#### A. 如果 BaseType == "Axis" (如马达、旋转台)
+- **Value 含义**: **当前物理绝对坐标** (mm 或 deg)。
+- **渲染建议**: 后端会高频推送位置（33ms/帧）。前端直接使用 `Lerp` 或 `RequestAnimationFrame` 平滑移动到该位置即可。
 
-### 4.2 流程结束 (FlowStopped)
-**规则**: 无论是正常完成、报错还是手动停止，流程结束时**必通过此事件通知**。前端收到后应停止动画，允许用户重新 Start。
-
-```typescript
-{
-  type: "FlowStopped",
-  payload: {
-    reason: "Complete" | "Error" | "UserStop"
-  }
-}
-```
-
-### 4.3 运行时错误 (Error)
-发生错误时发送。**注意**: Error 事件后**一定会**紧跟一个 `FlowStopped(reason="Error")` 事件。
-
-```typescript
-{
-  type: "Error",
-  msg: "滑台未到位！超时。",
-  payload: {
-    code: "ERR_TIMEOUT",
-    source: "Cyl_Middle_Slide"
-  }
-}
-```
-
-### 4.4 物流绑定 (Attach/Detach/Spawn)
-
-**Spawn (生成)**
-用于在场景中动态创建物体（如上料）。
-```typescript
-{
-  type: "Spawn",
-  payload: {
-    id: "Wafer_001",       // 新物体的唯一 ID
-    prefab: "Wafer_300mm", // 对应的预制体/模型类型
-    initialParent: "Tray_Slot_1" // 初始挂载点 ID
-  }
-}
-```
-
-**Attach (抓取)**
-修改父子关系。
-```typescript
-{
-  type: "Attach",
-  payload: {
-    child: "Wafer_001",      // 被抓物体 ID
-    parent: "Cyl_Grips_Left" // 新父节点 ID (设备ID)
-  }
-}
-```
-
-**Detach (释放)**
-```typescript
-{
-  type: "Detach",
-  payload: {
-    child: "Wafer_001",
-    newParent: "Tray_Slot_5" // 目标容器 ID
-  }
-}
-```
+#### B. 如果 BaseType == "Cylinder" (如气缸、夹爪、真空泵)
+- **Value 含义**: **目标二值状态** (`0` 代表 Home/Close, `1` 代表 Work/Open)。
+- **渲染建议**: 
+    1. 前端监听到 `m[id]` 的值从 `0` 变 `1` (或反之)。
+    2. 从 `deviceRegistry` 中读取该 ID 的 `moveTime`。
+    3. **自启动动画**: 在 `moveTime` 时间内，将该视觉元件从“闭合位置”动画过渡到“张开位置”。
+    4. **注意**: 由于气缸没有中间编码器，前端不需要后端发中间位置，只需监听“状态翻转”并本地触发动画。
 
 ---
 
-## 5. 静态模型加载 (Static Model Loading)
+## 5. 状态转换事件 (Events)
 
-前端启动时，需先加载静态描述文件以建立 Scene Graph。
-
-1.  **加载方式**: HTTP GET `http://{server}/api/machine/schema?name={scenario}`
-2.  **文件格式**: 参见后端导出的 `*.json` (如 `rotary_lift_assembly.json`)。
-3.  **ID 命名空间**: 
-    - `DeviceID` 全局唯一。
-    - `m` 字段中的 Key 必须与 JSON `deviceRegistry[].id` 完全匹配。
-
-### 5.1 可用场景列表
-
-前端可以通过该接口列出所有可用场景（用于下拉选择/自动补全）：
-
-- HTTP GET `http://{server}/api/machine/scenarios`
-- 响应：JSON 字符串数组
-
+### 5.1 FlowStarted
 ```json
-["Complex_Rotary_Assembly"]
+{ "type": "FlowStarted", "payload": { "scenario": "...", "tickBase": 1234567, "schemaVersion": "1.0" } }
 ```
 
-**错误语义**
-
-- `name` 缺失/空白：HTTP 400
-- `name` 不存在：HTTP 404
-- 错误响应示例：
-
+### 5.2 FlowStopped
 ```json
-{
-  "code": "ERR_SCENARIO_NOT_FOUND",
-  "message": "Unknown scenario 'Foo'.",
-  "knownScenarios": ["Complex_Rotary_Assembly"]
-}
+{ "type": "FlowStopped", "payload": { "reason": "Complete | Error | UserStop" } }
 ```
 
-## 6. 前端最佳实践 (Best Practices)
+### 5.3 Error
+```json
+{ "type": "Error", "msg": "错误描述...", "payload": { "code": "ERR_XXX", "source": "设备ID" } }
+```
 
-1.  **插值与缓冲**: 建议维护 `RenderingBuffer`。收到 `t=100` 的包时，不要立即渲染，而是与 `t=67` 的包进行插值。保持 ~33ms 的渲染延迟以换取丝滑流畅度。
-2.  **全量/增量处理**: 
-    - 不要假设每帧都有 `m` 数据。
-  - 也不要假设 start 时所有设备都在原点。必须以包含 `FlowStarted` 的首包，以及随后收到的 `m`/`io`（可能包含 Snapshot 全量 `m`）为准。
-3.  **容错**: 
-    - 如果 WebSocket 断开，自动重连。
-    - 重连后，后端可能会发送当前最新的 Snapshot（全量 `m`），前端应能平滑过渡。
+### 5.4 Attach / Detach (物流逻辑)
+用于处理夹爪抓取物体后的父子关系变更。
+- `Attach`: `{ "child": "物料ID", "parent": "设备ID/挂载点ID" }`
+- `Detach`: `{ "child": "物料ID", "newParent": "容器ID" }`
