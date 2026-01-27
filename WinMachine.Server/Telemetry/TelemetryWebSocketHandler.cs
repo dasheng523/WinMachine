@@ -18,6 +18,7 @@ namespace WinMachine.Server.Telemetry;
 internal sealed class TelemetryWebSocketHandler
 {
     private readonly ScenarioRegistry _scenarios;
+    private readonly TimeSpan _samplingInterval = TimeSpan.FromMilliseconds(100); // 10Hz
 
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web)
     {
@@ -122,7 +123,7 @@ internal sealed class TelemetryWebSocketHandler
                     var session = new TelemetrySession(
                         runtime.Context,
                         interpreter.TraceStream,
-                        interval: TimeSpan.FromSeconds(1));
+                        interval: _samplingInterval);
 
                     session.ForceSnapshot();
 

@@ -63,9 +63,9 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
                 .AddCylinder(cylMidVac2, 22, 22)
                 .AddCylinder(cylMidVac3, 23, 23)
                 .AddCylinder(cylMidVac4, 24, 24))
-            .Mount("MachineBase", m => m
+                .Mount("MachineBase", m => m
                 .Mount("Middle_Module", mid => mid.WithOffset(0, 0, 0)
-                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0)
+                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0).WithStroke(-80, 0, 0)
                         .Mount("Vac_Plate", p => p.WithOffset(0, 0, 50)
                             .Mount("Vac_Group_L", g => g.WithOffset(-50, 0, 0)
                                 .Mount("Vac1", v => v.LinkTo(cylMidVac1).WithOffset(0, -40, 0))
@@ -143,8 +143,9 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
             from _8 in Name("左侧升起").Next(Cylinder(cylR_Lift).FireAndWait(false))
             from _9 in Name("左侧旋转180").Next(Motion(axisR_Table).MoveToAndWait(180))
             from _10 in Name("左侧降下").Next(Cylinder(cylR_Lift).FireAndWait(true))
+            from _11 in Name("左侧夹爪松开(放料)").Next(Cylinder(cylGripsLeft).FireAndWait(true))
 
-            from _11 in Name("中间滑台回原位").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
+            from _12 in Name("中间滑台回原位").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
             select Unit.Default;
 
         return flow.Definition;

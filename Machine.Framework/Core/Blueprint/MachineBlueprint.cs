@@ -80,7 +80,15 @@ namespace Machine.Framework.Core.Blueprint
         IMountPointBuilder AttachedTo(object parent);
         IMountPointBuilder LinkTo(object axisOrId);
         IMountPointBuilder WithTransform(Func<double, double> transform);
+        
+        // Pose Definitions (Static)
         IMountPointBuilder WithOffset(double x = 0, double y = 0, double z = 0);
+        IMountPointBuilder AtPose(double x, double y, double z); // Alias for WithOffset
+        IMountPointBuilder WithRotation(double x = 0, double y = 0, double z = 0); // Euler angles (deg)
+
+        // Actuation Definitions (Dynamic)
+        IMountPointBuilder WithStroke(double x, double y, double z); // Vector for 0->1 motion
+        
         IMountPointBuilder Mount(string name);
         IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure);
     }

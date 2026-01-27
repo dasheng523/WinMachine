@@ -138,6 +138,8 @@ namespace Machine.Framework.Core.Configuration.Models
         string? ParentName,       
         object? LinkedDevice,     
         double OffsetX, double OffsetY, double OffsetZ,
+        double RotationX, double RotationY, double RotationZ, // New: Initial rotation
+        double StrokeX, double StrokeY, double StrokeZ,       // New: Actuation vector
         List<MountPointDefinition> Children
     );
 }

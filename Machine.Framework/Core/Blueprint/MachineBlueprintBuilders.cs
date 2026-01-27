@@ -156,7 +156,10 @@ namespace Machine.Framework.Core.Blueprint.Builders
         private readonly BlueprintAssembly? _asm;
         
         private object? _linkedDevice;
-        private double _ox, _oy, _oz;
+
+        private double _ox, _oy, _oz; // Offset (Position)
+        private double _rx, _ry, _rz; // Rotation (Euler)
+        private double _sx, _sy, _sz; // Stroke Vector
         
         // 存储子 Builder（而非定义），以支持链式调用时的延迟求值
         private readonly List<MountPointBuilder> _childBuilders = new();
@@ -190,6 +193,22 @@ namespace Machine.Framework.Core.Blueprint.Builders
             _ox = x; _oy = y; _oz = z;
             PropagateUpdate();
             return this; 
+        }
+
+        public IMountPointBuilder AtPose(double x, double y, double z) => WithOffset(x, y, z);
+
+        public IMountPointBuilder WithRotation(double x, double y, double z)
+        {
+            _rx = x; _ry = y; _rz = z;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder WithStroke(double x, double y, double z)
+        {
+            _sx = x; _sy = y; _sz = z;
+            PropagateUpdate();
+            return this;
         }
 
         public IMountPointBuilder Mount(string n) 
@@ -241,6 +260,8 @@ namespace Machine.Framework.Core.Blueprint.Builders
                 _parent?._name, 
                 _linkedDevice, 
                 _ox, _oy, _oz, 
+                _rx, _ry, _rz,
+                _sx, _sy, _sz,
                 childDefs
             );
         }

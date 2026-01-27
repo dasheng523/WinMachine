@@ -159,8 +159,14 @@ public static class WebMachineModelMapper
         var node = new WebSceneNode
         {
             Name = def.Name,
-            Offset = new WebVector3 { X = def.OffsetX, Y = def.OffsetY, Z = def.OffsetZ }
+            Offset = new WebVector3 { X = def.OffsetX, Y = def.OffsetY, Z = def.OffsetZ },
+            Rotation = new WebVector3 { X = def.RotationX, Y = def.RotationY, Z = def.RotationZ },
+            Stroke = new WebVector3 { X = def.StrokeX, Y = def.StrokeY, Z = def.StrokeZ }
         };
+
+        // Cleanup empty vectors to keep JSON clean
+        if (node.Rotation.X == 0 && node.Rotation.Y == 0 && node.Rotation.Z == 0) node.Rotation = null;
+        if (node.Stroke.X == 0 && node.Stroke.Y == 0 && node.Stroke.Z == 0) node.Stroke = null;
 
         if (def.LinkedDevice != null)
         {

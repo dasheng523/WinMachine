@@ -16,6 +16,8 @@ public sealed class WebSceneNode
     public string NodeType { get; set; } = "Group";
     public string? LinkedDeviceId { get; set; }
     public WebVector3? Offset { get; set; }
+    public WebVector3? Rotation { get; set; }
+    public WebVector3? Stroke { get; set; }
     public List<WebSceneNode> Children { get; set; } = new();
 }
 

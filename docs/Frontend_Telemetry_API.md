@@ -1,6 +1,7 @@
-# WinMachine 前端实时遥测 API 文档 (v2.1)
+# WinMachine 前端实时遥测 API 文档 (v2.2)
 
 本文档面向 Web 渲染端开发人员，详细定义了从后端获取机器模型（静态）及实时运行数据（动态）的完整协议。
+v2.2 更新：引入 **统一坐标系**。场景节点现包含 `rotation` (初始姿态) 和 `stroke` (动作矢量)，前端应基于此进行几何变换，而非硬编码方向。
 
 ---
 
@@ -26,6 +27,19 @@
 | **schemaVersion** | string | 模型协议版本（当前为 "1.0"） |
 | **scene** | `WebSceneNode` | 根节点模型，包含完整的场景层级树 |
 | **deviceRegistry** | `WebDeviceInfo[]` | 设备库，定义了所有可动部件的物理属性和动画参数 |
+
+### 2.1.1 WebSceneNode (场景节点)
+每个节点代表一个 3D 容器。前端渲染时，其 Transform 计算公式为：
+`LocalMatrix = T(Offset) * R(Rotation) * T(Stroke * ConnectionState)`
+
+| 字段名 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| **name** | string | 节点名称 |
+| **offset** | `{x,y,z}` | 相对于父节点的初始位置偏移 (mm) |
+| **rotation** | `{x,y,z}` | [v2.2] 初始旋转 (Euler Angles, deg)。顺序建议 Z->Y->X |
+| **stroke** | `{x,y,z}` | [v2.2] **动作行程矢量**。当绑定的设备状态从 0->1 时，节点产生的位移。若为空则无位移。 |
+| **linkedDeviceId** | string | 绑定的设备 ID。 |
+| **children** | `WebSceneNode[]` | 子节点列表 |
 
 ### 2.2 WebDeviceInfo (设备详细定义)
 用于定义某个 `deviceId` 的物理特征。
