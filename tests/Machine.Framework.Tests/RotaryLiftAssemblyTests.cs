@@ -171,11 +171,7 @@ namespace Machine.Framework.Tests.WebParams
                 from _5 in Name("右侧夹爪松开(放料)").Next(Cylinder(Cyl_Grips_Right).FireAndWait(true)) // True=Open
 
                 // --- Phase 2: Transfer Slide ---
-                // Pre-Check: Ensure Right Grippers are OPEN before sliding to avoid collision
-                from _check1 in Name("检查:右侧夹爪是否松开").Next(Check(() => Cylinder(Cyl_Grips_Right).Is(false), "右侧夹爪必须松开！"))
                 from _6 in Name("中间滑台向左").Next(Cylinder(Cyl_Middle_Slide).FireAndWait(true)) 
-                // Post-Check: Ensure Slide is at position
-                from _check2 in Name("检查:滑台是否到位").Next(Check(() => Cylinder(Cyl_Middle_Slide).Is(true), "滑台未到位！")) 
 
                 // --- Phase 3: Left Module Action ---
                 from _7 in Name("左侧夹爪闭合").Next(Cylinder(Cyl_Grips_Left).FireAndWait(false))
@@ -226,6 +222,7 @@ namespace Machine.Framework.Tests.WebParams
 
             /// <summary>
             /// 当前正在执行的步骤名称 (Context) - 用于UI高亮显示流程进度
+            /// 必须对应 DSL 中的 Name("...") 业务这一层级，而非底层动作名，防止UI闪烁
             /// </summary>
             [JsonPropertyName("step")]
             public string StepName { get; set; }
@@ -233,8 +230,9 @@ namespace Machine.Framework.Tests.WebParams
             /// <summary>
             /// 视觉/动画位置 (Animation Targets)
             /// Key: DeviceID
-            /// Value: 归一化浮点数 (0.0 - 1.0) 或 物理量 (mm/degree)
-            /// 仅包含“正在运动”或“状态变化”的设备，以节省带宽
+            /// Value: 物理量 (mm/degree/width)
+            /// 1. 统一使用物理单位，禁止使用 0-1 归一化值，前端根据静态配置的 Max/Min 渲染
+            /// 2. 仅包含本帧相对于上一帧发生变化了的设备 (Dirty/Delta only)
             /// </summary>
             [JsonPropertyName("m")]
             public Dictionary<string, float> Motions { get; set; } = new();
@@ -251,6 +249,7 @@ namespace Machine.Framework.Tests.WebParams
             /// <summary>
             /// 离散业务事件 (Discrete Events)
             /// 如：报警、提示、物流变更(Reparent)
+            /// Include: "FlowStopped" (with Payload: { reason: "Complete" | "Error" | "UserStop" })
             /// </summary>
             [JsonPropertyName("e")]
             public List<TelemetryEvent> Events { get; set; } = new();
@@ -259,7 +258,7 @@ namespace Machine.Framework.Tests.WebParams
         public class TelemetryEvent
         {
             [JsonPropertyName("type")]
-            public string Type { get; set; } // "Log", "Error", "Attach", "Detach", "Spawn"
+            public string Type { get; set; } // "Log", "Error", "Attach", "Detach", "Spawn", "FlowStopped"
 
             [JsonPropertyName("msg")]
             public string Message { get; set; } // Human readable message

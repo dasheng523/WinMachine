@@ -107,7 +107,7 @@ namespace Machine.Framework.Interpreters.Flow
             // 特殊系统操作
             if (action.TargetDevice == "System")
             {
-                return await ExecuteSystemActionAsync(action);
+                return await ExecuteSystemActionAsync(action, context);
             }
 
             // 硬件操作
@@ -302,12 +302,12 @@ namespace Machine.Framework.Interpreters.Flow
             return Task.FromResult<object?>(expected);
         }
 
-        private async Task<object?> ExecuteSystemActionAsync(ActionStepDesc action)
+        private async Task<object?> ExecuteSystemActionAsync(ActionStepDesc action, FlowContext context)
         {
             if (action.Operation == "Delay")
             {
                 int ms = Convert.ToInt32(action.Args?[0] ?? 0);
-                await Task.Delay(ms);
+                await Task.Delay(ms, context.CancellationToken);
             }
             if (action.Operation == "Throw")
             {

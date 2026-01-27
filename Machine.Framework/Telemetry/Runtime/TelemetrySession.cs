@@ -1,0 +1,113 @@
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using Machine.Framework.Core.Flow;
+using Machine.Framework.Telemetry.Contracts;
+using Machine.Framework.Visualization;
+
+namespace Machine.Framework.Telemetry.Runtime;
+
+public sealed class TelemetrySession : IDisposable
+{
+    private static readonly string[] InternalStepPrefixes =
+    [
+        "Delay_"
+    ];
+
+    private static readonly HashSet<string> InternalStepNames = new(StringComparer.Ordinal)
+    {
+        "Start",
+        "WherePass",
+        "ThrowException"
+    };
+
+    private readonly FlowContext _context;
+    private readonly MonotonicUnixClock _clock;
+    private readonly TelemetryDeltaFilter _delta;
+    private readonly BehaviorSubject<TelemetryPacket> _subject;
+    private readonly ConcurrentQueue<TelemetryEvent> _events = new();
+    private readonly IDisposable _traceSub;
+    private readonly IDisposable _timerSub;
+
+    private volatile string _currentStep = "";
+    private volatile bool _forceSnapshot = true;
+
+    public TelemetrySession(FlowContext context, IObservable<ActiveStepUpdate> traceStream, TimeSpan interval, double epsilon = 0.001)
+    {
+        _context = context;
+        _clock = new MonotonicUnixClock();
+        _delta = new TelemetryDeltaFilter(epsilon);
+
+        _subject = new BehaviorSubject<TelemetryPacket>(new TelemetryPacket { Tick = _clock.Now(), Step = "" });
+
+        _traceSub = traceStream.Subscribe(OnTrace);
+        _timerSub = Observable.Interval(interval).Subscribe(_ => PublishFrame());
+    }
+
+    public IObservable<TelemetryPacket> Stream => _subject.AsObservable();
+
+    public void Enqueue(TelemetryEvent telemetryEvent) => _events.Enqueue(telemetryEvent);
+
+    public void ForceSnapshot() => _forceSnapshot = true;
+
+    private void OnTrace(ActiveStepUpdate update)
+    {
+        if (update.Status != StepStatus.Running) return;
+        if (!string.Equals(update.TargetDevice, "System", StringComparison.OrdinalIgnoreCase)) return;
+
+        if (InternalStepNames.Contains(update.Name)) return;
+        foreach (var p in InternalStepPrefixes)
+        {
+            if (update.Name.StartsWith(p, StringComparison.Ordinal)) return;
+        }
+
+        _currentStep = update.Name;
+    }
+
+    private void PublishFrame()
+    {
+        var tick = _clock.Now();
+        var step = _currentStep ?? "";
+
+        var snapshot = TelemetryMotionSampler.Sample(_context);
+        Dictionary<string, double>? motions;
+
+        if (_forceSnapshot)
+        {
+            motions = _delta.Snapshot(snapshot);
+            _forceSnapshot = false;
+        }
+        else
+        {
+            motions = _delta.Delta(snapshot);
+        }
+
+        if (motions.Count == 0) motions = null;
+
+        List<TelemetryEvent>? evts = null;
+        while (_events.TryDequeue(out var e))
+        {
+            evts ??= new List<TelemetryEvent>();
+            evts.Add(e);
+        }
+
+        var packet = new TelemetryPacket
+        {
+            Tick = tick,
+            Step = step,
+            Motions = motions,
+            Events = evts
+        };
+
+        _subject.OnNext(packet);
+    }
+
+    public void Dispose()
+    {
+        _timerSub.Dispose();
+        _traceSub.Dispose();
+        _subject.Dispose();
+    }
+}

@@ -1,0 +1,152 @@
+using System.Threading;
+using Machine.Framework.Core.Blueprint;
+using Machine.Framework.Core.Flow;
+using Machine.Framework.Core.Flow.Dsl;
+using Machine.Framework.Core.Flow.Steps;
+using Machine.Framework.Core.Primitives;
+using Machine.Framework.Interpreters.Configuration;
+using Machine.Framework.Telemetry.Schema;
+using Machine.Framework.Visualization;
+using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
+
+namespace WinMachine.Server.Scenarios;
+
+internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
+{
+    public string Name => "Complex_Rotary_Assembly";
+
+    public WebMachineModel BuildSchema()
+    {
+        var (config, visualsModel, machineName) = BuildConfigAndVisuals();
+        return WebMachineModelMapper.MapToWebModel(config, visualsModel, machineName);
+    }
+
+    public ScenarioRuntime BuildRuntime(CancellationToken ct)
+    {
+        var (config, visualsModel, machineName) = BuildConfigAndVisuals();
+
+        var flow = BuildFlow();
+        var ctx = new FlowContext(config, ct);
+
+        var schema = WebMachineModelMapper.MapToWebModel(config, visualsModel, machineName);
+        return new ScenarioRuntime(Name, schema.SchemaVersion ?? "1.0", ctx, flow, schema);
+    }
+
+    private static (Machine.Framework.Core.Configuration.Models.MachineConfig Config, VisualDefinitionModel VisualsModel, string MachineName) BuildConfigAndVisuals()
+    {
+        var cylR_Lift = new CylinderID("Cyl_R_Lift");
+        var axisR_Table = new AxisID("Axis_R_Table");
+        var cylGripsLeft = new CylinderID("Cyl_Grips_Left");
+
+        var cylLiftRight = new CylinderID("Cyl_Lift_Right");
+        var axisTableRight = new AxisID("Axis_Table_Right");
+        var cylGripsRight = new CylinderID("Cyl_Grips_Right");
+
+        var cylMiddleSlide = new CylinderID("Cyl_Middle_Slide");
+        var cylMidVac1 = new CylinderID("Cyl_Mid_Vac1");
+        var cylMidVac2 = new CylinderID("Cyl_Mid_Vac2");
+        var cylMidVac3 = new CylinderID("Cyl_Mid_Vac3");
+        var cylMidVac4 = new CylinderID("Cyl_Mid_Vac4");
+
+        var bp = MachineBlueprint.Define("Complex_Rotary_Dual_Assembly")
+            .AddBoard("SimCard", 0, b => b.UseSimulator()
+                .AddCylinder(cylR_Lift, 0, 0)
+                .AddAxis(axisR_Table, 0, a => a.WithRange(0, 360))
+                .AddCylinder(cylGripsLeft, 1, 1)
+
+                .AddCylinder(cylLiftRight, 10, 10)
+                .AddAxis(axisTableRight, 1, a => a.WithRange(0, 360))
+                .AddCylinder(cylGripsRight, 11, 11)
+
+                .AddCylinder(cylMiddleSlide, 20, 20)
+                .AddCylinder(cylMidVac1, 21, 21)
+                .AddCylinder(cylMidVac2, 22, 22)
+                .AddCylinder(cylMidVac3, 23, 23)
+                .AddCylinder(cylMidVac4, 24, 24))
+            .Mount("MachineBase", m => m
+                .Mount("Middle_Module", mid => mid.WithOffset(0, 0, 0)
+                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0)
+                        .Mount("Vac_Plate", p => p.WithOffset(0, 0, 50)
+                            .Mount("Vac_Group_L", g => g.WithOffset(-50, 0, 0)
+                                .Mount("Vac1", v => v.LinkTo(cylMidVac1).WithOffset(0, -40, 0))
+                                .Mount("Vac2", v => v.LinkTo(cylMidVac2).WithOffset(0, 40, 0)))
+                            .Mount("Vac_Group_R", g => g.WithOffset(50, 0, 0)
+                                .Mount("Vac3", v => v.LinkTo(cylMidVac3).WithOffset(0, -40, 0))
+                                .Mount("Vac4", v => v.LinkTo(cylMidVac4).WithOffset(0, 40, 0))))))
+                .Mount("Assembly_Left", assembly => assembly.WithOffset(x: -250, y: 0, z: 0)
+                    .Mount("Lifter_Column", l => l.LinkTo(cylR_Lift).WithOffset(0, 0, 0)
+                        .Mount("Rotary_Table", r => r.LinkTo(axisR_Table).WithOffset(0, 0, 100)
+                            .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
+                                .Mount("Grip_L1", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, -40, 0))
+                                .Mount("Grip_L2", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, 40, 0)))
+                            .Mount("Mount_Right", g => g.WithOffset(x: 120, y: 0, z: 0)
+                                .Mount("Grip_R1", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, -40, 0))
+                                .Mount("Grip_R2", grip => grip.LinkTo(cylGripsLeft).WithOffset(0, 40, 0))))))
+                .Mount("Assembly_Right", assembly => assembly.WithOffset(x: 250, y: 0, z: 0)
+                    .Mount("Lifter_Column", l => l.LinkTo(cylLiftRight).WithOffset(0, 0, 0)
+                        .Mount("Rotary_Table", r => r.LinkTo(axisTableRight).WithOffset(0, 0, 100)
+                            .Mount("Mount_Left", g => g.WithOffset(x: -120, y: 0, z: 0)
+                                .Mount("Grip_L1", grip => grip.LinkTo(cylGripsRight).WithOffset(0, -40, 0))
+                                .Mount("Grip_L2", grip => grip.LinkTo(cylGripsRight).WithOffset(0, 40, 0)))
+                            .Mount("Mount_Right", g => g.WithOffset(x: 120, y: 0, z: 0)
+                                .Mount("Grip_R1", grip => grip.LinkTo(cylGripsRight).WithOffset(0, -40, 0))
+                                .Mount("Grip_R2", grip => grip.LinkTo(cylGripsRight).WithOffset(0, 40, 0)))))));
+
+        var visuals = Visuals.Define(v =>
+        {
+            v.For(cylR_Lift).AsSlideBlock(size: 80).Vertical();
+            v.For(axisR_Table).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
+            v.For(cylGripsLeft).AsGripper(open: 40, close: 10).Horizontal().Reversed();
+
+            v.For(cylLiftRight).AsSlideBlock(size: 80).Vertical();
+            v.For(axisTableRight).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
+            v.For(cylGripsRight).AsGripper(open: 40, close: 10).Horizontal();
+
+            v.For(cylMiddleSlide).AsSlideBlock(size: 120).Horizontal();
+            v.For(cylMidVac1).AsSuctionPen(diameter: 8).Vertical();
+            v.For(cylMidVac2).AsSuctionPen(diameter: 8).Vertical();
+            v.For(cylMidVac3).AsSuctionPen(diameter: 8).Vertical();
+            v.For(cylMidVac4).AsSuctionPen(diameter: 8).Vertical();
+        });
+
+        var visRegistry = new CaptureVisualRegistry();
+        visuals.Build()(visRegistry);
+
+        var config = BlueprintInterpreter.ToConfig(bp);
+        var machineName = "Complex Rotary Lift Assembly";
+
+        return (config, visRegistry.Model, machineName);
+    }
+
+    private static StepDesc BuildFlow()
+    {
+        var cylR_Lift = new CylinderID("Cyl_R_Lift");
+        var axisR_Table = new AxisID("Axis_R_Table");
+        var cylGripsLeft = new CylinderID("Cyl_Grips_Left");
+
+        var cylLiftRight = new CylinderID("Cyl_Lift_Right");
+        var axisTableRight = new AxisID("Axis_Table_Right");
+        var cylGripsRight = new CylinderID("Cyl_Grips_Right");
+
+        var cylMiddleSlide = new CylinderID("Cyl_Middle_Slide");
+
+        var flow =
+            from _1 in Name("右侧夹爪闭合(夹取)").Next(Cylinder(cylGripsRight).FireAndWait(false))
+            from _2 in Name("右侧升起").Next(Cylinder(cylLiftRight).FireAndWait(false))
+            from _3 in Name("右侧旋转180").Next(Motion(axisTableRight).MoveToAndWait(180))
+            from _4 in Name("右侧降下").Next(Cylinder(cylLiftRight).FireAndWait(true))
+            from _5 in Name("右侧夹爪松开(放料)").Next(Cylinder(cylGripsRight).FireAndWait(true))
+
+            from _6 in Name("中间滑台向左").Next(Cylinder(cylMiddleSlide).FireAndWait(true))
+
+            from _7 in Name("左侧夹爪闭合").Next(Cylinder(cylGripsLeft).FireAndWait(false))
+            from _8 in Name("左侧升起").Next(Cylinder(cylR_Lift).FireAndWait(false))
+            from _9 in Name("左侧旋转180").Next(Motion(axisR_Table).MoveToAndWait(180))
+            from _10 in Name("左侧降下").Next(Cylinder(cylR_Lift).FireAndWait(true))
+
+            from _11 in Name("中间滑台回原位").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
+            select Unit.Default;
+
+        return flow.Definition;
+    }
+}
