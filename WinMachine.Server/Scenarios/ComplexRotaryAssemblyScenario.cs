@@ -47,30 +47,53 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
         var cylMidVac2 = new CylinderID("Cyl_Mid_Vac2");
         var cylMidVac3 = new CylinderID("Cyl_Mid_Vac3");
         var cylMidVac4 = new CylinderID("Cyl_Mid_Vac4");
+        
+        // 新增上下料机构气缸
+        var cylFeederLift = new CylinderID("Cyl_Feeder_Lift");
+        var cylFeederGrips = new CylinderID("Cyl_Feeder_Grips");
 
         var bp = MachineBlueprint.Define("Complex_Rotary_Dual_Assembly")
             .AddBoard("SimCard", 0, b => b.UseSimulator()
-                .AddCylinder(cylR_Lift, 0, 0)
+                .AddCylinder(cylR_Lift, 0, 0, c => c.WithDynamics(600).Vertical())
                 .AddAxis(axisR_Table, 0, a => a.WithRange(0, 360))
                 .AddCylinder(cylGripsLeft, 1, 1)
 
-                .AddCylinder(cylLiftRight, 10, 10)
+                .AddCylinder(cylLiftRight, 10, 10, c => c.WithDynamics(600).Vertical())
                 .AddAxis(axisTableRight, 1, a => a.WithRange(0, 360))
                 .AddCylinder(cylGripsRight, 11, 11)
 
-                .AddCylinder(cylMiddleSlide, 20, 20)
+                .AddCylinder(cylMiddleSlide, 20, 20, c => c.WithDynamics(1000).Horizontal())
                 .AddCylinder(cylMidVac1, 21, 21)
                 .AddCylinder(cylMidVac2, 22, 22)
                 .AddCylinder(cylMidVac3, 23, 23)
-                .AddCylinder(cylMidVac4, 24, 24))
+                .AddCylinder(cylMidVac4, 24, 24)
+                
+                .AddCylinder(cylFeederLift, 30, 30, c => c.WithDynamics(800).Vertical())
+                .AddCylinder(cylFeederGrips, 31, 31))
                 .Mount("MachineBase", m => m
+                // --- 中央上下料机构 (悬吊式) ---
+                .Mount("Central_Feeder_Bridge", bridge => bridge.WithOffset(0, 0, 200) // 悬吊高度调整为 200
+                    .Mount("Feeder_Lift", lift => lift.LinkTo(cylFeederLift).WithOffset(0, 0, 0).WithStroke(0, 0, -130) // 下降行程 130 -> 到达 Z=70
+                        .Mount("Feeder_Head", head => head.WithOffset(0, 0, 0)
+                            // 两个抓手间距 80，对应下方物料座间距
+                            .Mount("Feeder_Grip_1", g => g.LinkTo(cylFeederGrips).WithOffset(0, -40, 0))
+                            .Mount("Feeder_Grip_2", g => g.LinkTo(cylFeederGrips).WithOffset(0, 40, 0)))))
+
+                // --- 中间滑台 (行程 +/- 65 -> 总行程 130) ---
+                // 初始位置(收回): X = +65. Slide Center = +65.
+                // 左侧组(Offset -65) -> World X = 0 (对齐中央上下料)
+                // 右侧组(Offset +65) -> World X = +130 (对齐右侧模组: 250 - 120 = 130)
+                //
+                // 动作位置(伸出): Stroke = -130. Slide Center = +65 - 130 = -65.
+                // 左侧组(Offset -65) -> World X = -130 (对齐左侧模组: -250 + 120 = -130)
+                // 右侧组(Offset +65) -> World X = 0 (对齐中央上下料)
                 .Mount("Middle_Module", mid => mid.WithOffset(0, 0, 0)
-                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(80, 0, 0).WithStroke(-160, 0, 0)
+                    .Mount("Slide_Push", s => s.LinkTo(cylMiddleSlide).WithOffset(65, 0, 0).WithStroke(-130, 0, 0)
                         .Mount("Vac_Plate", p => p.WithOffset(0, 0, 60)
-                            .Mount("Vac_Group_L", g => g.WithOffset(-50, 0, 0)
+                            .Mount("Vac_Group_L", g => g.WithOffset(-65, 0, 0) 
                                 .Mount("Vac1", v => v.LinkTo(cylMidVac1).WithOffset(0, -40, 0))
                                 .Mount("Vac2", v => v.LinkTo(cylMidVac2).WithOffset(0, 40, 0)))
-                            .Mount("Vac_Group_R", g => g.WithOffset(50, 0, 0)
+                            .Mount("Vac_Group_R", g => g.WithOffset(65, 0, 0) 
                                 .Mount("Vac3", v => v.LinkTo(cylMidVac3).WithOffset(0, -40, 0))
                                 .Mount("Vac4", v => v.LinkTo(cylMidVac4).WithOffset(0, 40, 0))))))
                 .Mount("Assembly_Left", assembly => assembly.WithOffset(x: -250, y: 0, z: 0)
@@ -102,11 +125,14 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
             v.For(axisTableRight).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
             v.For(cylGripsRight).AsGripper(open: 40, close: 10).Horizontal();
 
-            v.For(cylMiddleSlide).AsSlideBlock(size: 50).Horizontal();
+            v.For(cylMiddleSlide).AsSlideBlock(size: 60).Horizontal(); // 恢复为小尺寸，避免遮挡
             v.For(cylMidVac1).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac2).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac3).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac4).AsSuctionPen(diameter: 8).Vertical();
+
+            v.For(cylFeederLift).AsSlideBlock(size: 80).Vertical();
+            v.For(cylFeederGrips).AsGripper(open: 40, close: 10).Horizontal();
         });
 
         var visRegistry = new CaptureVisualRegistry();
