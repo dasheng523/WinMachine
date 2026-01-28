@@ -105,6 +105,16 @@ namespace Machine.Framework.Core.Flow.Dsl
                 Args = new object[] { message }
             });
         }
+        public static Step<Unit> NoOp()
+        {
+             return new Step<Unit>(new ActionStepDesc
+             {
+                 Name = "NoOp",
+                 TargetDevice = "System",
+                 Operation = "NoOp",
+                 Args = Array.Empty<object>()
+             });
+        }
     }
 
     public static class StepExtensions

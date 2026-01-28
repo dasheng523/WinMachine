@@ -10,6 +10,7 @@ namespace Machine.Framework.Core.Flow.Steps
         public static MotionBuilder Motion(AxisID axis) => new MotionBuilder(axis);
         public static CylinderBuilder Cylinder(CylinderID cylinder) => new CylinderBuilder(cylinder);
         public static SensorBuilder Sensor(SensorID sensor) => new SensorBuilder(sensor);
+        public static MaterialBuilder Material(string stationId) => new MaterialBuilder(stationId);
         public static SystemBuilder SystemStep => new SystemBuilder();
 
         // 命名包装器，用于在 DSL 中增加可读性
@@ -127,9 +128,21 @@ namespace Machine.Framework.Core.Flow.Steps
         {
             return new Step<Unit>(new ActionStepDesc
             {
-                Name = $"FireAndWait_{_cylinder}_{state}",
+                Name = $"FireAndWait_{_cylinder.Name}_{state}",
                 TargetDevice = _cylinder.Name,
                 Operation = "FireAndWait",
+                Args = new object[] { state }
+            });
+        }
+
+        // 互锁等待：被动等待气缸达到状态 (不做动作)
+        public Step<Unit> WaitFor(bool state)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"WaitFor_{_cylinder.Name}_{state}",
+                TargetDevice = _cylinder.Name,
+                Operation = "CylinderWaitFor",
                 Args = new object[] { state }
             });
         }
@@ -159,6 +172,107 @@ namespace Machine.Framework.Core.Flow.Steps
                 TargetDevice = _sensor.Name,
                 Operation = "ReadAnalog",
                 Args = Array.Empty<object>()
+            });
+        }
+    }
+    
+    public class MaterialBuilder
+    {
+        private readonly string _station;
+        public MaterialBuilder(string station) => _station = station;
+
+        // 生成新料：Update State + Emit Spawn Event
+        public Step<Unit> Spawn(string id, string cls)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Spawn_{_station}_{id}",
+                TargetDevice = "System", // System 处理
+                Operation = "MaterialSpawn",
+                Args = new object[] { _station, id, cls }
+            });
+        }
+
+        // 改变属性：Update State + Emit Transform Event
+        public Step<Unit> Transform(string newCls)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Transform_{_station}_{newCls}",
+                TargetDevice = "System",
+                Operation = "MaterialTransform",
+                Args = new object[] { _station, newCls }
+            });
+        }
+
+        // 销毁：Remove State + Emit Consume Event
+        public Step<Unit> Consume()
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Consume_{_station}",
+                TargetDevice = "System",
+                Operation = "MaterialConsume",
+                Args = new object[] { _station }
+            });
+        }
+        
+        // 绑定/移动：仅更新状态表 (用于 Attach/Detach 后的逻辑位置更新)
+        // 例如：抓手抓起物料后，更新 mat["Gripper"] = {id, cls}, mat["Table"] = null
+        public Step<Unit> Bind(string id, string cls)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Bind_{_station}",
+                TargetDevice = "System",
+                Operation = "MaterialBind",
+                Args = new object[] { _station, id, cls }
+            });
+        }
+        
+        // 真正发送 Attach 事件给前端
+        public Step<Unit> AttachTo(string parentId, string childId)
+        {
+            return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Attach_{childId}_To_{parentId}",
+                TargetDevice = "System",
+                Operation = "MaterialAttach",
+                Args = new object[] { _station, parentId, childId }
+            });
+        }
+
+        public Step<Unit> Detach() 
+        {
+             return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Detach_{_station}",
+                TargetDevice = "System",
+                Operation = "MaterialDetach",
+                Args = new object[] { _station } // Detach whatever is at _station (if station is parent) or detach _station itself (if child)
+            });
+        }
+
+        public Step<Unit> Unbind() 
+        {
+             return new Step<Unit>(new ActionStepDesc
+            {
+                Name = $"Unbind_{_station}",
+                TargetDevice = "System",
+                Operation = "MaterialUnbind",
+                Args = new object[] { _station }
+            });
+        }
+
+        // 获取状态 (返回 class 字符串，如 "New", "Old", "Empty")
+        public Step<string> CheckState()
+        {
+            return new Step<string>(new ActionStepDesc
+            {
+                Name = $"CheckState_{_station}",
+                TargetDevice = "System",
+                Operation = "MaterialCheckState",
+                Args = new object[] { _station }
             });
         }
     }

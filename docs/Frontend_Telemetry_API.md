@@ -1,7 +1,7 @@
-# WinMachine 前端实时遥测 API 文档 (v2.2)
+# WinMachine 前端实时遥测 API 文档 (v2.3)
 
 本文档面向 Web 渲染端开发人员，详细定义了从后端获取机器模型（静态）及实时运行数据（动态）的完整协议。
-v2.2 更新：引入 **统一坐标系**。场景节点现包含 `rotation` (初始姿态) 和 `stroke` (动作矢量)，前端应基于此进行几何变换，而非硬编码方向。
+v2.3 更新：引入 **物料流状态管理 (Material Flow)**。遥测数据现包含物料实体状态信息，支持物料的生成、传输、状态转换及销毁流程。
 
 ---
 
@@ -9,7 +9,7 @@ v2.2 更新：引入 **统一坐标系**。场景节点现包含 `rotation` (初
 
 - **协议**: WebSocket (用于实时数据) & HTTP (用于初始化加载)
 - **WebSocket URL**: `ws://{server_address}/ws/telemetry`
-- **默认推送频率**: 后端根据变化情况推送 (Quiet Mode)，最高频率 ~30Hz。调试模式下建议设为 1Hz。
+- **默认推送频率**: 后端根据变化情况推送 (Quiet Mode)，最高频率 ~30Hz。
 
 ---
 
@@ -18,69 +18,27 @@ v2.2 更新：引入 **统一坐标系**。场景节点现包含 `rotation` (初
 在建立实时连接前，前端必须先加载静态模型以构建场景树和设备寄存器。
 
 - **接口**: HTTP GET `http://{server}/api/machine/schema?name={scenario}`
-- **响应体说明**: 
 
 ### 2.1 WebMachineModel
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
 | **machineName** | string | 机器的人类可读名称 |
-| **schemaVersion** | string | 模型协议版本（当前为 "1.0"） |
+| **schemaVersion** | string | 模型协议版本 |
 | **scene** | `WebSceneNode` | 根节点模型，包含完整的场景层级树 |
-| **deviceRegistry** | `WebDeviceInfo[]` | 设备库，定义了所有可动部件的物理属性和动画参数 |
+| **deviceRegistry** | `WebDeviceInfo[]` | 设备库，包含所有可动部件及物料工位的定义 |
 
-### 2.1.1 WebSceneNode (场景节点)
-每个节点代表一个 3D 容器。前端渲染时，其 Transform 计算公式为：
-`LocalMatrix = T(Offset) * R(Rotation) * T(Stroke * ConnectionState)`
-
+### 2.2 WebDeviceInfo (设备/工位定义)
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| **name** | string | 节点名称 |
-| **offset** | `{x,y,z}` | 相对于父节点的初始位置偏移 (mm) |
-| **rotation** | `{x,y,z}` | [v2.2] 初始旋转 (Euler Angles, deg)。顺序建议 Z->Y->X |
-| **stroke** | `{x,y,z}` | [v2.2] **动作行程矢量**。当绑定的设备状态从 0->1 时，节点产生的位移。若为空则无位移。 |
-| **linkedDeviceId** | string | 绑定的设备 ID。 |
-| **children** | `WebSceneNode[]` | 子节点列表 |
-
-### 2.2 WebDeviceInfo (设备详细定义)
-用于定义某个 `deviceId` 的物理特征。
-| 字段名 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| **id** | string | 设备唯一识别符（如 "Cyl_Grips_Right"） |
-| **type** | string | 视图类型（如 "Gripper", "SlideBlock", "RotaryTable"） |
-| **baseType** | string | **核心逻辑类型**：`Axis` (连续轴) 或 `Cylinder` (二进制气缸) |
-| **meta** | object | 设备元数据，具体字段见下表 |
-
-**meta 字段详情 (根据 BaseType 不同)**
-- **共通**: `isVertical` (bool), `isReversed` (bool), `board` (string), `channel` (int)
-- **BaseType == "Axis"**:
-    - `min`: 软限位最小值 (mm/deg)
-    - `max`: 软限位最大值 (mm/deg)
-    - 其他: `radius` (旋转半径), `length` (导轨长度)
-- **BaseType == "Cylinder"**:
-    - `moveTime`: **动作设计耗时 (ms)**。前端在收到状态切换指令时，应在此时间内匀速播放动画。
-    - `openWidth`: 张开时的物理宽度 (mm)
-    - `closeWidth`: 闭合时的物理宽度 (mm)
+| **id** | string | 设备/工位唯一识别符 |
+| **type** | string | 视图类型：`Gripper`, `SlideBlock`, `RotaryTable`, **`MaterialSlot` (新)** |
+| **baseType** | string | 逻辑类型：`Axis`, `Cylinder`, **`Station` (新)** |
+| **meta** | object | 设备元数据 |
 
 ---
 
 ## 3. 客户端指令 (Client -> Server)
-
-指令通过 WebSocket 发送 JSON。
-
-### 3.1 启动 (Start)
-```json
-{
-  "cmd": "Start",
-  "scenario": "Complex_Rotary_Assembly"
-}
-```
-
-### 3.2 停止 (Stop)
-```json
-{
-  "cmd": "Stop"
-}
-```
+通过 WebSocket 发送 JSON 指令。支持 `Start`, `Stop`, `Pause`, `Reset` 等。
 
 ---
 
@@ -89,50 +47,57 @@ v2.2 更新：引入 **统一坐标系**。场景节点现包含 `rotation` (初
 ### 4.1 遥测包结构 (TelemetryPacket)
 | 字段名 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| **t** | long | 服务器 Unix 时间戳 (ms)。单调递增，用于算 DeltaTime。 |
-| **step** | string | 当前业务步骤名称（对应 DSL 中的 `Name("...")`）。 |
-| **m** | object | **运动指令图**。Key 为 DeviceID，Value 含义见下节。 |
-| **io** | object | 传感器原始状态字典。Key 为信号 ID，Value 为 `bool` 或 `number`。 |
-| **e** | object[] | 事件列表，如 `FlowStarted`, `FlowStopped`, `Error`。 |
+| **t** | long | 服务器 Unix 时间戳 (ms)。 |
+| **step** | string | 当前业务步骤名称。 |
+| **m** | object | **运动指令图**。Key: DeviceID, Value: 轴位置或气缸状态。 |
+| **mat** | object | **[v2.3] 物料状态图**。Key: StationID, Value: 物料实体对象信息。 |
+| **io** | object | 传感器原始状态字典。 |
+| **e** | object[] | 事件列表。 |
+
+### 4.2 运动指令 (`m` 字段) 渲染逻辑
+- **Axis**: 连续坐标位置，前端平滑插值移动。
+- **Cylinder**: 目标二值状态，前端根据 `moveTime` 播放局部动画。
+
+### 4.3 物料实体 (`mat` 字段) 渲染逻辑
+如果遥测包包含 `mat` 字典，前端应按以下规则维护物料模型：
+1. **空状态**: `mat["Vac1"] == null` -> 该工位当前无物料，隐藏或销毁关联的物料模型。
+2. **挂载状态**: `mat["Vac1"] == { "id": "P001", "class": "New" }`
+   - 若物料 ID 为首次出现：在 `Vac1` 挂载点位置创建模型。
+   - `class` 定义了物料的视觉外观（如 `New` 为亮蓝色，`Old` 为灰色）。
+   - **自动跟随**: 物料模型作为 `Vac1` 场景节点的子对象渲染，自动继承滑台或转盘的位移。
 
 ---
 
-### 4.2 运动指令 (`m` 字段) 的渲染逻辑
+## 5. 实时事件 (Events)
 
-前端必须根据设备的 `BaseType` 采用不同的渲染策略：
+### 5.1 物料生命周期事件
+后端通过事件流精准控制物料的“突变”动作：
 
-#### A. 如果 BaseType == "Axis" (如马达、旋转台)
-- **Value 含义**: **当前物理绝对坐标** (mm 或 deg)。
-- **渲染建议**: 后端会高频推送位置（33ms/帧）。前端直接使用 `Lerp` 或 `RequestAnimationFrame` 平滑移动到该位置即可。
+- **MaterialSpawn (生成)**
+  `{ "type": "MaterialSpawn", "payload": { "id": "P_001", "at": "Source_A", "class": "New" } }`
+  前端在指定的源头位置实例化一个新的物料模型。
 
-#### B. 如果 BaseType == "Cylinder" (如气缸、夹爪、真空泵)
-- **Value 含义**: **目标二值状态** (`0` 代表 Home/Close, `1` 代表 Work/Open)。
-- **渲染建议**: 
-    1. 前端监听到 `m[id]` 的值从 `0` 变 `1` (或反之)。
-    2. 从 `deviceRegistry` 中读取该 ID 的 `moveTime`。
-    3. **自启动动画**: 在 `moveTime` 时间内，将该视觉元件从“闭合位置”动画过渡到“张开位置”。
-    4. **注意**: 由于气缸没有中间编码器，前端不需要后端发中间位置，只需监听“状态翻转”并本地触发动画。
+- **MaterialTransform (变质)**
+  `{ "type": "MaterialTransform", "payload": { "id": "P_001", "to": "Old" } }`
+  前端修改物料模型的外观或状态标识。
+
+- **MaterialConsume (销毁)**
+  `{ "type": "MaterialConsume", "payload": { "id": "P_001" } }`
+  物料流程结束，前端销毁或回收该模型。
 
 ---
 
-## 5. 状态转换事件 (Events)
+## 6. Changelog (修订记录)
 
-### 5.1 FlowStarted
-```json
-{ "type": "FlowStarted", "payload": { "scenario": "...", "tickBase": 1234567, "schemaVersion": "1.0" } }
-```
+### v2.3 (当前版本)
+- **新增**: `TelemetryPacket.mat` 字典，用于同步工位物料占用状态。
+- **新增**: `MaterialSlot` 设备类型，用于在架构中标识物料挂载点。
+- **新增**: `MaterialSpawn`, `MaterialTransform`, `MaterialConsume` 事件定义。
+- **优化**: 调整 `Attach/Detach` 语意，建议优先使用 `mat` 状态图进行声明式同步。
 
-### 5.2 FlowStopped
-```json
-{ "type": "FlowStopped", "payload": { "reason": "Complete | Error | UserStop" } }
-```
+### v2.2
+- **新增**: 统一坐标系架构，引入 `rotation` (初始姿态) 和 `stroke` (动作矢量)。
+- **新增**: `moveTime` 属性，由后端定义动作预期时长，前端负责插值动画。
 
-### 5.3 Error
-```json
-{ "type": "Error", "msg": "错误描述...", "payload": { "code": "ERR_XXX", "source": "设备ID" } }
-```
-
-### 5.4 Attach / Detach (物流逻辑)
-用于处理夹爪抓取物体后的父子关系变更。
-- `Attach`: `{ "child": "物料ID", "parent": "设备ID/挂载点ID" }`
-- `Detach`: `{ "child": "物料ID", "newParent": "容器ID" }`
+### v2.1
+- **新增**: 基础 WebSocket 遥测协议，支持 `m` 指令图和 `io` 信号字典。

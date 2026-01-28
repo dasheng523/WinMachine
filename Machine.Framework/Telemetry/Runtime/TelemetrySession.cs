@@ -30,6 +30,7 @@ public sealed class TelemetrySession : IDisposable
     private readonly ConcurrentQueue<TelemetryEvent> _events = new();
     private readonly IDisposable _traceSub;
     private readonly IDisposable _timerSub;
+    private readonly IDisposable _eventSub;
 
     private volatile string _currentStep = "";
     private string _lastSentStep = "";
@@ -44,6 +45,7 @@ public sealed class TelemetrySession : IDisposable
         _subject = new BehaviorSubject<TelemetryPacket>(new TelemetryPacket { Tick = _clock.Now(), Step = "" });
 
         _traceSub = traceStream.Subscribe(OnTrace);
+        _eventSub = context.EventStream.Subscribe(Enqueue);
         _timerSub = Observable.Interval(interval).Subscribe(_ => PublishFrame());
     }
 
@@ -56,7 +58,10 @@ public sealed class TelemetrySession : IDisposable
     private void OnTrace(ActiveStepUpdate update)
     {
         if (update.Status != StepStatus.Running) return;
-        if (!string.Equals(update.TargetDevice, "System", StringComparison.OrdinalIgnoreCase)) return;
+        
+        // Remove the filter that ignores non-System devices. 
+        // We want to see hardware actions (MoveTo, Fire, etc) in the UI step display.
+        // if (!string.Equals(update.TargetDevice, "System", StringComparison.OrdinalIgnoreCase)) return;
 
         if (InternalStepNames.Contains(update.Name)) return;
         foreach (var p in InternalStepPrefixes)
@@ -105,6 +110,7 @@ public sealed class TelemetrySession : IDisposable
             Tick = tick,
             Step = step,
             Motions = motions,
+            Materials = _context.MaterialStates.IsEmpty ? null : new Dictionary<string, MaterialInfo>(_context.MaterialStates),
             Events = evts
         };
 
@@ -115,7 +121,9 @@ public sealed class TelemetrySession : IDisposable
     public void Dispose()
     {
         _timerSub.Dispose();
+        _timerSub.Dispose();
         _traceSub.Dispose();
+        _eventSub.Dispose();
         _subject.Dispose();
     }
 }

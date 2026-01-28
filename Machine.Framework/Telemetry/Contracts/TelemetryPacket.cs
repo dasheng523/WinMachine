@@ -20,6 +20,10 @@ public sealed class TelemetryPacket
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, object>? Io { get; set; }
 
+    [JsonPropertyName("mat")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public Dictionary<string, MaterialInfo>? Materials { get; set; }
+
     [JsonPropertyName("e")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<TelemetryEvent>? Events { get; set; }
@@ -59,6 +63,7 @@ public sealed class TelemetryEvent
             Message = message,
             Payload = new ErrorPayload { Code = code, Source = source }
         };
+
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -69,7 +74,10 @@ public enum EventType
     Error,
     Attach,
     Detach,
-    Spawn
+    Spawn,
+    MaterialSpawn,
+    MaterialTransform,
+    MaterialConsume
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
@@ -107,4 +115,39 @@ public sealed class ErrorPayload
     [JsonPropertyName("source")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Source { get; set; }
+}
+
+public sealed class MaterialInfo
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("class")]
+    public string Class { get; set; } = "";
+}
+
+public sealed class MaterialEventPayload
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; } = "";
+
+    [JsonPropertyName("at")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? AtStation { get; set; }
+
+    [JsonPropertyName("class")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Class { get; set; }
+
+    [JsonPropertyName("to")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ToClass { get; set; }
+
+    [JsonPropertyName("parent")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ParentId { get; set; }
+
+    [JsonPropertyName("child")] // Used for Attach child ID
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? ChildId { get; set; }
 }

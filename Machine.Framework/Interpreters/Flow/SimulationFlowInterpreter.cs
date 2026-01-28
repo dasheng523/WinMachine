@@ -9,6 +9,7 @@ using Machine.Framework.Core.Flow.Dsl;
 using Machine.Framework.Core.Simulation;
 using Machine.Framework.Core.Configuration.Models;
 using Machine.Framework.Visualization;
+using Machine.Framework.Telemetry.Contracts;
 
 namespace Machine.Framework.Interpreters.Flow
 {
@@ -121,6 +122,7 @@ namespace Machine.Framework.Interpreters.Flow
                 "FireAndWait" => await HandleFireAndWaitAsync(action, context),
                 "ReadAnalog" => await HandleReadAnalogAsync(action, context),
                 "CheckLevel" => await HandleCheckLevelAsync(action, context),
+                "CylinderWaitFor" => await HandleCylinderWaitForAsync(action, context),
                 _ => throw new NotSupportedException($"Operation '{action.Operation}' not implemented in Simulation.")
             };
         }
@@ -171,7 +173,13 @@ namespace Machine.Framework.Interpreters.Flow
                 await axis.StateStream
                     .Where(s => !s.IsMoving)
                     .FirstAsync()
+                    .Timeout(TimeSpan.FromSeconds(5)) // Safety: prevent infinite wait
                     .ToTask(context.CancellationToken);
+            }
+            catch (TimeoutException)
+            {
+                Console.WriteLine($"[SimWarning] MoveToAndWait timed out for '{action.TargetDevice}'. Forcing stop.");
+                axis.Stop(); // Ensure it stops
             }
             catch (OperationCanceledException)
             {
@@ -269,7 +277,14 @@ namespace Machine.Framework.Interpreters.Flow
                     await cyl.StateStream
                         .Where(s => !s.IsMoving && s.IsExtended == state)
                         .FirstAsync()
+                        .Timeout(TimeSpan.FromSeconds(5))
                         .ToTask(context.CancellationToken);
+                }
+                catch (TimeoutException)
+                {
+                     Console.WriteLine($"[SimWarning] FireAndWait timed out for '{action.TargetDevice}' (State={state}). Continuing...");
+                     // Recalibrate state to ensure it doesn't stay stuck
+                     cyl.Stop();
                 }
                 catch (OperationCanceledException)
                 {
@@ -292,7 +307,12 @@ namespace Machine.Framework.Interpreters.Flow
                     await vac.StateStream
                         .Where(s => !s.IsChanging && s.IsOn == state)
                         .FirstAsync()
+                        .Timeout(TimeSpan.FromSeconds(5)) 
                         .ToTask(context.CancellationToken);
+                }
+                catch (TimeoutException) 
+                {
+                     Console.WriteLine($"[SimWarning] Vacuum Wait timed out for '{action.TargetDevice}'.");
                 }
                 catch (OperationCanceledException)
                 {
@@ -321,8 +341,50 @@ namespace Machine.Framework.Interpreters.Flow
             return Task.FromResult<object?>(expected);
         }
 
+        private async Task<object?> HandleCylinderWaitForAsync(ActionStepDesc action, FlowContext context)
+        {
+            bool state = (bool)(action.Args?[0] ?? false);
+            var device = context.GetDevice<object>(action.TargetDevice);
+            
+            if (device is ISimulatorCylinder cyl) 
+            {
+                // 如果已经在位，直接返回
+                if (!cyl.CurrentState.IsMoving && cyl.CurrentState.IsExtended == state) 
+                    return new Unit();
+
+                await cyl.StateStream
+                    .Where(s => !s.IsMoving && s.IsExtended == state)
+                    .FirstAsync()
+                    .Timeout(TimeSpan.FromSeconds(30)) // 互锁等待通常允许较长时间，或者直到超时报错
+                    .ToTask(context.CancellationToken);
+            }
+            else if (device is ISimulatorVacuum vac)
+            {
+                if (!vac.CurrentState.IsChanging && vac.CurrentState.IsOn == state) 
+                    return new Unit();
+
+                await vac.StateStream
+                    .Where(s => !s.IsChanging && s.IsOn == state)
+                    .FirstAsync()
+                    .Timeout(TimeSpan.FromSeconds(30))
+                    .ToTask(context.CancellationToken);
+            }
+            else 
+            {
+                // Fallback for non-simulated or unknown devices: just pass.
+                // In a real generic interpreter, we might check IO inputs here.
+            }
+
+            return new Unit();
+        }
+
         private async Task<object?> ExecuteSystemActionAsync(ActionStepDesc action, FlowContext context)
         {
+            if (action.Operation.StartsWith("Material"))
+            {
+                return await HandleMaterialOpAsync(action, context);
+            }
+
             if (action.Operation == "Delay")
             {
                 int ms = Convert.ToInt32(action.Args?[0] ?? 0);
@@ -337,6 +399,103 @@ namespace Machine.Framework.Interpreters.Flow
                 return new Unit();
             }
             return new Unit();
+        }
+
+        private Task<object?> HandleMaterialOpAsync(ActionStepDesc action, FlowContext context)
+        {
+            string op = action.Operation;
+            string station = (string)(action.Args?[0] ?? "");
+            
+            if (op == "MaterialCheckState")
+            {
+                if (context.MaterialStates.TryGetValue(station, out var info)) return Task.FromResult<object?>(info.Class);
+                return Task.FromResult<object?>("Empty");
+            }
+
+            if (op == "MaterialSpawn")
+            {
+                string id = (string)action.Args![1];
+                string cls = (string)action.Args![2];
+                var info = new MaterialInfo { Id = id, Class = cls };
+                
+                context.MaterialStates[station] = info;
+                context.EventStream.OnNext(new TelemetryEvent 
+                { 
+                    Type = EventType.MaterialSpawn, 
+                    Payload = new MaterialEventPayload { Id = id, AtStation = station, Class = cls } 
+                });
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialTransform")
+            {
+                string newCls = (string)action.Args![1];
+                if (context.MaterialStates.TryGetValue(station, out var info))
+                {
+                    info.Class = newCls; // Update locally
+                    // Emit event
+                    context.EventStream.OnNext(new TelemetryEvent
+                    {
+                        Type = EventType.MaterialTransform,
+                        Payload = new MaterialEventPayload { Id = info.Id, ToClass = newCls }
+                    });
+                }
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialConsume")
+            {
+                if (context.MaterialStates.TryRemove(station, out var info))
+                {
+                    context.EventStream.OnNext(new TelemetryEvent
+                    {
+                        Type = EventType.MaterialConsume,
+                        Payload = new MaterialEventPayload { Id = info.Id }
+                    });
+                }
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialBind")
+            {
+                string id = (string)action.Args![1];
+                string cls = (string)action.Args![2];
+                context.MaterialStates[station] = new MaterialInfo { Id = id, Class = cls };
+                // Bind 只是纯状态同步，不需要发 Event，因为这是“逻辑移动”的结果
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialUnbind")
+            {
+                context.MaterialStates.TryRemove(station, out _);
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialAttach")
+            {
+                string parent = (string)action.Args![1];
+                string child = (string)action.Args![2];
+                // Emit Attach Event
+                context.EventStream.OnNext(new TelemetryEvent 
+                { 
+                    Type = EventType.Attach, 
+                    Payload = new MaterialEventPayload { AtStation = station, ParentId = parent, ChildId = child } 
+                });
+                return Task.FromResult<object?>(new Unit());
+            }
+
+            if (op == "MaterialDetach")
+            {
+                // Emit Detach Event
+                context.EventStream.OnNext(new TelemetryEvent 
+                { 
+                    Type = EventType.Detach, 
+                    Payload = new MaterialEventPayload { AtStation = station } 
+                });
+                return Task.FromResult<object?>(new Unit());
+            }
+            
+            return Task.FromResult<object?>(new Unit());
         }
 
         private async Task<object?> ExecuteSequenceAsync(SequenceStepDesc sequence, FlowContext context)

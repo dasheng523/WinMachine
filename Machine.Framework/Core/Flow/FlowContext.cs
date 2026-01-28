@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Reactive.Subjects;
 using Machine.Framework.Core.Configuration.Models;
+using Machine.Framework.Telemetry.Contracts;
 
 namespace Machine.Framework.Core.Flow
 {
@@ -84,6 +86,16 @@ namespace Machine.Framework.Core.Flow
         /// 运行时变量池
         /// </summary>
         public ConcurrentDictionary<string, object> Variables { get; } = new();
+
+        /// <summary>
+        /// 物料状态表 (Key: StationID)
+        /// </summary>
+        public ConcurrentDictionary<string, MaterialInfo> MaterialStates { get; } = new();
+
+        /// <summary>
+        /// 事件广播流
+        /// </summary>
+        public Subject<TelemetryEvent> EventStream { get; } = new();
 
         /// <summary>
         /// 取消令牌
