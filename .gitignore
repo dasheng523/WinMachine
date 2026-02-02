@@ -199,3 +199,4 @@ ASALocalRun/
 
 # AppSettings (Optional: ignore local config if it contains secrets)
 # appsettings.local.json
+.agent/

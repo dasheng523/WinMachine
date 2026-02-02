@@ -1,3 +1,4 @@
+using System;
 using System.Threading;
 using Machine.Framework.Core.Blueprint;
 using Machine.Framework.Core.Flow;
@@ -10,6 +11,15 @@ using Machine.Framework.Visualization;
 using static Machine.Framework.Core.Flow.Steps.FlowBuilders;
 
 namespace WinMachine.Server.Scenarios;
+
+public enum PartStatus
+{
+    Empty,
+    New,
+    Testing,
+    Tested,
+    Old
+}
 
 internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
 {
@@ -48,9 +58,13 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
         var cylMidVac3 = new CylinderID("Cyl_Mid_Vac3");
         var cylMidVac4 = new CylinderID("Cyl_Mid_Vac4");
         
-        // 新增上下料机构气缸
-        var cylFeederLift = new CylinderID("Cyl_Feeder_Lift");
-        var cylFeederGrips = new CylinderID("Cyl_Feeder_Grips");
+        // 新增差分上下料机构轴与真空
+        var axisFeederZ1 = new AxisID("Axis_Feeder_Z1");
+        var axisFeederZ2 = new AxisID("Axis_Feeder_Z2");
+        var vacFeederU1 = new CylinderID("Vac_Feeder_U1"); // 下料笔 1
+        var vacFeederL1 = new CylinderID("Vac_Feeder_L1"); // 上料笔 1
+        var vacFeederU2 = new CylinderID("Vac_Feeder_U2"); // 下料笔 2
+        var vacFeederL2 = new CylinderID("Vac_Feeder_L2"); // 上料笔 2
 
         var bp = MachineBlueprint.Define("Complex_Rotary_Dual_Assembly")
             .AddBoard("SimCard", 0, b => b.UseSimulator()
@@ -68,16 +82,27 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
                 .AddCylinder(cylMidVac3, 23, 23)
                 .AddCylinder(cylMidVac4, 24, 24)
                 
-                .AddCylinder(cylFeederLift, 30, 30, c => c.WithDynamics(800).Vertical())
-                .AddCylinder(cylFeederGrips, 31, 31))
+                .AddAxis(axisFeederZ1, 30, a => a.WithRange(-60, 60).WithKinematics(200, 400).Vertical())
+                .AddAxis(axisFeederZ2, 31, a => a.WithRange(-60, 60).WithKinematics(200, 400).Vertical())
+                .AddCylinder(vacFeederU1, 32, 32)
+                .AddCylinder(vacFeederL1, 33, 33)
+                .AddCylinder(vacFeederU2, 34, 34)
+                .AddCylinder(vacFeederL2, 35, 35))
                 .Mount("MachineBase", m => m
-                // --- 中央上下料机构 (悬吊式) ---
-                .Mount("Central_Feeder_Bridge", bridge => bridge.WithOffset(0, 0, 200) // 悬吊高度调整为 200
-                    .Mount("Feeder_Lift", lift => lift.LinkTo(cylFeederLift).WithOffset(0, 0, 0).WithStroke(0, 0, -130) // 下降行程 130 -> 到达 Z=70
-                        .Mount("Feeder_Head", head => head.WithOffset(0, 0, 0)
-                            // 两个抓手间距 80，对应下方物料座间距
-                            .Mount("Feeder_Grip_1", g => g.LinkTo(cylFeederGrips).WithOffset(0, -40, 0))
-                            .Mount("Feeder_Grip_2", g => g.LinkTo(cylFeederGrips).WithOffset(0, 40, 0)))))
+                // --- 中央差分上下料机构 (电机驱动) ---
+                .Mount("Central_Feeder_Bridge", bridge => bridge.WithOffset(0, 0, 150) 
+                    .Mount("Feeder_Z1_Group", z1 => z1.WithOffset(0, -40, 0)
+                        // 下料笔 U1
+                        .Mount("Pen_U1", pen => pen.LinkTo(axisFeederZ1).WithStroke(0, 0, -60)
+                            .Mount("Vac_U1", v => v.LinkTo(vacFeederU1)))
+                        // 上料笔 L1
+                        .Mount("Pen_L1", pen => pen.LinkTo(axisFeederZ1).WithStroke(0, 0, 60)
+                            .Mount("Vac_L1", v => v.LinkTo(vacFeederL1))))
+                    .Mount("Feeder_Z2_Group", z2 => z2.WithOffset(0, 40, 0)
+                        .Mount("Pen_U2", pen => pen.LinkTo(axisFeederZ2).WithStroke(0, 0, -60)
+                            .Mount("Vac_U2", v => v.LinkTo(vacFeederU2)))
+                        .Mount("Pen_L2", pen => pen.LinkTo(axisFeederZ2).WithStroke(0, 0, 60)
+                            .Mount("Vac_L2", v => v.LinkTo(vacFeederL2)))))
 
                 // --- 中间滑台 (行程 +/- 65 -> 总行程 130) ---
                 // 初始位置(收回): X = +65. Slide Center = +65.
@@ -144,14 +169,18 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
             v.For(axisTableRight).AsRotaryTable(radius: 100).WithPivot(0.5, 0.5);
             v.For(cylGripsRight).AsGripper(open: 40, close: 10).Horizontal();
 
-            v.For(cylMiddleSlide).AsSlideBlock(size: 60).Horizontal(); // 恢复为小尺寸，避免遮挡
+            v.For(cylMiddleSlide).AsSlideBlock(size: 60).Horizontal(); 
             v.For(cylMidVac1).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac2).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac3).AsSuctionPen(diameter: 8).Vertical();
             v.For(cylMidVac4).AsSuctionPen(diameter: 8).Vertical();
 
-            v.For(cylFeederLift).AsSlideBlock(size: 40).Vertical(); // 缩小 Feeder 尺寸避免遮挡
-            v.For(cylFeederGrips).AsGripper(open: 40, close: 10).Horizontal();
+            v.For(axisFeederZ1).AsLinearGuide(length: 60, sliderWidth: 30).Vertical();
+            v.For(axisFeederZ2).AsLinearGuide(length: 60, sliderWidth: 30).Vertical();
+            v.For(vacFeederU1).AsSuctionPen(diameter: 10).Vertical(); // 红色下料
+            v.For(vacFeederL1).AsSuctionPen(diameter: 10).Vertical(); // 绿色上料
+            v.For(vacFeederU2).AsSuctionPen(diameter: 10).Vertical();
+            v.For(vacFeederL2).AsSuctionPen(diameter: 10).Vertical();
 
             // 为测试座添加一些视觉 (复用 SuctionPen 样式)
             // v.For("Test_Vac_L1")... 我们没有 ID 绑定，所以这里无法直接应用 Style，
@@ -181,139 +210,180 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
 
         var cylMiddleSlide = new CylinderID("Cyl_Middle_Slide");
         
-        // Define Feeder cylinders in local scope
-        var cylFeederLift = new CylinderID("Cyl_Feeder_Lift");
-        var cylFeederGrips = new CylinderID("Cyl_Feeder_Grips");
+        var axisFeederZ1 = new AxisID("Axis_Feeder_Z1");
+        var axisFeederZ2 = new AxisID("Axis_Feeder_Z2");
+        var vacFeederU1 = new CylinderID("Vac_Feeder_U1");
+        var vacFeederL1 = new CylinderID("Vac_Feeder_L1");
+        var vacFeederU2 = new CylinderID("Vac_Feeder_U2");
+        var vacFeederL2 = new CylinderID("Vac_Feeder_L2");
 
-        // --- Sub-Workflow: Feeder Logic (Generic for any station) ---
-        // Feeder 只有一套升降轴，所以必须同时处理两个工位 (vacInner, vacOuter)
-        // 简化逻辑：每次下降都尝试为 Empty 的工位上料 (New)，并把 Old 的工位物料取走 (Consume)。
-        // 为了演示效果，我们假设 Feeder 总是先抓取新料（假装它有无限库存），然后下降。
-        Step<Unit> FeederJob(string vacInner, string vacOuter) 
+        // --- 状态管理: 独立测试计时 ---
+        // 使用闭包变量来存储每个工位的"预计测试完成时间"
+        var testEndTimes = new System.Collections.Generic.Dictionary<string, System.DateTime>();
+        var rand = new System.Random();
+
+        // 辅助方法: 管理测试座的独立状态 (不包含任何机械动作)
+        Step<Unit> ManageTest(string vacName)
         {
-            return 
-                from _1 in Name($"Feeder:准备[{vacInner},{vacOuter}]").Next(Step.NoOp())
-                // 1. Feeder 抓新料 (模拟：直接生成在新料抓手 Feeder_Grip_1/2 上)
-                // 这里为了简单，我们假设 Feeder 抓手对应 vacInner 和 vacOuter
-                // 我们直接生成物料在 Vac 上（模拟 Feeder 放下的结果），省略 Feeder 自身的抓取细节动画，只做升降动作
-                from _2 in Cylinder(cylFeederLift).FireAndWait(true) // 下降
+            return Material(vacName).CheckState().SelectMany(stateStr => 
+            {
+                if (!Enum.TryParse<PartStatus>(stateStr, out var state)) return Step.NoOp();
+
+                // 状态: 刚收到新料 -> 开始测试
+                if (state == PartStatus.New) 
+                {
+                    var duration = rand.Next(10, 21); // 随机 10-20 秒
+                    testEndTimes[vacName] = System.DateTime.Now.AddSeconds(duration);
+                    return Name($"开始测试 {vacName} ({duration}s)").Next(Material(vacName).Transform(PartStatus.Testing.ToString()));
+                }
                 
-                from _3 in Name($"检查工位 {vacInner}").Next(
-                     Material(vacInner).CheckState().SelectMany(state => 
-                     {
-                        // 逻辑：Feeder 下降 -> 发现 Empty -> 生成 -> 抓手抓起(模拟) -> 上升
-                        // 修正：Spawn 应该在 Feeder 接触时发生
-                        if (state == "Empty") return Material(vacInner).Spawn($"Part_{System.Guid.NewGuid().ToString().Substring(0,4)}", "New");
-                        if (state == "Old") return Material(vacInner).Consume();
-                        return Step.NoOp();
-                     }, (x, y) => Unit.Default)
-                )
-                from _4 in Name($"检查工位 {vacOuter}").Next(
-                     Material(vacOuter).CheckState().SelectMany(state => 
-                     {
-                        if (state == "Empty") return Material(vacOuter).Spawn($"Part_{System.Guid.NewGuid().ToString().Substring(0,4)}", "New");
-                        if (state == "Old") return Material(vacOuter).Consume();
-                        return Step.NoOp();
-                     }, (x, y) => Unit.Default)
-                )
-                
-                from _5 in Cylinder(cylFeederLift).FireAndWait(false) // 上升
-                select Unit.Default;
+                // 状态: 测试中 -> 检查时间
+                if (state == PartStatus.Testing)
+                {
+                    if (testEndTimes.ContainsKey(vacName))
+                    {
+                        var remaining = (testEndTimes[vacName] - System.DateTime.Now).TotalSeconds;
+                        if (remaining <= 0)
+                        {
+                            return Name($"测试完成 {vacName}").Next(Material(vacName).Transform(PartStatus.Tested.ToString()));
+                        }
+                    }
+                }
+                return Step.NoOp();
+            }, (a, b) => Unit.Default);
         }
 
-        // --- Sub-Workflow: Assembly Logic (Generic for any module) ---
-        Step<Unit> AssemblyJob(string name, CylinderID cylLift, AxisID axisTable, CylinderID cylGrip, 
-            string vacSlide1, string vacSlide2, string vacTest1, string vacTest2)
+        // --- 子任务: Feeder (差分双轴四吸笔) ---
+        Step<Unit> FeederJob(string vacSlide1, string vacSlide2) 
         {
-            // 夹爪映射：
-            // 0度时: RightGrips(Grip_R1/2) -> Slide(Inner), LeftGrips(Grip_L1/2) -> Test(Outer)
-            // 180度时: LeftGrips -> Slide, RightGrips -> Test
-            
-            // 逻辑简化：
-            // 1. 检查 Slide 是否有新料 (New) 或者 Test 是否有旧料 (Old/Tested) 需要带走
-            // 2. 下降抓取 (同时抓 Slide 和 Test)
-            // 3. 旋转 (Swap)
-            // 4. 下降放料 (Slide 得到 Old, Test 得到 New)
-            // 5. 原地模拟测试 5s
-            
             return 
-                from slide1 in Material(vacSlide1).CheckState()
-                from slide2 in Material(vacSlide2).CheckState()
-                from test1 in Material(vacTest1).CheckState()
-                // 如果 Slide 有新料，或者 Test 有完工料，则执行交换
-                from _act in (slide1 == "New" || slide2 == "New" || test1 == "Tested" || test1 == "Old") ? 
-                    (
-                        from _1 in Name($"{name}:开始交换循环").Next(Step.NoOp())
-                        
-                        // 1. 获取当前旋转角度以决定 Grip 映射
-                        // 由于 DSL 是构建时确定的，我们使用动态 SelectMany 来运行时判断
-                        from _dyn in Motion(axisTable).MoveToAndWait(pos => pos) // Dummy move to get pos? No, just use side effect logic or assume toggle.
-                        // 为了简化，我们直接执行 "Toggle" 逻辑，并在 Bind 时根据假定位置绑定
-                        // 但严谨的做法是：
-                        
-                        // A. 预备：Lift 必须为 Up (True) - 已由 SafetyBarrier 保证，但这里可以再次确认
-                        from _p1 in Cylinder(cylLift).WaitFor(true) // Ensure Up
-                        from _p2 in Cylinder(cylGrip).FireAndWait(true) // Ensure Open
-
-                        // B. 下降 (False=Down)
-                        from _d1 in Cylinder(cylLift).FireAndWait(false)
-                        from _g1 in Cylinder(cylGrip).FireAndWait(false) // Close (Pick)
-
-                        // C. 绑定逻辑 (Bind) -- 视觉 Attach
-                        // Slide -> Grip L (假设)
-                        // 注意：我们需要知道当前 Grip 到底对应哪个 HoldPoint。
-                        // 简单起见，我们 Attach 到 Grip 的 Root Device (cylGrip)，前端会自动挂载到末端
-                        // 或者更精确：Mount("Grip_L1") ... 但 DSL 里没有这个 ID。
-                        // 妥协：Attach 到 CylinderID，前端寻找名为 "Grip_L1" / "Grip_R1" 的下级节点。
-                        // 这里我们分别 Attach parts.
-                        
-                        from _b1 in (slide1 == "New" ? Material(vacSlide1).AttachTo(cylGrip.Name, "NewPart1") : Step.NoOp())
-                        from _b2 in (slide1 == "New" ? Material(vacSlide1).Consume() : Step.NoOp()) // 逻辑上离开 Vac
-
-                        from _b3 in (test1 == "Tested" || test1 == "Old" ? Material(vacTest1).AttachTo(cylGrip.Name, "OldPart1") : Step.NoOp())
-                        from _b4 in (test1 == "Tested" || test1 == "Old" ? Material(vacTest1).Consume() : Step.NoOp())
-
-                        // D. 升起 & 旋转
-                        from _u1 in Cylinder(cylLift).FireAndWait(true) // Up
-                        from _r1 in Motion(axisTable).MoveToAndWait(pos => Math.Abs(pos - 0) < 1.0 ? 180 : 0)
-
-                        // E. 下降 & 放开
-                        from _d2 in Cylinder(cylLift).FireAndWait(false) // Down
-                        from _g2 in Cylinder(cylGrip).FireAndWait(true) // Open (Place)
-
-                        // F. 解绑逻辑 (Unbind/Place)
-                        // Detach actually happens implicitly when we Spawn new items at the target.
-                        // Or we can explicitly Detach if we want them to "fall".
-                        // But Spawning "New" at target is cleaner for logic state.
-                        
-                        // Slide 侧得到 OldPart
-                        from _p_o1 in (test1 == "Tested" || test1 == "Old" ? Material(vacSlide1).Spawn("Done_Part", "Old") : Step.NoOp())
-                        
-                        // Test 侧得到 NewPart
-                        from _p_n1 in (slide1 == "New" ? Material(vacTest1).Spawn("Transferred_Part", "New") : Step.NoOp())
-
-                        // G. 升起 (这里不需要升起，直接开始测试)
-                        // from _u2 in Cylinder(cylLift).FireAndWait(true) 
-                        
-                        // H. 测试过程 (5秒)
-                        from _t1 in (slide1 == "New" ? Name($"{name}:测试中(5s)...").Next(SystemStep.Delay(5000)) : Step.NoOp())
-                        
-                        // I. 更新 Test Station 状态为 "Tested"
-                        from _s1 in (slide1 == "New" ? Material(vacTest1).Transform("Tested") : Step.NoOp())
-
-                        // J. 测试完成，升起离开
-                        from _uFinal in Cylinder(cylLift).FireAndWait(true) // Up
-                        
-                        select Unit.Default
-                    ) : Step.NoOp()
+                from s1Str in Material(vacSlide1).CheckState()
+                from s2Str in Material(vacSlide2).CheckState()
+                let s1 = Enum.TryParse<PartStatus>(s1Str, out var v1) ? v1 : PartStatus.Empty
+                let s2 = Enum.TryParse<PartStatus>(s2Str, out var v2) ? v2 : PartStatus.Empty
+                
+                // 判断是否需要动作 (有位可放料 or 有料可收)
+                from _act in (s1 != PartStatus.Testing || s2 != PartStatus.Testing) ?
+                (
+                    // A. 下料循环 (Unload First): 轴正向 -> 下料笔下降
+                    from _1 in Name("Feeder: 下料笔下降").Next(
+                        Step.InParallel(
+                            Motion(axisFeederZ1).MoveToAndWait(50), 
+                            Motion(axisFeederZ2).MoveToAndWait(50)))
                     
+                    from _u1 in (s1 == PartStatus.Old ? Material(vacSlide1).AttachTo(vacFeederU1.Name, vacSlide1) : Step.NoOp())
+                    from _u1c in (s1 == PartStatus.Old ? Material(vacSlide1).Consume() : Step.NoOp())
+                    from _u2 in (s2 == PartStatus.Old ? Material(vacSlide2).AttachTo(vacFeederU2.Name, vacSlide2) : Step.NoOp())
+                    from _u2c in (s2 == PartStatus.Old ? Material(vacSlide2).Consume() : Step.NoOp())
+                    
+                    from _2 in Name("Feeder: 下料笔回位").Next(
+                        Step.InParallel(
+                            Motion(axisFeederZ1).MoveToAndWait(0),
+                            Motion(axisFeederZ2).MoveToAndWait(0)))
+
+                    // B. 上料循环 (Load Second): 轴负向 -> 上料笔下降
+                    from _3 in Name("Feeder: 上料笔下降").Next(
+                        Step.InParallel(
+                            Motion(axisFeederZ1).MoveToAndWait(-50),
+                            Motion(axisFeederZ2).MoveToAndWait(-50)))
+                    
+                    // 将上料笔上的料(必须先有) 放到滑块
+                    from _l1 in (s1 == PartStatus.Empty ? Material(vacSlide1).Spawn($"P_{rand.Next(1000,9999)}", PartStatus.New.ToString()) : Step.NoOp())
+                    from _l1d in (s1 == PartStatus.Empty ? Material(vacFeederL1.Name).Detach() : Step.NoOp())
+                    from _l2 in (s2 == PartStatus.Empty ? Material(vacSlide2).Spawn($"P_{rand.Next(1000,9999)}", PartStatus.New.ToString()) : Step.NoOp())
+                    from _l2d in (s2 == PartStatus.Empty ? Material(vacFeederL2.Name).Detach() : Step.NoOp())
+
+                    from _4 in Name("Feeder: 上料笔回位").Next(
+                        Step.InParallel(
+                            Motion(axisFeederZ1).MoveToAndWait(0),
+                            Motion(axisFeederZ2).MoveToAndWait(0)))
+
+                    // C. 模拟 Feeder 补充自身上料笔的料 (凭空产生，为下次做准备)
+                    from _refill in Name("Feeder: 补充自身吸笔物料").Next(
+                        Step.InParallel(
+                             Material(vacFeederL1.Name).Spawn("New_Source", PartStatus.New.ToString()),
+                             Material(vacFeederL2.Name).Spawn("New_Source", PartStatus.New.ToString())
+                        ))
+
+                    select Unit.Default
+                ) : Step.NoOp() 
                 select Unit.Default;
         }
 
+        // --- 子任务: Assembly (智能搬运) ---
+        Step<Unit> AssemblyJob(string name, CylinderID cylLift, AxisID axisTable, CylinderID cylGrip, 
+            string vacSlide1, string vacSlide2, string vacTest1, string vacTest2, bool expectedSlidePos)
+        {
+            return 
+                // 1. 物理互锁: 只有滑块到了指定位置，本模组才允许动作
+                from _interlock in Cylinder(cylMiddleSlide).WaitFor(expectedSlidePos)
+                
+                // 2. 先维护测试座的时间状态 (逻辑步 0ms)
+                from _m1 in ManageTest(vacTest1)
+                from _m2 in ManageTest(vacTest2)
+
+                // 3. 检查所有相关 Vac 的状态
+                from sS1Str in Material(vacSlide1).CheckState()
+                from sS2Str in Material(vacSlide2).CheckState()
+                from sT1Str in Material(vacTest1).CheckState()
+                from sT2Str in Material(vacTest2).CheckState()
+                
+                let sS1 = Enum.TryParse<PartStatus>(sS1Str, out var vs1) ? vs1 : PartStatus.Empty
+                let sS2 = Enum.TryParse<PartStatus>(sS2Str, out var vs2) ? vs2 : PartStatus.Empty
+                let sT1 = Enum.TryParse<PartStatus>(sT1Str, out var vt1) ? vt1 : PartStatus.Empty
+                let sT2 = Enum.TryParse<PartStatus>(sT2Str, out var vt2) ? vt2 : PartStatus.Empty
+
+                // 4. 判断是否需要执行物理搬运 (Exchange)
+                // 条件: (滑块送来了New) 或者 (测试座测完了Tested)
+                from _doTransfer in (sS1 == PartStatus.New || sS2 == PartStatus.New || sT1 == PartStatus.Tested || sT2 == PartStatus.Tested) ?
+                (
+                    // 执行物理交换流程
+                    from _log in Name($"{name}: 执行交换...").Next(Step.NoOp())
+                    
+                    // A. 直接取料 (默认气缸已在水平对齐高度 Down/False)
+                    from _g1 in Cylinder(cylGrip).FireAndWait(false) // Close - Pick
+
+                    // 绑定逻辑 (Bind)
+                    from _bS1 in (sS1 == PartStatus.New ? Material(vacSlide1).AttachTo(cylGrip.Name, vacSlide1) : Step.NoOp())
+                    from _bS1_c in (sS1 == PartStatus.New ? Material(vacSlide1).Consume() : Step.NoOp())
+                    from _bS2 in (sS2 == PartStatus.New ? Material(vacSlide2).AttachTo(cylGrip.Name, vacSlide2) : Step.NoOp())
+                    from _bS2_c in (sS2 == PartStatus.New ? Material(vacSlide2).Consume() : Step.NoOp())
+
+                    from _bT1 in (sT1 == PartStatus.Tested ? Material(vacTest1).AttachTo(cylGrip.Name, vacTest1) : Step.NoOp())
+                    from _bT1_c in (sT1 == PartStatus.Tested ? Material(vacTest1).Consume() : Step.NoOp())
+                    from _bT2 in (sT2 == PartStatus.Tested ? Material(vacTest2).AttachTo(cylGrip.Name, vacTest2) : Step.NoOp())
+                    from _bT2_c in (sT2 == PartStatus.Tested ? Material(vacTest2).Consume() : Step.NoOp())
+
+                    // B. 升起, 旋转, 下降 (旋转时必须处于安全高度 Up/True)
+                    from _u1 in Cylinder(cylLift).FireAndWait(true)  // 升起避障
+                    from _rot in Motion(axisTable).MoveToAndWait(pos => System.Math.Abs(pos - 0) < 1.0 ? 180 : 0) // Toggle
+                    from _d2 in Cylinder(cylLift).FireAndWait(false) // 下降放料
+
+                    // C. 放料
+                    from _g2 in Cylinder(cylGrip).FireAndWait(true) // Open - Place
+
+                    // 生成逻辑 (Unbind/Spawn)
+                    // Slide 侧得到 Old/Tested
+                    from _pS1 in (sT1 == PartStatus.Tested ? Material(vacSlide1).Spawn("Done_Part", PartStatus.Old.ToString()) : Step.NoOp())
+                    from _pS2 in (sT2 == PartStatus.Tested ? Material(vacSlide2).Spawn("Done_Part", PartStatus.Old.ToString()) : Step.NoOp())
+                    
+                    // Test 侧得到 New
+                    from _pT1 in (sS1 == PartStatus.New ? Material(vacTest1).Spawn("Part", PartStatus.New.ToString()) : Step.NoOp())
+                    from _pT2 in (sS2 == PartStatus.New ? Material(vacTest2).Spawn("Part", PartStatus.New.ToString()) : Step.NoOp())
+
+                    from _u2 in Cylinder(cylLift).FireAndWait(false) // 动作结束回到水平对齐高度，方便下次直接对接
+                    select Unit.Default
+                ) : Step.NoOp() 
+
+                select Unit.Default;
+        }
+
+        // 安全屏障: 确保所有垂直轴都在 0/False 状态
         Step<Unit> SafetyBarrier()
         {
             return Step.InParallel(
-                Cylinder(cylFeederLift).WaitFor(false),
+                Motion(axisFeederZ1).MoveToAndWait(0),
+                Motion(axisFeederZ2).MoveToAndWait(0),
                 Cylinder(cylR_Lift).WaitFor(false),
                 Cylinder(cylLiftRight).WaitFor(false)
             ).Select(_ => Unit.Default);
@@ -322,32 +392,36 @@ internal sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
         var cycle = 
             from _start in Name("--- 循环开始 ---").Next(Step.NoOp())
             
-            // 0. Ensure Grippers are Open at Start (First Run Fix)
+            // 0. 初始化
+            from _init_mat in Step.InParallel(
+                Material(vacFeederL1.Name).Spawn("INIT_PART_1", PartStatus.New.ToString()),
+                Material(vacFeederL2.Name).Spawn("INIT_PART_2", PartStatus.New.ToString())
+            )
             from _init1 in Cylinder(cylGripsLeft).FireAndWait(true)
             from _init2 in Cylinder(cylGripsRight).FireAndWait(true)
+            from _init3 in Cylinder(cylR_Lift).FireAndWait(false)   // 初始在工作高度
+            from _init4 in Cylinder(cylLiftRight).FireAndWait(false)
             
-            // 1. 滑台向左 (State A)
-            // Safety First: Ensure all Z-axis are UP
-            from _safe1 in Name("安全互锁检查").Next(SafetyBarrier())
-            
+            // --- 阶段 1: 滑台向左 ---
+            from _safe1 in Name("安全检查").Next(SafetyBarrier())
             from _m1 in Name("滑台向左").Next(Cylinder(cylMiddleSlide).FireAndWait(true))
-            from _p1 in Step.InParallel(
-                Scope("LeftModule_Process", AssemblyJob("左模组", cylR_Lift, axisR_Table, cylGripsLeft, "Vac1", "Vac2", "Test_Vac_L1", "Test_Vac_L2")),
+            
+            from _work1 in Step.InParallel(
+                Scope("LeftModule_Process", AssemblyJob("左模组", cylR_Lift, axisR_Table, cylGripsLeft, "Vac1", "Vac2", "Test_Vac_L1", "Test_Vac_L2", true)),
                 Scope("Feeder_Right_Group", FeederJob("Vac3", "Vac4"))
             )
 
-            // 2. 滑台向右 (State B)
-            // Safety First
-            from _safe2 in Name("安全互锁检查").Next(SafetyBarrier())
-
+            // --- 阶段 2: 滑台向右 ---
+            from _safe2 in Name("安全检查").Next(SafetyBarrier())
             from _m2 in Name("滑台向右").Next(Cylinder(cylMiddleSlide).FireAndWait(false))
-            from _p2 in Step.InParallel(
+            
+            from _work2 in Step.InParallel(
                 Scope("Feeder_Left_Group", FeederJob("Vac1", "Vac2")),
-                Scope("RightModule_Process", AssemblyJob("右模组", cylLiftRight, axisTableRight, cylGripsRight, "Vac3", "Vac4", "Test_Vac_R1", "Test_Vac_R2"))
+                Scope("RightModule_Process", AssemblyJob("右模组", cylLiftRight, axisTableRight, cylGripsRight, "Vac3", "Vac4", "Test_Vac_R1", "Test_Vac_R2", false))
             )
 
             select Unit.Default;
-
+            
         return cycle.Loop().Definition;
     }
 }
