@@ -293,7 +293,7 @@ namespace Machine.Framework.Core.Flow.Steps
 
     public static class FlowChainingExtensions
     {
-        public static Step<TNext> Next<TNext>(this Step<Unit> step, Step<TNext> next)
+        public static Step<TNext> Next<TSource, TNext>(this Step<TSource> step, Step<TNext> next)
         {
             return step.SelectMany(_ => next, (_, r) => r);
         }
