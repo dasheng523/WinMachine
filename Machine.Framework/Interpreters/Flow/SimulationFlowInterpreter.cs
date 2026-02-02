@@ -173,7 +173,7 @@ namespace Machine.Framework.Interpreters.Flow
                 await axis.StateStream
                     .Where(s => !s.IsMoving)
                     .FirstAsync()
-                    .Timeout(TimeSpan.FromSeconds(5)) // Safety: prevent infinite wait
+                    .Timeout(TimeSpan.FromSeconds(30)) // Safety: prevent infinite wait
                     .ToTask(context.CancellationToken);
             }
             catch (TimeoutException)
@@ -277,7 +277,7 @@ namespace Machine.Framework.Interpreters.Flow
                     await cyl.StateStream
                         .Where(s => !s.IsMoving && s.IsExtended == state)
                         .FirstAsync()
-                        .Timeout(TimeSpan.FromSeconds(5))
+                        .Timeout(TimeSpan.FromSeconds(30))
                         .ToTask(context.CancellationToken);
                 }
                 catch (TimeoutException)
@@ -307,7 +307,7 @@ namespace Machine.Framework.Interpreters.Flow
                     await vac.StateStream
                         .Where(s => !s.IsChanging && s.IsOn == state)
                         .FirstAsync()
-                        .Timeout(TimeSpan.FromSeconds(5)) 
+                        .Timeout(TimeSpan.FromSeconds(30)) 
                         .ToTask(context.CancellationToken);
                 }
                 catch (TimeoutException) 
@@ -604,7 +604,7 @@ namespace Machine.Framework.Interpreters.Flow
                         ?? physical?.TravelMax
                         ?? 1000;
 
-                    var axis = new SimulatorAxis(logicId, min, max, 200);
+                    var axis = new SimulatorAxis(logicId, min, max, 2000);
                     context.RegisterDevice(logicId, axis);
                 }
             }

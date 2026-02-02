@@ -48,7 +48,7 @@ internal sealed class ScenarioRegistry
     public ScenarioRuntime BuildRuntime(string name, CancellationToken ct) => Get(name).BuildRuntime(ct);
 }
 
-internal interface IScenarioFactory
+public interface IScenarioFactory
 {
     string Name { get; }
 
@@ -57,7 +57,7 @@ internal interface IScenarioFactory
     ScenarioRuntime BuildRuntime(CancellationToken ct);
 }
 
-internal sealed record ScenarioRuntime(
+public sealed record ScenarioRuntime(
     string ScenarioName,
     string SchemaVersion,
     Machine.Framework.Core.Flow.FlowContext Context,

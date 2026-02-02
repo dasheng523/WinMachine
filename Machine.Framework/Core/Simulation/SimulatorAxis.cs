@@ -1,7 +1,7 @@
 using System;
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Threading;
 using System.Threading.Tasks;
 using Machine.Framework.Core.Hardware;
 using Machine.Framework.Core.Hardware.Interfaces;
@@ -12,7 +12,7 @@ namespace Machine.Framework.Core.Simulation
     public class SimulatorAxis : ISimulatorAxis
     {
         private readonly BehaviorSubject<AxisState> _state;
-        private IDisposable? _movementSubscription;
+        private CancellationTokenSource? _movementCts;
         private readonly object _lock = new object();
 
         public string AxisId { get; }
@@ -30,7 +30,6 @@ namespace Machine.Framework.Core.Simulation
             TravelMax = max;
             MaxSpeed = maxSpeed;
 
-            // 初始状态
             var initial = new AxisState
             {
                 Position = 0,
@@ -55,58 +54,67 @@ namespace Machine.Framework.Core.Simulation
         {
             lock (_lock)
             {
-                _movementSubscription?.Dispose(); // 停止旧运动
+                _movementCts?.Cancel(); 
+                _movementCts = new CancellationTokenSource();
+                var token = _movementCts.Token;
 
                 var current = _state.Value;
                 if (Math.Abs(current.Position - targetPos) < 0.001)
+                {
+                    _state.OnNext(current with { IsMoving = false, Position = targetPos, CommandPos = targetPos });
                     return;
+                }
 
                 double finalSpeed = Math.Min(speedVal, MaxSpeed);
                 if (finalSpeed <= 0) finalSpeed = MaxSpeed * 0.1;
 
-                // 更新状态为运动中
                 _state.OnNext(current with { 
                     CommandPos = targetPos, 
-                    IsMoving = true,
-                    Speed = current.Speed // 简化处理
+                    IsMoving = true
                 });
-                
-                // 使用 Rx Interval 驱动运动
-                _movementSubscription = Observable.Interval(TimeSpan.FromMilliseconds(10), TaskPoolScheduler.Default)
-                    .Subscribe(_ => 
+
+                Task.Run(async () => 
+                {
+                    try 
                     {
-                        var s = _state.Value;
-                        double step = finalSpeed * 0.01; // 10ms move
-                        double dist = targetPos - s.Position;
-                        
-                        double newPos;
-                        bool done = false;
-
-                        if (Math.Abs(dist) <= step)
+                        while (!token.IsCancellationRequested)
                         {
-                            newPos = targetPos;
-                            done = true;
-                        }
-                        else
-                        {
-                            newPos = s.Position + Math.Sign(dist) * step;
-                        }
+                            await Task.Delay(10, token);
+                            
+                            lock (_lock)
+                            {
+                                var s = _state.Value;
+                                double step = finalSpeed * 0.01; 
+                                double dist = targetPos - s.Position;
+                                
+                                double newPos;
+                                bool done = false;
 
-                        // 软限位检查
-                        if (newPos > TravelMax) { newPos = TravelMax; done = true; }
-                        if (newPos < TravelMin) { newPos = TravelMin; done = true; }
+                                if (Math.Abs(dist) <= step)
+                                {
+                                    newPos = targetPos;
+                                    done = true;
+                                }
+                                else
+                                {
+                                    newPos = s.Position + Math.Sign(dist) * step;
+                                }
 
-                        var newState = s with { 
-                            Position = newPos, 
-                            IsMoving = !done 
-                        };
-                        _state.OnNext(newState);
+                                if (newPos > TravelMax) { newPos = TravelMax; done = true; }
+                                if (newPos < TravelMin) { newPos = TravelMin; done = true; }
 
-                        if (done)
-                        {
-                             _movementSubscription?.Dispose();
+                                var newState = s with { 
+                                    Position = newPos, 
+                                    IsMoving = !done 
+                                };
+                                _state.OnNext(newState);
+
+                                if (done) break;
+                            }
                         }
-                    });
+                    }
+                    catch (OperationCanceledException) { }
+                }, token);
             }
         }
 
@@ -114,7 +122,7 @@ namespace Machine.Framework.Core.Simulation
         {
             lock (_lock)
             {
-                _movementSubscription?.Dispose();
+                _movementCts?.Cancel();
                 var current = _state.Value;
                 _state.OnNext(current with { IsMoving = false });
             }
