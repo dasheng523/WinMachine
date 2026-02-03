@@ -22,36 +22,20 @@ public sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
     public string Name => "复杂转盘组装场景 (核心逻辑版)";
 
     // --- 硬件定义 ---
-    private readonly CylinderID Cyl_R_Lift = new("Cyl_R_Lift");
-    private readonly AxisID Axis_R_Table = new("Axis_R_Table");
-    private readonly CylinderID Cyl_Grips_Left = new("Cyl_Grips_Left");
-
-    private readonly CylinderID Cyl_Lift_Right = new("Cyl_Lift_Right");
-    private readonly AxisID Axis_Table_Right = new("Axis_Table_Right");
-    private readonly CylinderID Cyl_Grips_Right = new("Cyl_Grips_Right");
-
-    private readonly CylinderID Cyl_Middle_Slide = new("Cyl_Middle_Slide");
-    
-    private readonly AxisID Axis_Feeder_X = new("Axis_Feeder_X");
-    private readonly AxisID Axis_Feeder_Z1 = new("Axis_Feeder_Z1");
-    private readonly AxisID Axis_Feeder_Z2 = new("Axis_Feeder_Z2");
-    private readonly CylinderID Vac_Feeder_U1 = new("Vac_Feeder_U1");
-    private readonly CylinderID Vac_Feeder_L1 = new("Vac_Feeder_L1");
-    private readonly CylinderID Vac_Feeder_U2 = new("Vac_Feeder_U2");
-    private readonly CylinderID Vac_Feeder_L2 = new("Vac_Feeder_L2");
+    private readonly ComplexRotaryMachine _machine = new();
 
     private readonly Dictionary<string, DateTime> _testEndTimes = new();
     private readonly Random _rand = new();
 
     public WebMachineModel BuildSchema()
     {
-        var (config, visualsModel, machineName) = BuildConfigAndVisuals();
+        var (config, visualsModel, machineName) = _machine.Build();
         return WebMachineModelMapper.MapToWebModel(config, visualsModel, machineName);
     }
 
     public ScenarioRuntime BuildRuntime(CancellationToken ct)
     {
-        var (config, visualsModel, machineName) = BuildConfigAndVisuals();
+        var (config, visualsModel, machineName) = _machine.Build();
         var flow = BuildFlow();
         var ctx = new FlowContext(config, ct);
         var schema = WebMachineModelMapper.MapToWebModel(config, visualsModel, machineName);
@@ -85,17 +69,17 @@ public sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
             let s1 = Enum.TryParse<PartStatus>(s1Str, out var v1) ? v1 : PartStatus.Empty
             let s2 = Enum.TryParse<PartStatus>(s2Str, out var v2) ? v2 : PartStatus.Empty
             from _act in (s1 != PartStatus.Testing || s2 != PartStatus.Testing) ? (
-                from _x1 in Scope("Feeder: 下料位对齐", Motion(Axis_Feeder_X).MoveToAndWait(-40))
-                from _1 in Scope("Feeder: 下料笔下降", Step.InParallel(Motion(Axis_Feeder_Z1).MoveToAndWait(50), Motion(Axis_Feeder_Z2).MoveToAndWait(50)))
-                from _u1 in (s1 == PartStatus.Old ? Material(vacSlide1).AttachTo(Vac_Feeder_U1.Name, vacSlide1).Next(Material(vacSlide1).Consume()) : Step.NoOp())
-                from _u2 in (s2 == PartStatus.Old ? Material(vacSlide2).AttachTo(Vac_Feeder_U2.Name, vacSlide2).Next(Material(vacSlide2).Consume()) : Step.NoOp())
-                from _2 in Scope("Feeder: 下料笔回位", Step.InParallel(Motion(Axis_Feeder_Z1).MoveToAndWait(0), Motion(Axis_Feeder_Z2).MoveToAndWait(0)))
-                from _x2 in Scope("Feeder: 上料位对齐", Motion(Axis_Feeder_X).MoveToAndWait(40))
-                from _3 in Scope("Feeder: 上料笔下降", Step.InParallel(Motion(Axis_Feeder_Z1).MoveToAndWait(-50), Motion(Axis_Feeder_Z2).MoveToAndWait(-50)))
-                from _l1 in (s1 == PartStatus.Empty ? Material(vacSlide1).Spawn($"P_{_rand.Next(1000,9999)}", PartStatus.New.ToString()).Next(Material(Vac_Feeder_L1.Name).Detach()) : Step.NoOp())
-                from _l2 in (s2 == PartStatus.Empty ? Material(vacSlide2).Spawn($"P_{_rand.Next(1000,9999)}", PartStatus.New.ToString()).Next(Material(Vac_Feeder_L2.Name).Detach()) : Step.NoOp())
-                from _4 in Scope("Feeder: 上料笔回位", Step.InParallel(Motion(Axis_Feeder_Z1).MoveToAndWait(0), Motion(Axis_Feeder_Z2).MoveToAndWait(0)))
-                from _refill in Scope("Feeder: 补充物料", Step.InParallel(Material(Vac_Feeder_L1.Name).Spawn("Src", PartStatus.New.ToString()), Material(Vac_Feeder_L2.Name).Spawn("Src", PartStatus.New.ToString())))
+                from _x1 in Scope("Feeder: 下料位对齐", Motion(_machine.Axis_Feeder_X).MoveToAndWait(-40))
+                from _1 in Scope("Feeder: 下料笔下降", Step.InParallel(Motion(_machine.Axis_Feeder_Z1).MoveToAndWait(50), Motion(_machine.Axis_Feeder_Z2).MoveToAndWait(50)))
+                from _u1 in (s1 == PartStatus.Old ? Material(vacSlide1).AttachTo(_machine.Vac_Feeder_U1.Name, vacSlide1).Next(Material(vacSlide1).Consume()) : Step.NoOp())
+                from _u2 in (s2 == PartStatus.Old ? Material(vacSlide2).AttachTo(_machine.Vac_Feeder_U2.Name, vacSlide2).Next(Material(vacSlide2).Consume()) : Step.NoOp())
+                from _2 in Scope("Feeder: 下料笔回位", Step.InParallel(Motion(_machine.Axis_Feeder_Z1).MoveToAndWait(0), Motion(_machine.Axis_Feeder_Z2).MoveToAndWait(0)))
+                from _x2 in Scope("Feeder: 上料位对齐", Motion(_machine.Axis_Feeder_X).MoveToAndWait(40))
+                from _3 in Scope("Feeder: 上料笔下降", Step.InParallel(Motion(_machine.Axis_Feeder_Z1).MoveToAndWait(-50), Motion(_machine.Axis_Feeder_Z2).MoveToAndWait(-50)))
+                from _l1 in (s1 == PartStatus.Empty ? Material(vacSlide1).Spawn($"P_{_rand.Next(1000,9999)}", PartStatus.New.ToString()).Next(Material(_machine.Vac_Feeder_L1.Name).Detach()) : Step.NoOp())
+                from _l2 in (s2 == PartStatus.Empty ? Material(vacSlide2).Spawn($"P_{_rand.Next(1000,9999)}", PartStatus.New.ToString()).Next(Material(_machine.Vac_Feeder_L2.Name).Detach()) : Step.NoOp())
+                from _4 in Scope("Feeder: 上料笔回位", Step.InParallel(Motion(_machine.Axis_Feeder_Z1).MoveToAndWait(0), Motion(_machine.Axis_Feeder_Z2).MoveToAndWait(0)))
+                from _refill in Scope("Feeder: 补充物料", Step.InParallel(Material(_machine.Vac_Feeder_L1.Name).Spawn("Src", PartStatus.New.ToString()), Material(_machine.Vac_Feeder_L2.Name).Spawn("Src", PartStatus.New.ToString())))
                 select Unit.Default
             ) : Step.NoOp() 
             select Unit.Default;
@@ -105,7 +89,7 @@ public sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
         string vacSlide1, string vacSlide2, string vacTest1, string vacTest2, bool expectedSlidePos)
     {
         return 
-            from _interlock in Cylinder(Cyl_Middle_Slide).WaitFor(expectedSlidePos)
+            from _interlock in Cylinder(_machine.Cyl_Middle_Slide).WaitFor(expectedSlidePos)
             from _m1 in ManageTest(vacTest1)
             from _m2 in ManageTest(vacTest2)
             from sT1Str in Material(vacTest1).CheckState()
@@ -148,11 +132,11 @@ public sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
     }
 
     public Step<Unit> SafetyBarrier() => Scope("安全检查", Step.InParallel(
-        Motion(Axis_Feeder_X).MoveToAndWait(0),
-        Motion(Axis_Feeder_Z1).MoveToAndWait(0),
-        Motion(Axis_Feeder_Z2).MoveToAndWait(0),
-        Cylinder(Cyl_R_Lift).WaitFor(false),
-        Cylinder(Cyl_Lift_Right).WaitFor(false)
+        Motion(_machine.Axis_Feeder_X).MoveToAndWait(0),
+        Motion(_machine.Axis_Feeder_Z1).MoveToAndWait(0),
+        Motion(_machine.Axis_Feeder_Z2).MoveToAndWait(0),
+        Cylinder(_machine.Cyl_R_Lift).WaitFor(false),
+        Cylinder(_machine.Cyl_Lift_Right).WaitFor(false)
     ).Next(Step.NoOp()));
 
     private StepDesc BuildFlow()
@@ -162,109 +146,16 @@ public sealed class ComplexRotaryAssemblyScenario : IScenarioFactory
         var vt1 = "Test_Vac_L1"; var vt2 = "Test_Vac_L2";
         var vt3 = "Test_Vac_R1"; var vt4 = "Test_Vac_R2";
         var cycle = from _start in Scope("--- 循环开始 ---", Step.NoOp())
-            from _init in Step.InParallel(Cylinder(Cyl_Grips_Left).FireAndWait(true), Cylinder(Cyl_Grips_Right).FireAndWait(true), Cylinder(Cyl_R_Lift).FireAndWait(false), Cylinder(Cyl_Lift_Right).FireAndWait(false))
+            from _init in Step.InParallel(Cylinder(_machine.Cyl_Grips_Left).FireAndWait(true), Cylinder(_machine.Cyl_Grips_Right).FireAndWait(true), Cylinder(_machine.Cyl_R_Lift).FireAndWait(false), Cylinder(_machine.Cyl_Lift_Right).FireAndWait(false))
             from _s1 in SafetyBarrier()
-            from _m1 in Scope("滑台向前", Cylinder(Cyl_Middle_Slide).FireAndWait(true))
-            from _w1 in Step.InParallel(AssemblyJob("FrontModule", Cyl_R_Lift, Axis_R_Table, Cyl_Grips_Left, sv1, sv2, vt1, vt2, true), FeederJob(sv3, sv4))
+            from _m1 in Scope("滑台向前", Cylinder(_machine.Cyl_Middle_Slide).FireAndWait(true))
+            from _w1 in Step.InParallel(AssemblyJob("FrontModule", _machine.Cyl_R_Lift, _machine.Axis_R_Table, _machine.Cyl_Grips_Left, sv1, sv2, vt1, vt2, true), FeederJob(sv3, sv4))
             from _s2 in SafetyBarrier()
-            from _m2 in Scope("滑台向后", Cylinder(Cyl_Middle_Slide).FireAndWait(false))
-            from _w2 in Step.InParallel(AssemblyJob("BackModule", Cyl_Lift_Right, Axis_Table_Right, Cyl_Grips_Right, sv3, sv4, vt3, vt4, false), FeederJob(sv1, sv2))
+            from _m2 in Scope("滑台向后", Cylinder(_machine.Cyl_Middle_Slide).FireAndWait(false))
+            from _w2 in Step.InParallel(AssemblyJob("BackModule", _machine.Cyl_Lift_Right, _machine.Axis_Table_Right, _machine.Cyl_Grips_Right, sv3, sv4, vt3, vt4, false), FeederJob(sv1, sv2))
             select Unit.Default;
         return cycle.Loop().Definition;
     }
 
-    public (MachineConfig Config, VisualDefinitionModel Model, string Name) BuildConfigAndVisuals()
-    {
-        var bp = MachineBlueprint.Define(Name)
-            .AddBoard("MainBoard", 1, b => b.UseSimulator()
-                .AddAxis(Axis_Feeder_X, 0, a => a.WithRange(-100, 100))
-                .AddAxis(Axis_Feeder_Z1, 1, a => a.WithRange(-100, 100).Vertical())
-                .AddAxis(Axis_Feeder_Z2, 2, a => a.WithRange(-100, 100).Vertical())
-                .AddAxis(Axis_R_Table, 3, a => a.WithRange(-180, 180))
-                .AddAxis(Axis_Table_Right, 4, a => a.WithRange(-180, 180))
-                .AddCylinder(Cyl_Middle_Slide, 0, 1)
-                .AddCylinder(Cyl_Grips_Left, 2, 3)
-                .AddCylinder(Cyl_Grips_Right, 4, 5)
-                .AddCylinder(Cyl_R_Lift, 6, 7)
-                .AddCylinder(Cyl_Lift_Right, 8, 9)
-                .AddCylinder(Vac_Feeder_U1, 10, 11)
-                .AddCylinder(Vac_Feeder_L1, 12, 13)
-                .AddCylinder(Vac_Feeder_U2, 14, 15)
-                .AddCylinder(Vac_Feeder_L2, 16, 17)
-            ).Mount("Base", root => root
-                // Feeder 模组 (上部供料区)
-                .Mount("Feeder_Base", m => m.WithOffset(0, 300, 200)
-                    .Mount("Feeder_X", x => x.LinkTo(Axis_Feeder_X).WithStroke(100, 0, 0)
-                        .Mount("Feeder_Z1_Base", z1b => z1b.WithOffset(-40, 0, 0)
-                            .Mount("Feeder_Z1", z1 => z1.LinkTo(Axis_Feeder_Z1).WithStroke(0, 0, -50)
-                                .Mount(Vac_Feeder_U1.Name, u1 => u1.LinkTo(Vac_Feeder_U1).WithOffset(0, 15, 0))
-                                .Mount(Vac_Feeder_L1.Name, l1 => l1.LinkTo(Vac_Feeder_L1).WithOffset(0, -15, 0))
-                            )
-                        )
-                        .Mount("Feeder_Z2_Base", z2b => z2b.WithOffset(40, 0, 0)
-                            .Mount("Feeder_Z2", z2 => z2.LinkTo(Axis_Feeder_Z2).WithStroke(0, 0, -50)
-                                .Mount(Vac_Feeder_U2.Name, u2 => u2.LinkTo(Vac_Feeder_U2).WithOffset(0, 15, 0))
-                                .Mount(Vac_Feeder_L2.Name, l2 => l2.LinkTo(Vac_Feeder_L2).WithOffset(0, -15, 0))
-                            )
-                        )
-                    )
-                )
 
-                // 中间滑台模组 (负责搬运)
-                .Mount("Middle_Slide_Base", m => m.WithOffset(0, 0, 50)
-                    .Mount("Slide_Plate", s => s.LinkTo(Cyl_Middle_Slide).WithStroke(0, 100, 0)
-                        .Mount("Slide_Vac_1", v => v.WithOffset(-40, 0, 20))
-                        .Mount("Slide_Vac_2", v => v.WithOffset(40, 0, 20))
-                    )
-                )
-
-                // 左侧旋转模组
-                .Mount("Left_Module_Base", m => m.WithOffset(-200, 0, 0)
-                    .Mount("L_Lift", l => l.LinkTo(Cyl_R_Lift).WithStroke(0, 0, 50)
-                        .Mount("L_Table", t => t.LinkTo(Axis_R_Table)
-                            .Mount("L_Grips", g => g.LinkTo(Cyl_Grips_Left).WithOffset(0, 0, 30))
-                        )
-                    )
-                )
-
-                // 右侧旋转模组
-                .Mount("Right_Module_Base", m => m.WithOffset(200, 0, 0)
-                    .Mount("R_Lift", l => l.LinkTo(Cyl_Lift_Right).WithStroke(0, 0, 50)
-                        .Mount("R_Table", t => t.LinkTo(Axis_Table_Right)
-                            .Mount("R_Grips", g => g.LinkTo(Cyl_Grips_Right).WithOffset(0, 0, 30))
-                        )
-                    )
-                )
-
-                // 静态测试工位 (位于左右两侧)
-                .Mount("Test_Station_Left", t => t.WithOffset(-300, 0, 70)
-                    .Mount("Test_Vac_L1", v => v.WithOffset(-30, 0, 0))
-                    .Mount("Test_Vac_L2", v => v.WithOffset(30, 0, 0))
-                )
-                .Mount("Test_Station_Right", t => t.WithOffset(300, 0, 70)
-                    .Mount("Test_Vac_R1", v => v.WithOffset(-30, 0, 0))
-                    .Mount("Test_Vac_R2", v => v.WithOffset(30, 0, 0))
-                )
-            );
-
-        var config = BlueprintInterpreter.ToConfig(bp);
-        
-        // 可视化配置
-        var registry = new CaptureVisualRegistry();
-        var layout = Visuals.Start()
-            .For(Axis_Feeder_X).AsLinearGuide(100, 20).Done()
-            .For(Axis_Feeder_Z1).AsLinearGuide(100, 10).Vertical().Done()
-            .For(Axis_Feeder_Z2).AsLinearGuide(100, 10).Vertical().Done()
-            .For(Axis_R_Table).AsRotaryTable(50).Done()
-            .For(Axis_Table_Right).AsRotaryTable(50).Done()
-            .For(Cyl_Middle_Slide).AsSlideBlock(20).Done()
-            .For(Vac_Feeder_U1).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_L1).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_U2).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_L2).AsSuctionPen(5).Vertical().Done();
-
-        layout.Build()(registry);
-
-        return (config, registry.Model, Name);
-    }
 }
