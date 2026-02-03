@@ -274,5 +274,68 @@ namespace Machine.Framework.Core.Blueprint
         /// 创建并配置子挂载点。
         /// </summary>
         IMountPointBuilder Mount(string name, Action<IMountPointBuilder> configure);
+
+        // ------------------------------------------------------------------
+        // 物理属性声明 (Physical Property Declarations)
+        // ------------------------------------------------------------------
+
+        /// <summary>
+        /// 声明为通用立方体碰撞体。
+        /// </summary>
+        /// <param name="width">X 方向尺寸 (mm)</param>
+        /// <param name="height">Y 方向尺寸 (mm)</param>
+        /// <param name="depth">Z 方向尺寸 (mm)</param>
+        IMountPointBuilder AsBox(double width, double height, double depth);
+
+        /// <summary>
+        /// 声明为吸笔（圆柱体碰撞）。
+        /// </summary>
+        /// <param name="diameter">直径 (mm)</param>
+        /// <param name="length">长度 (mm)</param>
+        IMountPointBuilder AsSuctionPen(double diameter, double length);
+
+        /// <summary>
+        /// 声明为旋转台。
+        /// </summary>
+        /// <param name="radius">半径 (mm)</param>
+        IMountPointBuilder AsRotaryTable(double radius);
+
+        /// <summary>
+        /// 声明为直线导轨。
+        /// </summary>
+        /// <param name="length">行程长度 (mm)</param>
+        IMountPointBuilder AsLinearGuide(double length);
+
+        /// <summary>
+        /// 声明为夹爪。
+        /// </summary>
+        IMountPointBuilder AsGripper();
+
+        /// <summary>
+        /// 声明为物料槽/托盘（用于物料边界检测）。
+        /// </summary>
+        /// <param name="width">宽度 (mm)</param>
+        /// <param name="height">高度 (mm)</param>
+        IMountPointBuilder AsMaterialSlot(double width, double height);
+
+        /// <summary>
+        /// 设置物理锚点位置。
+        /// </summary>
+        IMountPointBuilder WithAnchor(PhysicalAnchor anchor);
+
+        /// <summary>
+        /// 标记为垂直方向（沿 Z 轴）。
+        /// </summary>
+        IMountPointBuilder Vertical();
+
+        /// <summary>
+        /// 标记为水平方向（默认）。
+        /// </summary>
+        IMountPointBuilder Horizontal();
+
+        /// <summary>
+        /// 标记为反向安装。
+        /// </summary>
+        IMountPointBuilder Inverted();
     }
 }

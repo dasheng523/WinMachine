@@ -160,6 +160,16 @@ namespace Machine.Framework.Core.Blueprint.Builders
         private double _ox, _oy, _oz; // Offset (Position)
         private double _rx, _ry, _rz; // Rotation (Euler)
         private double _sx, _sy, _sz; // Stroke Vector
+
+        // ------------------------------------------------------------------
+        // 物理属性状态字段 (Physical Property State)
+        // ------------------------------------------------------------------
+        private PhysicalType _physicalType = PhysicalType.None;
+        private double _physicalSizeX, _physicalSizeY, _physicalSizeZ;
+        private double _physicalParam1, _physicalParam2;
+        private PhysicalAnchor _physicalAnchor = PhysicalAnchor.Center;
+        private bool _isVertical;
+        private bool _isInverted;
         
         // 存储子 Builder（而非定义），以支持链式调用时的延迟求值
         private readonly List<MountPointBuilder> _childBuilders = new();
@@ -227,6 +237,107 @@ namespace Machine.Framework.Core.Blueprint.Builders
             return this; 
         }
 
+        // ------------------------------------------------------------------
+        // 物理属性 DSL 实现 (Physical Property DSL Implementation)
+        // ------------------------------------------------------------------
+
+        public IMountPointBuilder AsBox(double width, double height, double depth)
+        {
+            _physicalType = PhysicalType.Box;
+            _physicalSizeX = width;
+            _physicalSizeY = height;
+            _physicalSizeZ = depth;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder AsSuctionPen(double diameter, double length)
+        {
+            _physicalType = PhysicalType.SuctionPen;
+            _physicalParam1 = diameter;
+            _physicalParam2 = length;
+            // 吸笔：圆柱体包围盒为直径*直径*长度
+            _physicalSizeX = diameter;
+            _physicalSizeY = diameter;
+            _physicalSizeZ = length;
+            // 标准化锚点：吸笔原点在安装端（顶部）
+            _physicalAnchor = PhysicalAnchor.TopCenter;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder AsRotaryTable(double radius)
+        {
+            _physicalType = PhysicalType.RotaryTable;
+            _physicalParam1 = radius;
+            _physicalSizeX = radius * 2;
+            _physicalSizeY = radius * 2;
+            _physicalSizeZ = 10; // 默认高度
+            // 标准化锚点：旋转台原点在中心顶部
+            _physicalAnchor = PhysicalAnchor.TopCenter;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder AsLinearGuide(double length)
+        {
+            _physicalType = PhysicalType.LinearGuide;
+            _physicalParam1 = length;
+            _physicalSizeX = length;
+            _physicalSizeY = 20; // 默认宽度
+            _physicalSizeZ = 10; // 默认高度
+            // 标准化锚点：导轨原点在行程起点
+            _physicalAnchor = PhysicalAnchor.StrokeStart;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder AsGripper()
+        {
+            _physicalType = PhysicalType.Gripper;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder AsMaterialSlot(double width, double height)
+        {
+            _physicalType = PhysicalType.MaterialSlot;
+            _physicalSizeX = width;
+            _physicalSizeY = height;
+            _physicalSizeZ = 1; // 默认薄片
+            _physicalAnchor = PhysicalAnchor.Center;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder WithAnchor(PhysicalAnchor anchor)
+        {
+            _physicalAnchor = anchor;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder Vertical()
+        {
+            _isVertical = true;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder Horizontal()
+        {
+            _isVertical = false;
+            PropagateUpdate();
+            return this;
+        }
+
+        public IMountPointBuilder Inverted()
+        {
+            _isInverted = true;
+            PropagateUpdate();
+            return this;
+        }
+
         /// <summary>
         /// 向上冒泡通知根节点更新 Assembly 中的定义
         /// </summary>
@@ -246,13 +357,46 @@ namespace Machine.Framework.Core.Blueprint.Builders
             }
         }
 
+        /// <summary>
+        /// 验证物理属性对齐规则。
+        /// 如果发现冲突，抛出 BlueprintValidationException。
+        /// </summary>
+        private void ValidateAlignment()
+        {
+            // 如果标记为垂直，但行程向量没有 Z 分量（只有 X/Y），则为冲突
+            if (_isVertical && Math.Abs(_sz) < 0.001 && (Math.Abs(_sx) > 0.001 || Math.Abs(_sy) > 0.001))
+            {
+                throw new BlueprintValidationException(
+                    $"AlignmentConflict: 挂载点 '{_name}' 被标记为 Vertical()，但其 WithStroke 只有水平分量 ({_sx}, {_sy}, {_sz})。"
+                );
+            }
+        }
+
         public MountPointDefinition ToDefinition()
         {
+            // 执行物理对齐校验
+            ValidateAlignment();
+
             // 递归地将所有子 Builder 转换为定义
             var childDefs = new List<MountPointDefinition>();
             foreach (var cb in _childBuilders)
             {
                 childDefs.Add(cb.ToDefinition());
+            }
+
+            // 构建物理属性（如果有定义）
+            PhysicalProperty? physical = null;
+            if (_physicalType != PhysicalType.None)
+            {
+                physical = new PhysicalProperty(
+                    _physicalType,
+                    _physicalSizeX, _physicalSizeY, _physicalSizeZ,
+                    _physicalAnchor,
+                    _isVertical,
+                    _isInverted,
+                    _physicalParam1,
+                    _physicalParam2
+                );
             }
             
             return new MountPointDefinition(
@@ -262,9 +406,18 @@ namespace Machine.Framework.Core.Blueprint.Builders
                 _ox, _oy, _oz, 
                 _rx, _ry, _rz,
                 _sx, _sy, _sz,
-                childDefs
+                childDefs,
+                physical
             );
         }
+    }
+
+    /// <summary>
+    /// 蓝图校验异常。编译期发现物理配置冲突时抛出。
+    /// </summary>
+    public class BlueprintValidationException : Exception
+    {
+        public BlueprintValidationException(string message) : base(message) { }
     }
 
     internal sealed class LeadshineDriverBuilder : ILeadshineDriverBuilder

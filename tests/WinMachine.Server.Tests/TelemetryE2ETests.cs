@@ -18,7 +18,7 @@ namespace WinMachine.Server.Tests;
 
 public sealed class TelemetryE2ETests
 {
-    private const string ScenarioName = "Complex_Rotary_Assembly";
+    private const string ScenarioName = "复杂转盘组装场景 (核心逻辑版)";
 
     [Fact]
     public async Task Scenarios_endpoint_returns_registered_scenarios()
@@ -65,20 +65,24 @@ public sealed class TelemetryE2ETests
             .Where(x => !string.IsNullOrWhiteSpace(x))
             .ToHashSet(StringComparer.Ordinal);
 
-        // 对齐 RotaryLiftAssemblyTests 里的核心设备 ID
+        // 对齐 ComplexRotaryMachine 里的核心设备 ID
         ids.Should().Contain(new[]
         {
+            // 左右旋转模组
             "Cyl_R_Lift",
             "Axis_R_Table",
             "Cyl_Grips_Left",
             "Cyl_Lift_Right",
             "Axis_Table_Right",
             "Cyl_Grips_Right",
+            // 中间搬运模组
             "Cyl_Middle_Slide",
-            "Cyl_Mid_Vac1",
-            "Cyl_Mid_Vac2",
-            "Cyl_Mid_Vac3",
-            "Cyl_Mid_Vac4",
+            // 供料模组
+            "Axis_Feeder_X",
+            "Axis_Feeder_Z1",
+            "Axis_Feeder_Z2",
+            "Vac_Feeder_U1",
+            "Vac_Feeder_L1",
         });
     }
 

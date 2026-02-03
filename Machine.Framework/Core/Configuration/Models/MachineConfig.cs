@@ -133,13 +133,76 @@ namespace Machine.Framework.Core.Configuration.Models
         }
     }
 
+    // ------------------------------------------------------------------
+    // 物理属性定义 (Physical Property Definitions)
+    // ------------------------------------------------------------------
+    
+    /// <summary>
+    /// 物理组件类型枚举。
+    /// 定义了蓝图中挂载点可以声明的物理语义类型。
+    /// </summary>
+    public enum PhysicalType
+    {
+        /// <summary>未定义/默认</summary>
+        None = 0,
+        /// <summary>通用立方体（用于碰撞包围盒）</summary>
+        Box,
+        /// <summary>吸笔（圆柱体碰撞体）</summary>
+        SuctionPen,
+        /// <summary>夹爪</summary>
+        Gripper,
+        /// <summary>旋转台</summary>
+        RotaryTable,
+        /// <summary>直线导轨</summary>
+        LinearGuide,
+        /// <summary>物料槽/托盘</summary>
+        MaterialSlot
+    }
+
+    /// <summary>
+    /// 物理锚点枚举。
+    /// 定义了物理组件的局部坐标原点位置。
+    /// </summary>
+    public enum PhysicalAnchor
+    {
+        /// <summary>几何中心</summary>
+        Center = 0,
+        /// <summary>底部中心（适用于垂直组件）</summary>
+        BottomCenter,
+        /// <summary>顶部中心（适用于垂直组件，如吸笔安装端）</summary>
+        TopCenter,
+        /// <summary>行程起点（适用于导轨，Stroke=0 处）</summary>
+        StrokeStart,
+        /// <summary>自定义偏移（需配合 CustomAnchorOffset 使用）</summary>
+        Custom
+    }
+
+    /// <summary>
+    /// 物理属性记录类。
+    /// 封装了蓝图中挂载点的完整物理描述信息。
+    /// </summary>
+    public record PhysicalProperty(
+        PhysicalType Type,
+        double SizeX, double SizeY, double SizeZ,
+        PhysicalAnchor Anchor,
+        bool IsVertical,
+        bool IsInverted,
+        double Param1 = 0,  // 类型专属参数1（如吸笔直径、旋转台半径）
+        double Param2 = 0   // 类型专属参数2（如吸笔长度）
+    );
+
+    /// <summary>
+    /// 机械挂载点定义记录。
+    /// 描述了机器的物理层级结构中的一个节点，包含位姿、运动和物理属性。
+    /// </summary>
     public record MountPointDefinition(
         string Name,
         string? ParentName,       
         object? LinkedDevice,     
         double OffsetX, double OffsetY, double OffsetZ,
-        double RotationX, double RotationY, double RotationZ, // New: Initial rotation
-        double StrokeX, double StrokeY, double StrokeZ,       // New: Actuation vector
-        List<MountPointDefinition> Children
+        double RotationX, double RotationY, double RotationZ,
+        double StrokeX, double StrokeY, double StrokeZ,
+        List<MountPointDefinition> Children,
+        PhysicalProperty? Physical = null  // 新增：物理属性（可选）
     );
 }
