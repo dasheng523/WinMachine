@@ -18,6 +18,14 @@ public sealed class WebSceneNode
     public WebVector3? Offset { get; set; }
     public WebVector3? Rotation { get; set; }
     public WebVector3? Stroke { get; set; }
+    
+    // Physical Properties
+    public string? PhysicalType { get; set; }
+    public WebVector3? PhysicalSize { get; set; }
+    public string? Anchor { get; set; }
+    public bool? IsVertical { get; set; }
+    public bool? IsInverted { get; set; }
+
     public List<WebSceneNode> Children { get; set; } = new();
 }
 

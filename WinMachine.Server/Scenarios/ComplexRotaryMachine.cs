@@ -70,16 +70,40 @@ public sealed class ComplexRotaryMachine
                 // 结构：基座 -> X轴 -> Z轴基座 -> Z轴 -> 吸笔
                 .Mount("Feeder_Base", m => m.WithOffset(0, 300, 200)
                     .Mount("Feeder_X", x => x.LinkTo(Axis_Feeder_X).WithStroke(100, 0, 0)
+                        .Horizontal()
+                        .AsLinearGuide(100)
+                        .WithAnchor(PhysicalAnchor.StrokeStart)
+
                         .Mount("Feeder_Z1_Base", z1b => z1b.WithOffset(-40, 0, 0)
                             .Mount("Feeder_Z1", z1 => z1.LinkTo(Axis_Feeder_Z1).WithStroke(0, 0, -50)
-                                .Mount(Vac_Feeder_U1.Name, u1 => u1.LinkTo(Vac_Feeder_U1).WithOffset(0, 15, 0))
-                                .Mount(Vac_Feeder_L1.Name, l1 => l1.LinkTo(Vac_Feeder_L1).WithOffset(0, -15, 0))
+                                .Vertical()
+                                .AsLinearGuide(100)
+                                .WithAnchor(PhysicalAnchor.StrokeStart)
+
+                                .Mount(Vac_Feeder_U1.Name, u1 => u1.LinkTo(Vac_Feeder_U1).WithOffset(0, 15, 0)
+                                    .Vertical()
+                                    .AsSuctionPen(5, 50)
+                                )
+                                .Mount(Vac_Feeder_L1.Name, l1 => l1.LinkTo(Vac_Feeder_L1).WithOffset(0, -15, 0)
+                                    .Vertical()
+                                    .AsSuctionPen(5, 50)
+                                )
                             )
                         )
                         .Mount("Feeder_Z2_Base", z2b => z2b.WithOffset(40, 0, 0)
                             .Mount("Feeder_Z2", z2 => z2.LinkTo(Axis_Feeder_Z2).WithStroke(0, 0, -50)
-                                .Mount(Vac_Feeder_U2.Name, u2 => u2.LinkTo(Vac_Feeder_U2).WithOffset(0, 15, 0))
-                                .Mount(Vac_Feeder_L2.Name, l2 => l2.LinkTo(Vac_Feeder_L2).WithOffset(0, -15, 0))
+                                .Vertical()
+                                .AsLinearGuide(100)
+                                .WithAnchor(PhysicalAnchor.StrokeStart)
+
+                                .Mount(Vac_Feeder_U2.Name, u2 => u2.LinkTo(Vac_Feeder_U2).WithOffset(0, 15, 0)
+                                    .Vertical()
+                                    .AsSuctionPen(5, 50)
+                                )
+                                .Mount(Vac_Feeder_L2.Name, l2 => l2.LinkTo(Vac_Feeder_L2).WithOffset(0, -15, 0)
+                                    .Vertical()
+                                    .AsSuctionPen(5, 50)
+                                )
                             )
                         )
                     )
@@ -87,8 +111,12 @@ public sealed class ComplexRotaryMachine
 
                 // 中间滑台模组 (负责搬运)
                 // 结构：基座 -> 滑板(气缸驱动) -> 吸笔位
+                // 注意：AsSlideBlock 在物理层暂用 AsBox 代替，或暂不指定特定物理类型仅作为运动部件
                 .Mount("Middle_Slide_Base", m => m.WithOffset(0, 0, 50)
                     .Mount("Slide_Plate", s => s.LinkTo(Cyl_Middle_Slide).WithStroke(0, 100, 0)
+                        .Horizontal()
+                        .AsBox(20, 20, 10) // 模拟 SlideBlock 尺寸
+                        
                         .Mount("Slide_Vac_1", v => v.WithOffset(-40, 0, 20))
                         .Mount("Slide_Vac_2", v => v.WithOffset(40, 0, 20))
                     )
@@ -98,8 +126,14 @@ public sealed class ComplexRotaryMachine
                 // 结构：基座 -> 升降(气缸) -> 旋转台(轴) -> 夹爪
                 .Mount("Left_Module_Base", m => m.WithOffset(-200, 0, 0)
                     .Mount("L_Lift", l => l.LinkTo(Cyl_R_Lift).WithStroke(0, 0, 50)
+                        .Vertical()
                         .Mount("L_Table", t => t.LinkTo(Axis_R_Table)
-                            .Mount("L_Grips", g => g.LinkTo(Cyl_Grips_Left).WithOffset(0, 0, 30))
+                            .Horizontal()
+                            .AsRotaryTable(50) 
+                            
+                            .Mount("L_Grips", g => g.LinkTo(Cyl_Grips_Left).WithOffset(0, 0, 30)
+                                .AsGripper()
+                            )
                         )
                     )
                 )
@@ -108,8 +142,14 @@ public sealed class ComplexRotaryMachine
                 // 结构：基座 -> 升降(气缸) -> 旋转台(轴) -> 夹爪
                 .Mount("Right_Module_Base", m => m.WithOffset(200, 0, 0)
                     .Mount("R_Lift", l => l.LinkTo(Cyl_Lift_Right).WithStroke(0, 0, 50)
+                        .Vertical()
                         .Mount("R_Table", t => t.LinkTo(Axis_Table_Right)
-                            .Mount("R_Grips", g => g.LinkTo(Cyl_Grips_Right).WithOffset(0, 0, 30))
+                            .Horizontal()
+                            .AsRotaryTable(50)
+
+                            .Mount("R_Grips", g => g.LinkTo(Cyl_Grips_Right).WithOffset(0, 0, 30)
+                                .AsGripper()
+                            )
                         )
                     )
                 )
@@ -117,34 +157,20 @@ public sealed class ComplexRotaryMachine
                 // 静态测试工位 (位于左右两侧)
                 // 纯静态位置，无运动机构
                 .Mount("Test_Station_Left", t => t.WithOffset(-300, 0, 70)
-                    .Mount("Test_Vac_L1", v => v.WithOffset(-30, 0, 0))
-                    .Mount("Test_Vac_L2", v => v.WithOffset(30, 0, 0))
+                    .Mount("Test_Vac_L1", v => v.WithOffset(-30, 0, 0).AsSuctionPen(5, 50).Vertical())
+                    .Mount("Test_Vac_L2", v => v.WithOffset(30, 0, 0).AsSuctionPen(5, 50).Vertical())
                 )
                 .Mount("Test_Station_Right", t => t.WithOffset(300, 0, 70)
-                    .Mount("Test_Vac_R1", v => v.WithOffset(-30, 0, 0))
-                    .Mount("Test_Vac_R2", v => v.WithOffset(30, 0, 0))
+                    .Mount("Test_Vac_R1", v => v.WithOffset(-30, 0, 0).AsSuctionPen(5, 50).Vertical())
+                    .Mount("Test_Vac_R2", v => v.WithOffset(30, 0, 0).AsSuctionPen(5, 50).Vertical())
                 )
             );
 
         var config = BlueprintInterpreter.ToConfig(bp);
         
-        // 可视化配置
-        // 定义各个部件在前端的显示模型（如丝杆、旋转台、滑块、吸笔等）
-        var registry = new CaptureVisualRegistry();
-        var layout = Visuals.Start()
-            .For(Axis_Feeder_X).AsLinearGuide(100, 20).Done()
-            .For(Axis_Feeder_Z1).AsLinearGuide(100, 10).Vertical().Done()
-            .For(Axis_Feeder_Z2).AsLinearGuide(100, 10).Vertical().Done()
-            .For(Axis_R_Table).AsRotaryTable(50).Done()
-            .For(Axis_Table_Right).AsRotaryTable(50).Done()
-            .For(Cyl_Middle_Slide).AsSlideBlock(20).Done()
-            .For(Vac_Feeder_U1).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_L1).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_U2).AsSuctionPen(5).Vertical().Done()
-            .For(Vac_Feeder_L2).AsSuctionPen(5).Vertical().Done();
+        // 视觉配置已移除，完全由物理蓝图驱动
+        var visuals = new VisualDefinitionModel(); 
 
-        layout.Build()(registry);
-
-        return (config, registry.Model, Name);
+        return (config, visuals, Name);
     }
 }

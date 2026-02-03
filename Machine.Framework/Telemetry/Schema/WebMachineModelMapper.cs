@@ -20,7 +20,30 @@ public static class WebMachineModelMapper
             return char.ToLower(str[0]) + str.Substring(1);
         }
 
-        static Dictionary<string, object?> MergeMeta(object? baseMeta, VisualStyleDef? style, object? ioMeta = null)
+        var allMountPoints = new List<MountPointDefinition>();
+        void Collect(IEnumerable<MountPointDefinition> roots) 
+        {
+            foreach(var r in roots) {
+                allMountPoints.Add(r);
+                Collect(r.Children);
+            }
+        }
+        Collect(config.MountPoints);
+
+        PhysicalProperty? GetPhysical(string deviceId)
+        {
+            var def = allMountPoints.FirstOrDefault(m => {
+                 string? lnk = m.LinkedDevice switch {
+                      Machine.Framework.Core.Primitives.AxisID a => a.Name,
+                      Machine.Framework.Core.Primitives.CylinderID c => c.Name,
+                      _ => m.LinkedDevice?.ToString()
+                 };
+                 return lnk == deviceId;
+            });
+            return def?.Physical;
+        }
+
+        static Dictionary<string, object?> MergeMeta(object? baseMeta, VisualStyleDef? style, PhysicalProperty? physical, object? ioMeta = null)
         {
             var dict = new Dictionary<string, object?>();
 
@@ -74,6 +97,36 @@ public static class WebMachineModelMapper
                         break;
                 }
             }
+            else if (physical != null)
+            {
+                // Fallback: Infer visual style from PhysicalProperty
+                dict["isVertical"] = physical.IsVertical;
+                dict["isReversed"] = physical.IsInverted;
+                // Physical size is usually (X,Y,Z), map to width/height if applicable?
+                // For now, map type specific parameters
+                
+                switch (physical.Type)
+                {
+                    case PhysicalType.LinearGuide:
+                        dict["length"] = physical.Param1; // Length
+                        // physical.SizeY is usually width
+                        dict["sliderWidth"] = 20; // Default or from SizeY?
+                        break;
+                    case PhysicalType.RotaryTable:
+                        dict["radius"] = physical.Param1; // Radius
+                        break;
+                    case PhysicalType.SuctionPen:
+                        dict["diameter"] = physical.Param1; // Diameter
+                        break;
+                    case PhysicalType.Gripper:
+                        // No specific params in standard definition yet except maybe size
+                        break;
+                    case PhysicalType.MaterialSlot:
+                         dict["width"] = physical.SizeX;
+                         dict["height"] = physical.SizeY;
+                         break;
+                }
+            }
             else
             {
                 dict["isGeneric"] = true;
@@ -85,6 +138,7 @@ public static class WebMachineModelMapper
         foreach (var axis in config.AxisConfigs)
         {
             var style = GetStyle(axis.Key);
+            var physical = GetPhysical(axis.Key);
 
             int? channel = null;
             string? boardName = null;
@@ -107,11 +161,12 @@ public static class WebMachineModelMapper
             devices[axis.Key] = new WebDeviceInfo
             {
                 Id = axis.Key,
-                Type = style?.Type ?? "Axis",
+                Type = style?.Type ?? physical?.Type.ToString() ?? "Axis",
                 BaseType = "Axis",
                 Meta = MergeMeta(
                     new { Min = axis.Value.SoftLimits?.Min ?? 0, Max = axis.Value.SoftLimits?.Max ?? 0 },
                     style,
+                    physical,
                     ioInfo)
             };
         }
@@ -119,6 +174,7 @@ public static class WebMachineModelMapper
         foreach (var cyl in config.CylinderConfigs)
         {
             var style = GetStyle(cyl.Key);
+            var physical = GetPhysical(cyl.Key);
             var cVal = cyl.Value;
 
             var ioInfo = new
@@ -131,9 +187,9 @@ public static class WebMachineModelMapper
             devices[cyl.Key] = new WebDeviceInfo
             {
                 Id = cyl.Key,
-                Type = style?.Type ?? "Cylinder",
+                Type = style?.Type ?? physical?.Type.ToString() ?? "Cylinder",
                 BaseType = "Cylinder",
-                Meta = MergeMeta(new { cVal.MoveTime }, style, ioInfo)
+                Meta = MergeMeta(new { cVal.MoveTime }, style, physical, ioInfo)
             };
         }
 
@@ -163,6 +219,23 @@ public static class WebMachineModelMapper
             Rotation = new WebVector3 { X = def.RotationX, Y = def.RotationY, Z = def.RotationZ },
             Stroke = new WebVector3 { X = def.StrokeX, Y = def.StrokeY, Z = def.StrokeZ }
         };
+
+        // Map Physical Properies
+        if (def.Physical != null && def.Physical.Type != Core.Configuration.Models.PhysicalType.None)
+        {
+            node.PhysicalType = def.Physical.Type.ToString();
+            node.PhysicalSize = new WebVector3 
+            { 
+                X = def.Physical.SizeX, 
+                Y = def.Physical.SizeY, 
+                Z = def.Physical.SizeZ 
+            };
+            node.Anchor = def.Physical.Anchor.ToString();
+            
+            // Only set boolean flags if true to keep JSON clean
+            if (def.Physical.IsVertical) node.IsVertical = true;
+            if (def.Physical.IsInverted) node.IsInverted = true;
+        }
 
         // Cleanup empty vectors to keep JSON clean
         if (node.Rotation.X == 0 && node.Rotation.Y == 0 && node.Rotation.Z == 0) node.Rotation = null;

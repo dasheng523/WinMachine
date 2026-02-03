@@ -84,6 +84,32 @@ public sealed class TelemetryE2ETests
             "Vac_Feeder_U1",
             "Vac_Feeder_L1",
         });
+
+        // 验证物理属性映射 (Physical Property Mapping Verification)
+        var deviceMap = deviceRegistry.EnumerateArray()
+            .ToDictionary(
+                x => x.GetProperty("id").GetString()!,
+                x => x
+            );
+
+        // 1. 验证垂直导轨 (Vertical Linear Guide)
+        // Axis_Feeder_Z1 被定义为: .Vertical().AsLinearGuide(100)
+        deviceMap.Should().ContainKey("Axis_Feeder_Z1");
+        var z1 = deviceMap["Axis_Feeder_Z1"];
+        z1.GetProperty("type").GetString().Should().Be("LinearGuide");
+        // 验证 Meta 中的物理参数
+        z1.GetProperty("meta").TryGetProperty("isVertical", out var isVer).Should().BeTrue();
+        isVer.GetBoolean().Should().BeTrue();
+        z1.GetProperty("meta").TryGetProperty("length", out var len).Should().BeTrue();
+        len.GetDouble().Should().Be(100);
+
+        // 2. 验证旋转台 (Rotary Table)
+        // Axis_R_Table 被定义为: .AsRotaryTable(50)
+        deviceMap.Should().ContainKey("Axis_R_Table");
+        var rTable = deviceMap["Axis_R_Table"];
+        rTable.GetProperty("type").GetString().Should().Be("RotaryTable");
+        rTable.GetProperty("meta").TryGetProperty("radius", out var rad).Should().BeTrue();
+        rad.GetDouble().Should().Be(50);
     }
 
     [Fact]
