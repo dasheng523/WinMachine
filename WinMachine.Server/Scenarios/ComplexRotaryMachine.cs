@@ -55,20 +55,20 @@ public sealed class ComplexRotaryMachine
                 .AddAxis(Axis_R_Table, 3, a => a.WithRange(-180, 180).WithKinematics(50, 50))
                 .AddAxis(Axis_Table_Right, 4, a => a.WithRange(-180, 180).WithKinematics(50, 50))
                 
-                // --- 气缸配置 ---
-                .AddCylinder(Cyl_Middle_Slide, 0, 1)
-                .AddCylinder(Cyl_Grips_Left, 2, 3)
-                .AddCylinder(Cyl_Grips_Right, 4, 5)
-                .AddCylinder(Cyl_R_Lift, 6, 7)
-                .AddCylinder(Cyl_Lift_Right, 8, 9)
-                .AddCylinder(Vac_Feeder_U1, 10, 11)
-                .AddCylinder(Vac_Feeder_L1, 12, 13)
-                .AddCylinder(Vac_Feeder_U2, 14, 15)
-                .AddCylinder(Vac_Feeder_L2, 16, 17)
+                // --- 气缸配置 (默认单输出) ---
+                .AddCylinder(Cyl_Middle_Slide, 0)
+                .AddCylinder(Cyl_Grips_Left, 2)
+                .AddCylinder(Cyl_Grips_Right, 4)
+                .AddCylinder(Cyl_R_Lift, 6)
+                .AddCylinder(Cyl_Lift_Right, 8)
+                .AddCylinder(Vac_Feeder_U1, 10)
+                .AddCylinder(Vac_Feeder_L1, 12)
+                .AddCylinder(Vac_Feeder_U2, 14)
+                .AddCylinder(Vac_Feeder_L2, 16)
             ).Mount("Base", root => root
                 // Feeder 模组 (上部供料区)
-                // 结构：基座 -> X轴 -> Z轴基座 -> Z轴 -> 吸笔
                 .Mount("Feeder_Base", m => m.WithOffset(0, 300, 200)
+                    .AsBox(300, 40, 20) // 供料区横梁占位
                     .Mount("Feeder_X", x => x.LinkTo(Axis_Feeder_X).WithStroke(100, 0, 0)
                         .Horizontal()
                         .AsLinearGuide(100)
@@ -110,9 +110,8 @@ public sealed class ComplexRotaryMachine
                 )
 
                 // 中间滑台模组 (负责搬运)
-                // 结构：基座 -> 滑板(气缸驱动) -> 吸笔位
-                // 注意：AsSlideBlock 在物理层暂用 AsBox 代替，或暂不指定特定物理类型仅作为运动部件
                 .Mount("Middle_Slide_Base", m => m.WithOffset(0, 0, 50)
+                    .AsBox(200, 40, 10) // 中间导轨基座占位
                     .Mount("Slide_Plate", s => s.LinkTo(Cyl_Middle_Slide).WithStroke(0, 100, 0)
                         .Horizontal()
                         .AsBox(20, 20, 10) // 模拟 SlideBlock 尺寸
@@ -123,8 +122,8 @@ public sealed class ComplexRotaryMachine
                 )
 
                 // 左侧旋转模组
-                // 结构：基座 -> 升降(气缸) -> 旋转台(轴) -> 夹爪
                 .Mount("Left_Module_Base", m => m.WithOffset(-200, 0, 0)
+                    .AsBox(100, 100, 20) // 模块底座占位
                     .Mount("L_Lift", l => l.LinkTo(Cyl_R_Lift).WithStroke(0, 0, 50)
                         .Vertical()
                         .Mount("L_Table", t => t.LinkTo(Axis_R_Table)
@@ -139,8 +138,8 @@ public sealed class ComplexRotaryMachine
                 )
 
                 // 右侧旋转模组
-                // 结构：基座 -> 升降(气缸) -> 旋转台(轴) -> 夹爪
                 .Mount("Right_Module_Base", m => m.WithOffset(200, 0, 0)
+                    .AsBox(100, 100, 20) // 模块底座占位
                     .Mount("R_Lift", l => l.LinkTo(Cyl_Lift_Right).WithStroke(0, 0, 50)
                         .Vertical()
                         .Mount("R_Table", t => t.LinkTo(Axis_Table_Right)

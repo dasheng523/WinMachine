@@ -111,13 +111,21 @@ namespace Machine.Framework.Core.Blueprint.Builders
             return this; 
         }
 
-        public IBoardBuilder AddCylinder(CylinderID cyl, int o, int i) { 
-            var b = new CylinderBuilder(cyl.Name, o, i, this); 
+        public IBoardBuilder AddCylinder(CylinderID cyl, int o) { 
+            var b = new CylinderBuilder(cyl.Name, o, null, this); 
             b.Commit(); 
             return this; 
         }
-        public IBoardBuilder AddCylinder(CylinderID cyl, int o, int i, Action<ICylinderBuilder> cfg) { 
-            var b = new CylinderBuilder(cyl.Name, o, i, this);
+
+        public IBoardBuilder AddCylinder(CylinderID cyl, int o, int diOut, int diIn) { 
+            var b = new CylinderBuilder(cyl.Name, o, null, this); 
+            b.WithFeedback(diOut, diIn);
+            b.Commit(); 
+            return this; 
+        }
+
+        public IBoardBuilder AddCylinder(CylinderID cyl, int o, Action<ICylinderBuilder> cfg) { 
+            var b = new CylinderBuilder(cyl.Name, o, null, this);
             cfg(b);
             b.Commit();
             return this; 
@@ -139,9 +147,22 @@ namespace Machine.Framework.Core.Blueprint.Builders
 
     internal sealed class CylinderBuilder : ICylinderBuilder
     {
-        private readonly string _name; private readonly int _o, _i; private readonly BoardBuilder _board;
-        private int? _fo, _fi; private int _t = 200; private bool _vert = false;
-        public CylinderBuilder(string n, int o, int i, BoardBuilder b) { _name = n; _o = o; _i = i; _board = b; }
+        private readonly string _name; 
+        private readonly int _o; 
+        private int? _i; 
+        private readonly BoardBuilder _board;
+        private int? _fo, _fi; 
+        private int _t = 200; 
+        private bool _vert = false;
+
+        public CylinderBuilder(string n, int o, int? i, BoardBuilder b) 
+        { 
+            _name = n; _o = o; _i = i; _board = b; 
+        }
+
+        // 允许在配置中设置缩回控制端口（用于双电控气缸）
+        public ICylinderBuilder WithRetractPort(int port) { _i = port; return this; }
+
         public ICylinderBuilder WithFeedback(int o, int i) { _fo = o; _fi = i; return this; }
         public ICylinderBuilder WithDynamics(int ms) { _t = ms; return this; }
         public ICylinderBuilder Vertical() { _vert = true; return this; }
@@ -439,5 +460,5 @@ namespace Machine.Framework.Core.Blueprint.Builders
     internal enum DriverType { Simulator, Leadshine, ZMotion }
     internal record BlueprintBoardDefinition(string Name, int CardId, BoardBuilder Builder);
     internal record BlueprintAxisDefinition(int Channel, string Name, double Min, double Max, double MaxVel, double MaxAcc, bool Reversed, bool IsVertical);
-    internal record BlueprintCylinderDefinition(string Name, int DoOut, int DoIn, int? FbOut, int? FbIn, int ActionTimeMs, bool IsVertical);
+    internal record BlueprintCylinderDefinition(string Name, int DoOut, int? DoIn, int? FbOut, int? FbIn, int ActionTimeMs, bool IsVertical);
 }

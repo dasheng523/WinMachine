@@ -125,17 +125,26 @@ namespace Machine.Framework.Core.Blueprint
         IBoardBuilder AddAxis(AxisID axis, int channel, Action<IAxisBuilder> configure);
         
         /// <summary>
-        /// 添加气缸定义。
+        /// 添加气缸定义（单输出，无反馈）。
+        /// <para>ON = 推出动作，OFF = 缩回动作。</para>
         /// </summary>
         /// <param name="cylinder">气缸ID标识</param>
-        /// <param name="doOut">推出动作输出端口</param>
-        /// <param name="doIn">缩回动作输出端口</param>
-        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn);
+        /// <param name="doOut">动作控制输出端口</param>
+        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut);
 
         /// <summary>
-        /// 添加并配置气缸定义。
+        /// 添加气缸定义（单输出，双反馈）。
         /// </summary>
-        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, int doIn, Action<ICylinderBuilder> configure);
+        /// <param name="cylinder">气缸ID标识</param>
+        /// <param name="doOut">动作控制输出端口</param>
+        /// <param name="diOut">推出到位输入端口</param>
+        /// <param name="diIn">缩回到位输入端口</param>
+        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, int diOut, int diIn);
+
+        /// <summary>
+        /// 添加并配置气缸定义（如需定义双输出气缸，请在此配置中设置）。
+        /// </summary>
+        IBoardBuilder AddCylinder(CylinderID cylinder, int doOut, Action<ICylinderBuilder> configure);
     }
 
     /// <summary>
@@ -197,6 +206,11 @@ namespace Machine.Framework.Core.Blueprint
     /// </summary>
     public interface ICylinderBuilder
     {
+        /// <summary>
+        /// 配置缩回控制输出端口（用于双输出/双电控气缸）。
+        /// </summary>
+        ICylinderBuilder WithRetractPort(int port);
+
         /// <summary>
         /// 配置到位反馈传感器端口。
         /// </summary>
