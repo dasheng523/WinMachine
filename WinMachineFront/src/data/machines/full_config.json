@@ -1,0 +1,560 @@
+{
+    "machineName": "WinMachine Full Configuration",
+    "schemaVersion": "1.0",
+    "scene": {
+        "name": "SceneRoot",
+        "nodeType": "Group",
+        "children": [
+            {
+                "name": "MachineBase",
+                "nodeType": "Group",
+                "offset": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "children": [
+                    {
+                        "name": "TrayModule_Unload",
+                        "nodeType": "LinearGuide",
+                        "linkedDeviceId": "Axis_Y1",
+                        "offset": {
+                            "x": 0,
+                            "y": -200,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Tray_Unload_Plat",
+                                "nodeType": "Group",
+                                "offset": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "z": 10
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "name": "TrayModule_Load",
+                        "nodeType": "LinearGuide",
+                        "linkedDeviceId": "Axis_Y2",
+                        "offset": {
+                            "x": 0,
+                            "y": 200,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Tray_Load_Plat",
+                                "nodeType": "Group",
+                                "offset": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "z": 10
+                                },
+                                "children": []
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Beam_X",
+                        "nodeType": "LinearGuide",
+                        "linkedDeviceId": "Axis_X",
+                        "offset": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 300
+                        },
+                        "children": [
+                            {
+                                "name": "Head_Z1",
+                                "nodeType": "LinearGuide",
+                                "linkedDeviceId": "Axis_Z1",
+                                "offset": {
+                                    "x": -100,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Pen_L1",
+                                        "nodeType": "SuctionPen",
+                                        "linkedDeviceId": "Cyl_LoadPen1",
+                                        "offset": {
+                                            "x": -20,
+                                            "y": 0,
+                                            "z": 0
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "name": "Pen_U1",
+                                        "nodeType": "SuctionPen",
+                                        "linkedDeviceId": "Cyl_UnloadPen1",
+                                        "offset": {
+                                            "x": 20,
+                                            "y": 0,
+                                            "z": 0
+                                        },
+                                        "children": []
+                                    }
+                                ]
+                            },
+                            {
+                                "name": "Head_Z2",
+                                "nodeType": "LinearGuide",
+                                "linkedDeviceId": "Axis_Z2",
+                                "offset": {
+                                    "x": 100,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Pen_L2",
+                                        "nodeType": "SuctionPen",
+                                        "linkedDeviceId": "Cyl_LoadPen2",
+                                        "offset": {
+                                            "x": -20,
+                                            "y": 0,
+                                            "z": 0
+                                        },
+                                        "children": []
+                                    },
+                                    {
+                                        "name": "Pen_U2",
+                                        "nodeType": "SuctionPen",
+                                        "linkedDeviceId": "Cyl_UnloadPen2",
+                                        "offset": {
+                                            "x": 20,
+                                            "y": 0,
+                                            "z": 0
+                                        },
+                                        "children": []
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Scan_Station",
+                        "nodeType": "Group",
+                        "offset": {
+                            "x": 400,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Scan_Pusher",
+                                "nodeType": "SlideBlock",
+                                "linkedDeviceId": "Cyl_ScanPush",
+                                "offset": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Scan_Seat",
+                                        "nodeType": "Group",
+                                        "offset": {
+                                            "x": 0,
+                                            "y": 0,
+                                            "z": 50
+                                        },
+                                        "children": [
+                                            {
+                                                "name": "Gripper_Lifter",
+                                                "nodeType": "SlideBlock",
+                                                "linkedDeviceId": "Cyl_GripperLift",
+                                                "offset": {
+                                                    "x": 0,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Gripper_Rotator",
+                                                        "nodeType": "RotaryTable",
+                                                        "linkedDeviceId": "Axis_R",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 0,
+                                                            "z": 0
+                                                        },
+                                                        "children": [
+                                                            {
+                                                                "name": "Gripper_Jaws",
+                                                                "nodeType": "Gripper",
+                                                                "linkedDeviceId": "Cyl_GripperClamp",
+                                                                "offset": {
+                                                                    "x": 0,
+                                                                    "y": 0,
+                                                                    "z": 0
+                                                                },
+                                                                "children": []
+                                                            }
+                                                        ]
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "Vac_1",
+                                                "nodeType": "SuctionPen",
+                                                "linkedDeviceId": "Cyl_ScanVac1",
+                                                "offset": {
+                                                    "x": -20,
+                                                    "y": -20,
+                                                    "z": 5
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "name": "Vac_2",
+                                                "nodeType": "SuctionPen",
+                                                "linkedDeviceId": "Cyl_ScanVac2",
+                                                "offset": {
+                                                    "x": 20,
+                                                    "y": -20,
+                                                    "z": 5
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "name": "Vac_3",
+                                                "nodeType": "SuctionPen",
+                                                "linkedDeviceId": "Cyl_ScanVac3",
+                                                "offset": {
+                                                    "x": -20,
+                                                    "y": 20,
+                                                    "z": 5
+                                                },
+                                                "children": []
+                                            },
+                                            {
+                                                "name": "Vac_4",
+                                                "nodeType": "SuctionPen",
+                                                "linkedDeviceId": "Cyl_ScanVac4",
+                                                "offset": {
+                                                    "x": 20,
+                                                    "y": 20,
+                                                    "z": 5
+                                                },
+                                                "children": []
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "deviceRegistry": [
+        {
+            "id": "Axis_X",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 800,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "length": 1000,
+                "sliderWidth": 50
+            }
+        },
+        {
+            "id": "Axis_Y1",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 400,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "length": 500,
+                "sliderWidth": 40
+            }
+        },
+        {
+            "id": "Axis_Y2",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 400,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "length": 500,
+                "sliderWidth": 40
+            }
+        },
+        {
+            "id": "Axis_Z1",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 150,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "length": 200,
+                "sliderWidth": 30
+            }
+        },
+        {
+            "id": "Axis_Z2",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 150,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "length": 200,
+                "sliderWidth": 30
+            }
+        },
+        {
+            "id": "Axis_R",
+            "type": "RotaryTable",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 180,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "radius": 40
+            }
+        },
+        {
+            "id": "Cyl_LoadPen1",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 10
+            }
+        },
+        {
+            "id": "Cyl_UnloadPen1",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": true,
+                "diameter": 10
+            }
+        },
+        {
+            "id": "Cyl_LoadPen2",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 10
+            }
+        },
+        {
+            "id": "Cyl_UnloadPen2",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": true,
+                "diameter": 10
+            }
+        },
+        {
+            "id": "Cyl_ScanPush",
+            "type": "SlideBlock",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "size": 60
+            }
+        },
+        {
+            "id": "Cyl_GripperClamp",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "openWidth": 50,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_GripperLift",
+            "type": "SlideBlock",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "size": 40
+            }
+        },
+        {
+            "id": "Cyl_ScanVac1",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 5
+            }
+        },
+        {
+            "id": "Cyl_ScanVac2",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 5
+            }
+        },
+        {
+            "id": "Cyl_ScanVac3",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 5
+            }
+        },
+        {
+            "id": "Cyl_ScanVac4",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 5
+            }
+        }
+    ]
+}

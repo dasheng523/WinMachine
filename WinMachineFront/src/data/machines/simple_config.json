@@ -1,0 +1,82 @@
+{
+    "machineName": "Simple Demo Unit",
+    "schemaVersion": "0.5",
+    "scene": {
+        "name": "Root",
+        "nodeType": "Group",
+        "children": [
+            {
+                "name": "SingleAxis_X",
+                "nodeType": "LinearGuide",
+                "linkedDeviceId": "Axis_Demo_1",
+                "offset": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "children": [
+                    {
+                        "name": "Platform",
+                        "nodeType": "Group",
+                        "children": [
+                            {
+                                "name": "Rotary_Head",
+                                "nodeType": "RotaryTable",
+                                "linkedDeviceId": "Axis_Rot_1",
+                                "offset": {
+                                    "x": 0,
+                                    "y": -50,
+                                    "z": 10
+                                },
+                                "children": [
+                                    {
+                                        "name": "Gripper_Main",
+                                        "nodeType": "Gripper",
+                                        "linkedDeviceId": "Grip_1",
+                                        "offset": {
+                                            "x": 0,
+                                            "y": 0,
+                                            "z": 0
+                                        },
+                                        "children": []
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "deviceRegistry": [
+        {
+            "id": "Axis_Demo_1",
+            "type": "LinearGuide",
+            "baseType": "Axis",
+            "meta": {
+                "length": 600,
+                "min": 0,
+                "max": 500,
+                "width": 40,
+                "isVertical": false
+            }
+        },
+        {
+            "id": "Axis_Rot_1",
+            "type": "RotaryTable",
+            "baseType": "Axis",
+            "meta": {
+                "radius": 50
+            }
+        },
+        {
+            "id": "Grip_1",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "width": 40,
+                "height": 40
+            }
+        }
+    ]
+}

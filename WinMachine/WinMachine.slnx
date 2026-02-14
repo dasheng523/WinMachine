@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Machine.Framework/Machine.Framework.csproj" />
+  <Project Path="WinMachine.Server/WinMachine.Server.csproj" />
+  <Project Path="WinMachine/WinMachine.csproj" />
+  <Project Path="tests/Machine.Framework.Tests/Machine.Framework.Tests.csproj" />
+  <Project Path="tests/WinMachine.Server.Tests/WinMachine.Server.Tests.csproj" />
+</Solution>

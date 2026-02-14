@@ -1,0 +1,635 @@
+{
+    "machineName": "Complex Rotary Lift Assembly",
+    "schemaVersion": "1.0",
+    "scene": {
+        "name": "SceneRoot",
+        "nodeType": "Group",
+        "children": [
+            {
+                "name": "MachineBase",
+                "nodeType": "Group",
+                "offset": {
+                    "x": 0,
+                    "y": 0,
+                    "z": 0
+                },
+                "children": [
+                    {
+                        "name": "Middle_Module",
+                        "nodeType": "Group",
+                        "offset": {
+                            "x": 0,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Slide_Push",
+                                "nodeType": "SlideBlock",
+                                "linkedDeviceId": "Cyl_Middle_Slide",
+                                "offset": {
+                                    "x": 80,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Vac_Plate",
+                                        "nodeType": "Group",
+                                        "offset": {
+                                            "x": 0,
+                                            "y": 0,
+                                            "z": 50
+                                        },
+                                        "children": [
+                                            {
+                                                "name": "Vac_Group_L",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": -50,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Vac1",
+                                                        "nodeType": "SuctionPen",
+                                                        "linkedDeviceId": "Cyl_Mid_Vac1",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Vac2",
+                                                        "nodeType": "SuctionPen",
+                                                        "linkedDeviceId": "Cyl_Mid_Vac2",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "Vac_Group_R",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": 50,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Vac3",
+                                                        "nodeType": "SuctionPen",
+                                                        "linkedDeviceId": "Cyl_Mid_Vac3",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Vac4",
+                                                        "nodeType": "SuctionPen",
+                                                        "linkedDeviceId": "Cyl_Mid_Vac4",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Assembly_Left",
+                        "nodeType": "Group",
+                        "offset": {
+                            "x": -250,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Lifter_Column",
+                                "nodeType": "SlideBlock",
+                                "linkedDeviceId": "Cyl_R_Lift",
+                                "offset": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Rotary_Table",
+                                        "nodeType": "RotaryTable",
+                                        "linkedDeviceId": "Axis_R_Table",
+                                        "offset": {
+                                            "x": 0,
+                                            "y": 0,
+                                            "z": 100
+                                        },
+                                        "children": [
+                                            {
+                                                "name": "Mount_Left",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": -120,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Grip_L1",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_L1",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Grip_L2",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_L2",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "Mount_Right",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": 120,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Grip_R1",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_R1",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Grip_R2",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_R2",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "name": "Assembly_Right",
+                        "nodeType": "Group",
+                        "offset": {
+                            "x": 250,
+                            "y": 0,
+                            "z": 0
+                        },
+                        "children": [
+                            {
+                                "name": "Lifter_Column",
+                                "nodeType": "SlideBlock",
+                                "linkedDeviceId": "Cyl_Lift_Right",
+                                "offset": {
+                                    "x": 0,
+                                    "y": 0,
+                                    "z": 0
+                                },
+                                "children": [
+                                    {
+                                        "name": "Rotary_Table",
+                                        "nodeType": "RotaryTable",
+                                        "linkedDeviceId": "Axis_Table_Right",
+                                        "offset": {
+                                            "x": 0,
+                                            "y": 0,
+                                            "z": 100
+                                        },
+                                        "children": [
+                                            {
+                                                "name": "Mount_Left",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": -120,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Grip_L1",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_Right_L1",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Grip_L2",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_Right_L2",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            },
+                                            {
+                                                "name": "Mount_Right",
+                                                "nodeType": "Group",
+                                                "offset": {
+                                                    "x": 120,
+                                                    "y": 0,
+                                                    "z": 0
+                                                },
+                                                "children": [
+                                                    {
+                                                        "name": "Grip_R1",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_Right_R1",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": -40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    },
+                                                    {
+                                                        "name": "Grip_R2",
+                                                        "nodeType": "Gripper",
+                                                        "linkedDeviceId": "Cyl_Grip_Right_R2",
+                                                        "offset": {
+                                                            "x": 0,
+                                                            "y": 40,
+                                                            "z": 0
+                                                        },
+                                                        "children": []
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "deviceRegistry": [
+        {
+            "id": "Axis_R_Table",
+            "type": "RotaryTable",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 360,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "radius": 100
+            }
+        },
+        {
+            "id": "Axis_Table_Right",
+            "type": "RotaryTable",
+            "baseType": "Axis",
+            "meta": {
+                "min": 0,
+                "max": 360,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "radius": 100
+            }
+        },
+        {
+            "id": "Cyl_R_Lift",
+            "type": "SlideBlock",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "size": 80
+            }
+        },
+        {
+            "id": "Cyl_Grip_L1",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": true,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_L2",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": true,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_R1",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_R2",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Lift_Right",
+            "type": "SlideBlock",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "size": 80
+            }
+        },
+        {
+            "id": "Cyl_Grip_Right_L1",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": true,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_Right_L2",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": true,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_Right_R1",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Grip_Right_R2",
+            "type": "Gripper",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": false,
+                "openWidth": 40,
+                "closeWidth": 10
+            }
+        },
+        {
+            "id": "Cyl_Middle_Slide",
+            "type": "SlideBlock",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": false,
+                "isReversed": true,
+                "size": 120
+            }
+        },
+        {
+            "id": "Cyl_Mid_Vac1",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 8
+            }
+        },
+        {
+            "id": "Cyl_Mid_Vac2",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 8
+            }
+        },
+        {
+            "id": "Cyl_Mid_Vac3",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 8
+            }
+        },
+        {
+            "id": "Cyl_Mid_Vac4",
+            "type": "SuctionPen",
+            "baseType": "Cylinder",
+            "meta": {
+                "moveTime": 200,
+                "ioOut": 0,
+                "ioInExtended": null,
+                "ioInRetracted": null,
+                "width": 32,
+                "height": 32,
+                "pivotX": 0.5,
+                "pivotY": 0.5,
+                "isVertical": true,
+                "isReversed": false,
+                "diameter": 8
+            }
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-industrial-900 text-industrial-100 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .industrial-panel {
+    @apply bg-industrial-800 border border-industrial-600 rounded-lg shadow-lg relative overflow-hidden;
+  }
+  
+  .industrial-border {
+    @apply border-2 border-industrial-600;
+  }
+
+  .rivet {
+    @apply w-2 h-2 rounded-full bg-industrial-400 shadow-inner absolute;
+  }
+}
