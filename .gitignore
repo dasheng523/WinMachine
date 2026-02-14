@@ -1,0 +1,20 @@
+# Global ignores
+.agent/
+.vscode/
+.idea/
+
+# Hardware SDK Binaries (Large files, recommended to keep out of Git)
+*.dll
+*.so
+*.dylib
+
+# Specific large DLLs previously tracked
+WinMachine/Machine.Framework/Devices/Implementations/Leadshine/SDK/LTSMC.dll
+WinMachine/Machine.Framework/Devices/Implementations/ZMotion/SDK/zauxdll.dll
+WinMachine/Machine.Framework/Devices/Implementations/ZMotion/SDK/zmotion.dll
+
+# Build results
+[Bb]in/
+[Oo]bj/
+dist/
+node_modules/
