@@ -248,11 +248,11 @@ const Group: React.FC<ComponentProps> = ({ children }) => {
 // --- Main Node Renderer ---
 
 export const DeviceNode: React.FC<DeviceNodeProps> = ({ node, registry }) => {
-    if (!node) return null;
-
     // Find the device object
-    const device = useMemo(() => registry.find(d => d.id === node.linkedDeviceId), [registry, node.linkedDeviceId]);
-    const telemetryValue = useDeviceTelemetry(node.linkedDeviceId, undefined);
+    const device = useMemo(() => registry.find(d => d && node && d.id === node.linkedDeviceId), [registry, node]);
+    const telemetryValue = useDeviceTelemetry(node?.linkedDeviceId, undefined);
+
+    if (!node) return null;
 
     // [v2.2] Transformation Logic
     // Formula: LocalMatrix = T(Offset) * R(Rotation) * T(Stroke * ConnectionState)

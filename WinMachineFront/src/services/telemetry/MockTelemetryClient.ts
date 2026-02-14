@@ -10,7 +10,7 @@ interface SimStep {
 }
 
 export class MockTelemetryClient implements ITelemetryClient {
-    private observable = new TelemetryObservable();
+    public observable = new TelemetryObservable();
     private intervalId: number | null = null;
     public isConnected = false;
 

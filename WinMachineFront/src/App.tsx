@@ -2,12 +2,16 @@ import { useState, useEffect, useContext } from 'react';
 import { machines as initialMachines } from './data/mockMachines';
 // import { DeviceNode } from './components/DeviceNode'; // Replaced by 3D
 import type { MachineSchema } from './types';
-import { TelemetryProvider, useTelemetryClient, useTelemetryObservable, TelemetryContext } from './services/telemetry/TelemetryContext';
+import { TelemetryContext, useTelemetryClient, useTelemetryObservable } from './services/telemetry/TelemetryContext';
+import { TelemetryProvider } from './services/telemetry/TelemetryProvider';
 import { MachineService } from './services/machine/MachineService';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Stage, OrbitControls } from '@react-three/drei';
+import * as THREE from 'three';
 import { DeviceNode3D } from './components/DeviceNode3D';
 import { Vector3 } from 'three';
+import { Configurator } from './components/Configurator';
+import { Hammer, Play, Settings2 } from 'lucide-react';
 
 function StepIndicator() {
   const observable = useTelemetryObservable();
@@ -47,9 +51,10 @@ function ConnectionStatus() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      if ((telemetryClient as any).isConnected) {
+      const client = telemetryClient as unknown as { isConnected: boolean; socket?: { readyState: number } };
+      if (client.isConnected) {
         setStatus('CONNECTED');
-      } else if ((telemetryClient as any).socket?.readyState === 0) {
+      } else if (client.socket?.readyState === 0) {
         setStatus('CONNECTING');
       } else {
         setStatus('DISCONNECTED');
@@ -75,7 +80,7 @@ const INITIAL_CAMERA_POS_V3 = new Vector3(1000, -1000, 1000);
 const INITIAL_TARGET_V3 = new Vector3(0, 0, 0);
 
 function CameraController({ trigger }: { trigger: number }) {
-  const { camera, controls, size } = useThree();
+  const { camera, controls } = useThree();
 
   useEffect(() => {
     if (trigger > 0) {
@@ -85,14 +90,16 @@ function CameraController({ trigger }: { trigger: number }) {
       camera.lookAt(INITIAL_TARGET_V3);
 
       // Reset Zoom - Orthographic zoom is different from perspective dist
-      if ((camera as any).isOrthographicCamera) {
-        camera.zoom = 1;
+      if ('isOrthographicCamera' in camera && camera.isOrthographicCamera) {
+        // eslint-disable-next-line react-hooks/immutability
+        (camera as THREE.OrthographicCamera).zoom = 1;
         camera.updateProjectionMatrix();
       }
 
       if (controls) {
-        (controls as any).target.copy(INITIAL_TARGET_V3);
-        (controls as any).update();
+        const ctrl = controls as unknown as { target: THREE.Vector3; update: () => void };
+        ctrl.target.copy(INITIAL_TARGET_V3);
+        ctrl.update();
       }
     }
   }, [trigger, camera, controls]);
@@ -101,6 +108,7 @@ function CameraController({ trigger }: { trigger: number }) {
 }
 
 function MachineView() {
+  const [mode, setMode] = useState<'OPERATE' | 'CONFIGURE'>('OPERATE');
   const [scenarios, setScenarios] = useState<string[]>([]);
   const [selectedScenarioName, setSelectedScenarioName] = useState<string>('');
   const [selectedMachine, setSelectedMachine] = useState<MachineSchema | null>(null);
@@ -125,8 +133,10 @@ function MachineView() {
   // Load schema when scenario name changes
   useEffect(() => {
     if (!selectedScenarioName) return;
-    setLoading(true);
+    
+    let isMounted = true;
     MachineService.getSchema(selectedScenarioName).then(schema => {
+      if (!isMounted) return;
       if (schema) {
         setSelectedMachine(schema);
       } else {
@@ -136,6 +146,7 @@ function MachineView() {
       }
       setLoading(false);
     });
+    return () => { isMounted = false; };
   }, [selectedScenarioName]);
 
   const handleStart = () => {
@@ -169,45 +180,86 @@ function MachineView() {
           <p className="text-xs text-slate-500 mt-1 font-mono">SCENARIO EXPLORER v2.0</p>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-          {scenarios.map((name) => (
-            <button
-              key={name}
-              onClick={() => setSelectedScenarioName(name)}
-              className={`w-full text-left p-3 rounded-md transition-all border font-mono text-sm relative group
-                ${selectedScenarioName === name
-                  ? 'bg-slate-800 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
-                  : 'bg-transparent border-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
-                }
-              `}
-            >
-              {selectedScenarioName === name && (
-                <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-500 rounded-l-md" />
-              )}
-              <div className="font-bold truncate">{name.replace(/_/g, ' ')}</div>
-            </button>
-          ))}
+        {/* Mode Selector */}
+        <div className="p-2 border-b border-slate-800 flex gap-1">
+          <button 
+            onClick={() => setMode('OPERATE')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-bold font-mono transition-all ${
+              mode === 'OPERATE' 
+                ? 'bg-cyan-600 text-white shadow-lg shadow-cyan-900/20' 
+                : 'bg-slate-800 text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Play size={12} />
+            OPERATE
+          </button>
+          <button 
+            onClick={() => setMode('CONFIGURE')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded text-[10px] font-bold font-mono transition-all ${
+              mode === 'CONFIGURE' 
+                ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20' 
+                : 'bg-slate-800 text-slate-500 hover:text-slate-300'
+            }`}
+          >
+            <Hammer size={12} />
+            CONFIGURE
+          </button>
         </div>
 
-        {/* Telemetry Controls */}
-        <div className="p-4 border-t border-slate-800 bg-slate-900/80">
-          <h3 className="text-xs font-bold text-slate-400 mb-2 font-mono uppercase">Control Panel</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={handleStart}
-              className="bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600/50 p-2 rounded text-xs font-mono transition-colors flex items-center justify-center gap-1"
-            >
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              START
-            </button>
-            <button
-              onClick={handleStop}
-              className="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 p-2 rounded text-xs font-mono transition-colors"
-            >
-              STOP
-            </button>
+        {mode === 'OPERATE' ? (
+          <>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+              {scenarios.map((name) => (
+                <button
+              key={name}
+              onClick={() => {
+                setSelectedScenarioName(name);
+                setLoading(true);
+              }}
+              className={`w-full text-left p-3 rounded-md transition-all border font-mono text-sm relative group
+                    ${selectedScenarioName === name
+                      ? 'bg-slate-800 border-cyan-500/50 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.1)]'
+                      : 'bg-transparent border-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
+                    }
+                  `}
+                >
+                  {selectedScenarioName === name && (
+                    <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-cyan-500 rounded-l-md" />
+                  )}
+                  <div className="font-bold truncate">{name.replace(/_/g, ' ')}</div>
+                </button>
+              ))}
+            </div>
+
+            {/* Telemetry Controls */}
+            <div className="p-4 border-t border-slate-800 bg-slate-900/80">
+              <h3 className="text-xs font-bold text-slate-400 mb-2 font-mono uppercase">Control Panel</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleStart}
+                  className="bg-green-600/20 hover:bg-green-600/40 text-green-400 border border-green-600/50 p-2 rounded text-xs font-mono transition-colors flex items-center justify-center gap-1"
+                >
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                  START
+                </button>
+                <button
+                  onClick={handleStop}
+                  className="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-600/50 p-2 rounded text-xs font-mono transition-colors"
+                >
+                  STOP
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 p-4 flex flex-col items-center justify-center text-center opacity-50">
+            <Settings2 size={32} className="mb-2 text-amber-500" />
+            <p className="text-[10px] font-mono text-slate-400">
+              CONFIGURATION MODE ACTIVE<br/>
+              Use the center workspace to assemble your machine.
+            </p>
           </div>
-        </div>
+        )}
 
         <div className="p-4 border-t border-slate-800 text-[10px] text-slate-600 font-mono flex items-center justify-between">
           <span>SYSTEM STATUS</span>
@@ -217,96 +269,99 @@ function MachineView() {
 
       {/* Main Content Area */}
       <div className="flex-1 relative bg-neutral-950 overflow-hidden">
-        {loading && (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-center font-mono text-xs text-white/50">
-            SYNCING SCHEMA...
-          </div>
-        )}
-
-        {/* Background Grid */}
-        <div
-          className="absolute inset-0 opacity-20 pointer-events-none"
-          style={{
-            backgroundImage: `
-              linear-gradient(to right, #334155 1px, transparent 1px),
-              linear-gradient(to bottom, #334155 1px, transparent 1px)
-            `,
-            backgroundSize: '40px 40px'
-          }}
-        />
-
-        {/* HUD Header */}
-        <div className="absolute top-0 left-0 p-6 z-10 w-full pointer-events-none">
-          {selectedMachine && (
-            <>
-              <h1 className="text-3xl font-bold font-mono tracking-widest text-white/90 uppercase flex items-center gap-3 drop-shadow-md">
-                {selectedMachine.machineName}
-              </h1>
-              <div className="flex gap-2 mt-2">
-                <div className="inline-flex items-center gap-2 px-2 py-1 bg-cyan-950/30 border border-cyan-900/50 rounded text-cyan-400 text-xs font-mono">
-                  <span>ID: {selectedMachine.scene.name}</span>
-                  <span className="w-[1px] h-3 bg-cyan-800/50"></span>
-                  <span>NODES: {selectedMachine.deviceRegistry.length}</span>
-                </div>
-                <StepIndicator />
+        {mode === 'OPERATE' ? (
+          <>
+            {loading && (
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] z-50 flex items-center justify-center font-mono text-xs text-white/50">
+                SYNCING SCHEMA...
               </div>
-            </>
-          )}
-        </div>
+            )}
 
-        {/* Zoom Controls (Hidden for R3F OrbitControls) */}
-        {/* <div className="absolute bottom-8 right-8 z-50 flex gap-4"> ... </div> */}
+            {/* Background Grid */}
+            <div
+              className="absolute inset-0 opacity-20 pointer-events-none"
+              style={{
+                backgroundImage: `
+                  linear-gradient(to right, #334155 1px, transparent 1px),
+                  linear-gradient(to bottom, #334155 1px, transparent 1px)
+                `,
+                backgroundSize: '40px 40px'
+              }}
+            />
 
-        {/* Viewport Center */}
+            {/* HUD Header */}
+            <div className="absolute top-0 left-0 p-6 z-10 w-full pointer-events-none">
+              {selectedMachine && (
+                <>
+                  <h1 className="text-3xl font-bold font-mono tracking-widest text-white/90 uppercase flex items-center gap-3 drop-shadow-md">
+                    {selectedMachine.machineName}
+                  </h1>
+                  <div className="flex gap-2 mt-2">
+                    <div className="inline-flex items-center gap-2 px-2 py-1 bg-cyan-950/30 border border-cyan-900/50 rounded text-cyan-400 text-xs font-mono">
+                      <span>ID: {selectedMachine.scene.name}</span>
+                      <span className="w-[1px] h-3 bg-cyan-800/50"></span>
+                      <span>NODES: {selectedMachine.deviceRegistry.length}</span>
+                    </div>
+                    <StepIndicator />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Viewport Center */}
         <div className="absolute inset-0">
           <Canvas shadows orthographic camera={{ position: [1000, -1000, 1000], zoom: 1, near: -10000, far: 20000, up: [0, 0, 1] }}>
             <TelemetryContext.Provider value={telemetryCtx}>
-              {/* @ts-ignore */}
+              {/* @ts-expect-error - color attach background is valid but fiber types sometimes mismatch */}
               <color attach="background" args={['#101010']} />
               {/* Ambient Light for base visibility */}
-              <ambientLight intensity={0.5} />
-              {/* Directional Light for definition */}
-              <directionalLight position={[1000, -500, 1000]} intensity={1} castShadow />
+                  <ambientLight intensity={0.5} />
+                  {/* Directional Light for definition */}
+                  <directionalLight position={[1000, -500, 1000]} intensity={1} castShadow />
 
-              <OrbitControls
-                makeDefault
-                minZoom={0.1}
-                maxZoom={10}
-                target={[0, 0, 0]}
-              />
-
-              <CameraController trigger={resetTrigger} />
-
-              <Stage intensity={0.5} environment="city" adjustCamera={1.2}>
-                {selectedMachine && (
-                  <DeviceNode3D
-                    key={selectedMachine.machineName}
-                    node={selectedMachine.scene}
-                    registry={selectedMachine.deviceRegistry}
+                  <OrbitControls
+                    makeDefault
+                    minZoom={0.1}
+                    maxZoom={10}
+                    target={[0, 0, 0]}
                   />
-                )}
-              </Stage>
-            </TelemetryContext.Provider>
-          </Canvas>
-        </div>
 
-        {/* View Controls */}
-        <div className="absolute bottom-8 right-8 z-50 flex gap-4">
-          <div className="flex items-center gap-2 bg-slate-800/90 backdrop-blur p-2 rounded-lg border border-slate-700 shadow-xl">
-            <button
-              onClick={() => setResetTrigger(t => t + 1)}
-              className="h-8 px-3 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-cyan-400 text-xs font-mono font-bold transition-colors uppercase gap-2"
-            >
-              <div className="w-3 h-3 border-2 border-current rounded-full relative">
-                <div className="absolute inset-0 m-auto w-1 h-1 bg-current rounded-full" />
+                  <CameraController trigger={resetTrigger} />
+
+                  <Stage intensity={0.5} environment="city" adjustCamera={1.2}>
+                    {selectedMachine && (
+                      <DeviceNode3D
+                        key={selectedMachine.machineName}
+                        node={selectedMachine.scene}
+                        registry={selectedMachine.deviceRegistry}
+                      />
+                    )}
+                  </Stage>
+                </TelemetryContext.Provider>
+              </Canvas>
+            </div>
+
+            {/* View Controls */}
+            <div className="absolute bottom-8 right-8 z-50 flex gap-4">
+              <div className="flex items-center gap-2 bg-slate-800/90 backdrop-blur p-2 rounded-lg border border-slate-700 shadow-xl">
+                <button
+                  onClick={() => setResetTrigger(t => t + 1)}
+                  className="h-8 px-3 flex items-center justify-center bg-slate-700 hover:bg-slate-600 rounded text-cyan-400 text-xs font-mono font-bold transition-colors uppercase gap-2"
+                >
+                  <div className="w-3 h-3 border-2 border-current rounded-full relative">
+                    <div className="absolute inset-0 m-auto w-1 h-1 bg-current rounded-full" />
+                  </div>
+                  Reset View
+                </button>
               </div>
-              Reset View
-            </button>
-          </div>
-        </div>
+            </div>
 
-        {/* Vignette Overlay */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.6)_100%)]"></div>
+            {/* Vignette Overlay */}
+            <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.6)_100%)]"></div>
+          </>
+        ) : (
+          <Configurator onExit={() => setMode('OPERATE')} />
+        )}
       </div>
     </div >
   );

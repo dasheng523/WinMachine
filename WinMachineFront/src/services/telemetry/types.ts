@@ -1,9 +1,11 @@
+import { TelemetryObservable } from './TelemetryObservable';
+
 export type EventType = "FlowStarted" | "FlowStopped" | "Error" | "Attach" | "Detach" | "Spawn" | "MaterialSpawn" | "MaterialTransform" | "MaterialConsume";
 
 export interface TelemetryEvent {
     type: EventType;
     msg: string;      // Human readable message
-    payload?: any;    // Depend on type
+    payload?: unknown;    // Depend on type
 }
 
 export interface MaterialEntity {
@@ -53,6 +55,7 @@ export interface TelemetryPacket {
 }
 
 export interface ITelemetryClient {
+    observable: TelemetryObservable;
     connect(url: string): void;
     disconnect(): void;
 

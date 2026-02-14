@@ -1,5 +1,4 @@
-import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import React, { useMemo } from 'react';
 import { Box, Cylinder, Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { useSpring, animated, config } from '@react-spring/three';
@@ -9,6 +8,7 @@ import type { SceneNode, Device, MaterialEntity } from '../types';
 interface DeviceNode3DProps {
     node: SceneNode;
     registry: Device[];
+    isSelected?: boolean;
 }
 
 interface Component3DProps {
@@ -223,7 +223,7 @@ const MaterialSlot3D: React.FC<Component3DProps> = ({ children }) => (
 
 // --- DeviceNode3D Implementation ---
 
-export const DeviceNode3D: React.FC<DeviceNode3DProps> = ({ node, registry }) => {
+export const DeviceNode3D: React.FC<DeviceNode3DProps> = ({ node, registry, isSelected }) => {
     const device = useMemo(() => registry.find(d => d.id === node.linkedDeviceId), [registry, node.linkedDeviceId]);
     const telemetryValue = useDeviceTelemetry(node.linkedDeviceId, undefined);
     const material = useMaterialState(node.linkedDeviceId);
@@ -279,7 +279,15 @@ export const DeviceNode3D: React.FC<DeviceNode3DProps> = ({ node, registry }) =>
 
     return (
         <group position={[offX, offY, offZ]} rotation={[rotX, rotY, rotZ]}>
-            <animated.group position={dynPos as any}>
+            {isSelected && (
+                <Box args={[60, 60, 60]} visible={false}>
+                    <meshBasicMaterial color="#06b6d4" wireframe transparent opacity={0.3} />
+                    <Box args={[65, 65, 65]}>
+                        <meshBasicMaterial color="#06b6d4" wireframe transparent opacity={0.1} />
+                    </Box>
+                </Box>
+            )}
+            <animated.group position={dynPos as unknown as THREE.Vector3}>
                 <Component device={device} telemetryValue={telemetryValue}>
                     {content}
                 </Component>
