@@ -10,4 +10,8 @@
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MachineOrchestration.Core\MachineOrchestration.Core.csproj" />
+  </ItemGroup>
+
 </Project>
