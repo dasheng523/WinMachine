@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MachineOrchestration.App/MachineOrchestration.App.csproj" />
+    <Project Path="src/MachineOrchestration.Automation/MachineOrchestration.Automation.csproj" />
+    <Project Path="src/MachineOrchestration.Configuration/MachineOrchestration.Configuration.csproj" />
+    <Project Path="src/MachineOrchestration.ControlBoards/MachineOrchestration.ControlBoards.csproj" />
+    <Project Path="src/MachineOrchestration.Core/MachineOrchestration.Core.csproj" />
+    <Project Path="src/MachineOrchestration.Dsl/MachineOrchestration.Dsl.csproj" />
+    <Project Path="src/MachineOrchestration.Visualization/MachineOrchestration.Visualization.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MachineOrchestration.Tests/MachineOrchestration.Tests.csproj" />
+  </Folder>
+</Solution>

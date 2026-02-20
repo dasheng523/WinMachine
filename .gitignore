@@ -1,20 +1,88 @@
-# Global ignores
-.agent/
-.vscode/
-.idea/
-
-# Hardware SDK Binaries (Large files, recommended to keep out of Git)
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
 *.dll
-*.so
-*.dylib
-
-# Specific large DLLs previously tracked
-WinMachine/Machine.Framework/Devices/Implementations/Leadshine/SDK/LTSMC.dll
-WinMachine/Machine.Framework/Devices/Implementations/ZMotion/SDK/zauxdll.dll
-WinMachine/Machine.Framework/Devices/Implementations/ZMotion/SDK/zmotion.dll
+*.exe
+*.pdb
+*.log
+.vs/
+.vscode/
+*.DotSettings.user
 
 # Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
 [Bb]in/
 [Oo]bj/
-dist/
+[Ll]og/
+[Ll]ogs/
+
+# NuGet
+*.nupkg
+*.snupkg
+**/packages/*
+!**/packages/build/
+*.nuget.props
+*.nuget.targets
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+
+# Frontend
 node_modules/
+dist/
+dist-ssr/
+*.local
+.env
+.env.local
+.env.*.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor directories and files
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln.docstates
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# Rider
+.idea/
+*.sln.iml
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
