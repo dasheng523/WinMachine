@@ -4,6 +4,41 @@
 
 机器编排系统（Machine Orchestration System）是一个工业自动化平台，允许用户通过图形界面组合基础零件构建复杂的自动化机器。系统设计严格遵循 Haskell 函数式编程哲学，使用 .NET 10 和 C# 实现，强调类型安全、纯函数式设计和副作用隔离。
 
+### DSL 方法
+
+**重要设计决策**：系统使用 **C# 代码直接构建 AST** 作为 DSL，而不是实现文本解析器。
+
+**优势**：
+- ✅ 无需实现 Lexer 和 Parser，降低系统复杂度
+- ✅ 完整的 IDE 支持（智能提示、语法高亮、重构、调试）
+- ✅ 编译时类型检查，消除解析错误
+- ✅ 零学习成本（用户已熟悉 C#）
+- ✅ 更简单的实现和维护
+
+**示例**：
+```csharp
+// 用户直接用 C# 构建自动化逻辑
+var automation = Ast.Create(
+    new Statement.Sequence(Seq<Statement>(
+        // 电机回零
+        new Statement.Action(motorId, new PartAction.Motor(MotorAction.Home.Instance)),
+        // 等待传感器信号
+        new Statement.WaitUntil(new Condition.SensorState(sensorId, true)),
+        // 循环执行
+        new Statement.Loop(Some<uint>(3), 
+            new Statement.Action(motorId, new PartAction.Motor(new MotorAction.MoveTo(100, 50))))
+    ))
+);
+```
+
+**影响**：
+- 跳过 Lexer 实现（Task 10）
+- 跳过 Parser 实现（Task 11.2）
+- 跳过 Pretty Printer 实现（Task 11.4）
+- 保留 AST 类型定义（Task 9）
+- 保留语义验证器（Task 11.3）
+- 保留解释器和执行器（Task 22-23）
+
 ### 核心设计原则
 
 1. **类型安全优先**：使用代数数据类型（Algebraic Data Types）表示所有领域概念，在编译时捕获错误
@@ -19,7 +54,7 @@
 - 物理组合：通过坐标系统组合零件，支持任意深度的递归组合
 - 动作系统：为每种零件定义类型安全的动作状态
 - 传感器集成：支持多种传感器类型和连接方式
-- DSL 编排：提供领域特定语言定义自动化逻辑
+- C# DSL 编排：用户直接用 C# 代码构建 AST 定义自动化逻辑
 - 控制板抽象：支持多种控制板（雷赛、正运动、模拟）的统一接口
 - 运行时可视化：实时显示机器运行状态，支持虚拟和真实设备（React + Three.js 前端）
 - 配置管理：保存和加载机器配置，支持多套自动化逻辑
@@ -50,8 +85,8 @@
 - **函数式核心，命令式外壳**：核心业务逻辑为纯函数，副作用隔离在边界层
 - **响应式状态管理**：使用 IObservable<T> 暴露状态流
 - **分层架构**：Core（领域核心）→ Devices（设备驱动）→ Interpreters（解释器）→ Visualization（可视化）→ App（应用）
-- **DSL-First**：使用 DSL 定义机器结构和自动化流程
-- **解释器模式**：DSL 定义产生 AST，解释器将其转换为运行时行为
+- **C# as DSL**：用户直接用 C# 代码构建 AST，无需文本解析
+- **解释器模式**：AST 通过解释器转换为运行时行为
 
 
 ## Architecture

@@ -4,6 +4,30 @@
 
 本实施计划将机器编排系统分解为离散的、可操作的任务。系统使用 .NET 10、C# 13 构建，遵循 Haskell 函数式编程哲学，强调类型安全、纯函数和副作用隔离。
 
+## DSL 方法
+
+**重要决策**：系统使用 **C# 代码直接构建 AST** 作为 DSL，而不是实现文本解析器。
+
+**优势**：
+- ✅ 无需实现 Lexer 和 Parser
+- ✅ 完整的 IDE 支持（智能提示、重构、调试）
+- ✅ 编译时类型检查
+- ✅ 零学习成本（用户已熟悉 C#）
+- ✅ 更简单的实现和维护
+
+**示例**：
+```csharp
+// 用户直接用 C# 构建自动化逻辑
+var automation = Ast.Create(
+    new Statement.Sequence(Seq<Statement>(
+        new Statement.Action(motorId, new PartAction.Motor(MotorAction.Home.Instance)),
+        new Statement.WaitUntil(new Condition.SensorState(sensorId, true)),
+        new Statement.Loop(Some<uint>(3), 
+            new Statement.Action(motorId, new PartAction.Motor(new MotorAction.MoveTo(100, 50))))
+    ))
+);
+```
+
 ## 技术栈
 
 - 后端：.NET 10、C# 13、LanguageExt.Core、System.Reactive
@@ -207,60 +231,41 @@
     - Test creating various statement types
     - Test nested structures
 
-- [ ] 10. Implement DSL Lexer
-  - [ ] 10.1 Create Token types for DSL
-    - Define token types (Keyword, Identifier, Number, String, Operator, etc.)
-    - Implement token position tracking (line, column)
-    - _Requirements: 8.5, 9.2_
-  
-  - [ ] 10.2 Implement Lexer class
-    - Tokenize DSL source code
-    - Track line and column numbers
-    - Return Either<ParseError, Seq<Token>>
-    - _Requirements: 8.5, 9.1-9.2_
-  
-  - [ ]* 10.3 Write unit tests for lexer
-    - Test tokenization of valid DSL
-    - Test error reporting with line/column numbers
+- [ ] 10. ~~Implement DSL Lexer~~ (SKIPPED - Using C# as DSL)
+  - **Note**: User will directly construct AST using C# code instead of parsing text-based DSL
+  - This eliminates the need for Lexer, Parser, and Pretty Printer
+  - Benefits: IDE support, type safety, no parsing errors, easier debugging
+  - [ ]* ~~10.1 Create Token types for DSL~~
+  - [ ]* ~~10.2 Implement Lexer class~~
+  - [ ]* ~~10.3 Write unit tests for lexer~~
 
-- [ ] 11. Implement DSL Parser
-  - [ ] 11.1 Create IDslParser interface
-    - Define Parse method returning Either<ParseError, Ast>
+- [ ] 11. Implement DSL Validator (Simplified)
+  - [ ] 11.1 Create IDslValidator interface
     - Define Validate method returning Either<ValidationError, Unit>
-    - Define PrettyPrint method returning string
-    - _Requirements: 9.1-9.5_
-  
-  - [ ] 11.2 Implement recursive descent parser
-    - Parse statements (action, wait, sequence, parallel, loop, if)
-    - Parse conditions (sensor state, comparisons, logical operators)
-    - Build AST from tokens
-    - Return descriptive ParseError with line/column on failure
-    - _Requirements: 8.2-8.5, 9.1-9.2_
-  
-  - [ ] 11.3 Implement semantic validator
-    - Validate entity IDs exist
-    - Validate sensor references
-    - Validate action compatibility with part types
-    - Return descriptive ValidationError
+    - Validate AST semantic correctness (no parsing needed)
     - _Requirements: 8.3, 9.2_
   
-  - [ ] 11.4 Implement pretty printer
-    - Format AST back to DSL source code
-    - Maintain proper indentation and structure
-    - _Requirements: 9.3_
+  - [ ]* ~~11.2 Implement recursive descent parser~~ (SKIPPED - Using C# as DSL)
   
-  - [ ]* 11.5 Write property test for parse/print round-trip
-    - **Property 11: DSL 解析往返**
-    - **Validates: Requirements 9.4**
+  - [ ] 11.3 Implement semantic validator
+    - Validate entity IDs exist in machine
+    - Validate sensor references are valid
+    - Validate action compatibility with part types
+    - Validate state sensor references for actuators
+    - Return descriptive ValidationError
+    - _Requirements: 8.3, 9.2, 28.8_
   
-  - [ ]* 11.6 Write property test for parser error handling
-    - **Property 12: DSL 解析拒绝无效输入**
-    - **Validates: Requirements 8.5, 9.2**
+  - [ ]* ~~11.4 Implement pretty printer~~ (SKIPPED - Using C# as DSL)
   
-  - [ ]* 11.7 Write unit tests for parser edge cases
-    - Test nested structures
-    - Test error recovery
-    - Test position tracking
+  - [ ]* ~~11.5 Write property test for parse/print round-trip~~ (SKIPPED)
+  
+  - [ ]* ~~11.6 Write property test for parser error handling~~ (SKIPPED)
+  
+  - [ ]* 11.7 Write unit tests for validator
+    - Test entity ID validation
+    - Test sensor reference validation
+    - Test action compatibility validation
+    - Test multiple error collection
 
 - [ ] 12. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
@@ -966,7 +971,9 @@
 
 ## Notes
 
+- **DSL Implementation**: Using C# code to directly construct AST instead of text-based DSL parsing. Tasks 10 (Lexer) and parts of Task 11 (Parser, Pretty Printer) are skipped.
 - Tasks marked with `*` are optional testing tasks and can be skipped for faster MVP, but are highly recommended for production quality
+- Tasks marked with `~~strikethrough~~` are skipped due to the C#-as-DSL approach
 - Each task references specific requirements for traceability
 - Checkpoints ensure incremental validation throughout implementation
 - Property tests validate universal correctness properties from the design document
@@ -978,15 +985,18 @@
 ## Implementation Order Rationale
 
 1. **Foundation First (Tasks 1-8)**: Core types, coordinate system, and composition model form the mathematical foundation
-2. **DSL and Configuration (Tasks 9-16)**: Enable defining machines and automation logic
-3. **Hardware Abstraction (Tasks 17-21)**: Control boards and device communication
-4. **Execution Engine (Tasks 22-25)**: Interpret and execute automation logic
-5. **Visualization (Tasks 26-27)**: Real-time state visualization
-6. **Error Handling (Task 28)**: Comprehensive error management
-7. **Application Layer (Tasks 29-35)**: Backend API and frontend UI
-8. **Testing Infrastructure (Tasks 36-38)**: Property-based test generators
-9. **Additional Features (Tasks 39-41)**: Sensors, monitoring, concurrency
-10. **Integration and Polish (Tasks 43-44)**: End-to-end testing and documentation
+2. **DSL AST and Validation (Tasks 9, 11)**: Define AST types and semantic validation (no parsing needed - users write C# code)
+3. **Configuration (Tasks 13-16)**: Configuration types, validation, and persistence
+4. **Hardware Abstraction (Tasks 17-21)**: Control boards and device communication
+5. **Execution Engine (Tasks 22-25)**: Interpret and execute automation logic
+6. **Visualization (Tasks 26-27)**: Real-time state visualization
+7. **Error Handling (Task 28)**: Comprehensive error management
+8. **Application Layer (Tasks 29-35)**: Backend API and frontend UI
+9. **Testing Infrastructure (Tasks 36-38)**: Property-based test generators
+10. **Additional Features (Tasks 39-41)**: Sensors, monitoring, concurrency
+11. **Integration and Polish (Tasks 43-44)**: End-to-end testing and documentation
 
 This order ensures that each layer builds on stable foundations, with frequent checkpoints to catch issues early.
+
+**Note**: Task 10 (Lexer) and parts of Task 11 (Parser) are skipped because we use C# code directly to construct AST.
 
