@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\MachineOrchestration.Core\MachineOrchestration.Core.csproj" />
     <ProjectReference Include="..\..\src\MachineOrchestration.Dsl\MachineOrchestration.Dsl.csproj" />
+    <ProjectReference Include="..\..\src\MachineOrchestration.Configuration\MachineOrchestration.Configuration.csproj" />
   </ItemGroup>
 
 </Project>

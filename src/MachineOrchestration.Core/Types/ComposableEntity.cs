@@ -1,4 +1,5 @@
 using System;
+using System.Text.Json.Serialization;
 using LanguageExt;
 using static LanguageExt.Prelude;
 
@@ -31,6 +32,8 @@ public abstract record CompositionError
 }
 
 /// <summary>可组合实体（递归代数数据类型）</summary>
+[JsonDerivedType(typeof(Part), "part")]
+[JsonDerivedType(typeof(Composite), "composite")]
 public abstract record ComposableEntity
 {
     /// <summary>基础零件</summary>

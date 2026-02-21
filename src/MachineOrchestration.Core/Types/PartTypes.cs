@@ -1,5 +1,6 @@
 using System;
 using System.Numerics;
+using System.Text.Json.Serialization;
 using LanguageExt;
 
 namespace MachineOrchestration.Core.Types;
@@ -8,6 +9,10 @@ namespace MachineOrchestration.Core.Types;
 public readonly record struct PartId(Guid Value);
 
 /// <summary>零件类型（和类型）</summary>
+[JsonDerivedType(typeof(Motor), "motor")]
+[JsonDerivedType(typeof(Actuator), "actuator")]
+[JsonDerivedType(typeof(Sensor), "sensor")]
+[JsonDerivedType(typeof(Static), "static")]
 public abstract record PartType
 {
     public sealed record Motor(MotorType Type) : PartType;
@@ -19,6 +24,8 @@ public abstract record PartType
 }
 
 /// <summary>电机类型</summary>
+[JsonDerivedType(typeof(LinearScrew), "linearscrew")]
+[JsonDerivedType(typeof(RotaryTable), "rotarytable")]
 public abstract record MotorType
 {
     /// <summary>丝杆滑块（滑块运动表达电机动作）</summary>
@@ -35,6 +42,10 @@ public abstract record MotorType
 }
 
 /// <summary>执行器类型（气缸、夹爪、吸气装置的统一抽象）</summary>
+[JsonDerivedType(typeof(Cylinder), "cylinder")]
+[JsonDerivedType(typeof(Gripper), "gripper")]
+[JsonDerivedType(typeof(Suction), "suction")]
+[JsonDerivedType(typeof(Indicator), "indicator")]
 public abstract record ActuatorType
 {
     /// <summary>气缸</summary>
@@ -54,7 +65,7 @@ public abstract record ActuatorType
     /// <summary>指示灯</summary>
     public sealed record Indicator : ActuatorType
     {
-        private Indicator() { }
+        public Indicator() { }
         public static readonly Indicator Instance = new();
     }
     
@@ -62,6 +73,9 @@ public abstract record ActuatorType
 }
 
 /// <summary>传感器类型</summary>
+[JsonDerivedType(typeof(Pressure), "pressure")]
+[JsonDerivedType(typeof(Micrometer), "micrometer")]
+[JsonDerivedType(typeof(Scanner), "scanner")]
 public abstract record SensorType
 {
     public sealed record Pressure(float Range, PressureUnit Unit) : SensorType;
@@ -78,6 +92,8 @@ public enum PressureUnit { Pa, KPa, MPa, Bar, Psi }
 public enum ScannerProtocol { Serial, Usb, Ethernet }
 
 /// <summary>静态零件类型</summary>
+[JsonDerivedType(typeof(Shaft), "shaft")]
+[JsonDerivedType(typeof(Bracket), "bracket")]
 public abstract record StaticType
 {
     public sealed record Shaft(float Length, float Diameter) : StaticType;

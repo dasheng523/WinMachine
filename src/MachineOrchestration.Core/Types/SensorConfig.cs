@@ -1,14 +1,18 @@
+using System.Text.Json.Serialization;
 using LanguageExt;
 
 namespace MachineOrchestration.Core.Types;
 
 /// <summary>气缸传感器配置（和类型）</summary>
+[JsonDerivedType(typeof(None), "none")]
+[JsonDerivedType(typeof(ExtendOnly), "extendonly")]
+[JsonDerivedType(typeof(Both), "both")]
 public abstract record CylinderSensorConfig
 {
     /// <summary>无传感器</summary>
     public sealed record None : CylinderSensorConfig
     {
-        private None() { }
+        public None() { }
         public static readonly None Instance = new();
     }
     

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using LanguageExt;
 
 namespace MachineOrchestration.Core.Types;
@@ -31,6 +32,9 @@ public sealed record ActuatorConfig(
     Option<StateSensorPorts> StateSensorPorts);
 
 /// <summary>状态传感器端口配置</summary>
+[JsonDerivedType(typeof(Cylinder), "cylinder")]
+[JsonDerivedType(typeof(Gripper), "gripper")]
+[JsonDerivedType(typeof(Suction), "suction")]
 public abstract record StateSensorPorts
 {
     public sealed record Cylinder(CylinderSensorConfig Config) : StateSensorPorts;
@@ -44,6 +48,9 @@ public abstract record StateSensorPorts
 public sealed record SensorConfig(SensorConnection Connection);
 
 /// <summary>传感器连接方式</summary>
+[JsonDerivedType(typeof(SerialSingle), "serialsingle")]
+[JsonDerivedType(typeof(SerialMultiple), "serialmultiple")]
+[JsonDerivedType(typeof(Usb), "usb")]
 public abstract record SensorConnection
 {
     /// <summary>串口单传感器</summary>
@@ -59,6 +66,10 @@ public abstract record SensorConnection
 }
 
 /// <summary>零件配置（和类型）</summary>
+[JsonDerivedType(typeof(Motor), "motor")]
+[JsonDerivedType(typeof(Actuator), "actuator")]
+[JsonDerivedType(typeof(Sensor), "sensor")]
+[JsonDerivedType(typeof(Static), "static")]
 public abstract record PartConfig
 {
     public sealed record Motor(MotorConfig Config) : PartConfig;
@@ -66,7 +77,7 @@ public abstract record PartConfig
     public sealed record Sensor(SensorConfig Config) : PartConfig;
     public sealed record Static : PartConfig
     {
-        private Static() { }
+        public Static() { }
         public static readonly Static Instance = new();
     }
     
