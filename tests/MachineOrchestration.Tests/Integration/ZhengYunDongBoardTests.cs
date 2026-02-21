@@ -275,10 +275,14 @@ public class ZhengYunDongBoardTests : IDisposable
         // Arrange
         var unreliableSdk = new MockZhengYunDongSdk(simulateErrors: true, errorProbability: 0.3);
         var unreliableBoard = new ZhengYunDongBoard(unreliableSdk, _config);
-        await unreliableBoard.Initialize();
+        var initResult = await unreliableBoard.Initialize();
+        
+        // 确保初始化成功
+        Assert.True(initResult.IsRight, $"Initialize failed: {initResult}");
         
         var motorId = MotorId.NewId();
         var successCount = 0;
+        var failureCount = 0;
         var attempts = 10;
 
         // Act
@@ -292,11 +296,15 @@ public class ZhengYunDongBoardTests : IDisposable
             {
                 successCount++;
             }
+            else
+            {
+                failureCount++;
+            }
         }
 
         // Assert
         // 由于重试机制，应该有一些成功的命令
-        Assert.True(successCount > 0, "Expected some commands to succeed with retry logic");
+        Assert.True(successCount > 0, $"Expected some commands to succeed with retry logic. Success: {successCount}, Failures: {failureCount}");
 
         unreliableBoard.Dispose();
     }

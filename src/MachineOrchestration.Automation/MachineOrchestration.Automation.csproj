@@ -16,6 +16,7 @@
     <ProjectReference Include="..\MachineOrchestration.Core\MachineOrchestration.Core.csproj" />
     <ProjectReference Include="..\MachineOrchestration.Dsl\MachineOrchestration.Dsl.csproj" />
     <ProjectReference Include="..\MachineOrchestration.ControlBoards\MachineOrchestration.ControlBoards.csproj" />
+    <ProjectReference Include="..\MachineOrchestration.Configuration\MachineOrchestration.Configuration.csproj" />
   </ItemGroup>
 
 </Project>

@@ -514,23 +514,23 @@ var automation = Ast.Create(
     - 测试错误处理和安全停止
     - 测试状态流更新
 
-- [ ] 24. 实现自动化逻辑存储
-  - [ ] 24.1 创建 AutomationLogic 记录类型
+- [x] 24. 实现自动化逻辑存储
+  - [x] 24.1 创建 AutomationLogic 记录类型
     - 包含 LogicId、Name、Ast 字段
     - _需求：14.1-14.5_
   
-  - [ ] 24.2 创建 IAutomationLogicManager 接口
+  - [x] 24.2 创建 IAutomationLogicManager 接口
     - 定义返回 Either<LogicError, IAutomationLogicManager> 的 AddLogic 方法
     - 定义返回 Option<AutomationLogic> 的 GetLogic 方法
     - 定义返回 Seq<LogicId> 的 ListLogics 方法
     - _需求：14.1-14.3_
   
-  - [ ] 24.3 使用不可变存储实现 AutomationLogicManager
+  - [x] 24.3 使用不可变存储实现 AutomationLogicManager
     - 使用 HashMap<LogicId, AutomationLogic> 存储
     - 实现逻辑管理的纯函数
     - _需求：14.1-14.5_
   
-  - [ ] 24.4 实现逻辑序列化和持久化
+  - [x] 24.4 实现逻辑序列化和持久化
     - 将 AutomationLogic 序列化为 JSON
     - 持久化到文件系统
     - 从文件系统加载
@@ -540,12 +540,12 @@ var automation = Ast.Create(
     - **属性 15：自动化逻辑序列化往返**
     - **验证：需求 14.5**
   
-  - [ ]* 24.6 编写逻辑管理的单元测试
+  - [x] 24.6 编写逻辑管理的单元测试
     - 测试添加逻辑
     - 测试检索逻辑
     - 测试列出逻辑
 
-- [ ] 25. 检查点 - 确保所有测试通过
+- [x] 25. 检查点 - 确保所有测试通过
   - 确保所有测试通过，如有问题请询问用户。
 
 

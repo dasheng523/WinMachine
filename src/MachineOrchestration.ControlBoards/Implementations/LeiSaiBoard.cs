@@ -53,7 +53,7 @@ public sealed class LeiSaiBoard : IControlBoard, IDisposable
 
     public async Task<Either<ControlBoardError, Unit>> Initialize()
     {
-        try
+        return await ExecuteWithRetry(async () =>
         {
             // 解析连接字符串（格式：IP:Port）
             var parts = _config.IpAddress.Split(':');
@@ -80,13 +80,7 @@ public sealed class LeiSaiBoard : IControlBoard, IDisposable
             await UpdateStateAsync();
             
             return Right<ControlBoardError, Unit>(unit);
-        }
-        catch (Exception ex)
-        {
-            return Left<ControlBoardError, Unit>(
-                new ControlBoardError.ConnectionError(
-                    "Failed to initialize LeiSai board", ex));
-        }
+        }, "Initialize");
     }
 
     public async Task<Either<ControlBoardError, Unit>> SendMotorCommand(
@@ -251,12 +245,33 @@ public sealed class LeiSaiBoard : IControlBoard, IDisposable
     {
         var attempt = 0;
         var delay = _config.InitialRetryDelay;
+        Either<ControlBoardError, T> lastResult = Left<ControlBoardError, T>(
+            new ControlBoardError.CommandFailed(operationName, "Not attempted"));
 
         while (attempt < _config.MaxRetries)
         {
             try
             {
-                return await operation();
+                var result = await operation();
+                
+                // 如果成功，立即返回
+                if (result.IsRight)
+                {
+                    return result;
+                }
+                
+                // 如果失败，保存结果并重试
+                lastResult = result;
+                attempt++;
+                
+                if (attempt >= _config.MaxRetries)
+                {
+                    return lastResult;
+                }
+
+                // 指数退避
+                await Task.Delay(delay);
+                delay *= 2;
             }
             catch (Exception ex)
             {
@@ -277,10 +292,7 @@ public sealed class LeiSaiBoard : IControlBoard, IDisposable
             }
         }
 
-        return Left<ControlBoardError, T>(
-            new ControlBoardError.CommandFailed(
-                operationName,
-                $"Failed after {attempt} attempts"));
+        return lastResult;
     }
 
     /// <summary>
