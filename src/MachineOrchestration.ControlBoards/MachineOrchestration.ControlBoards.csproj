@@ -11,4 +11,8 @@
     <PackageReference Include="System.Reactive" Version="6.1.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\MachineOrchestration.Core\MachineOrchestration.Core.csproj" />
+  </ItemGroup>
+
 </Project>

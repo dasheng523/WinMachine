@@ -9,6 +9,13 @@
   <ItemGroup>
     <PackageReference Include="LanguageExt.Core" Version="4.4.9" />
     <PackageReference Include="System.Reactive" Version="6.1.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MachineOrchestration.Core\MachineOrchestration.Core.csproj" />
+    <ProjectReference Include="..\MachineOrchestration.Dsl\MachineOrchestration.Dsl.csproj" />
+    <ProjectReference Include="..\MachineOrchestration.ControlBoards\MachineOrchestration.ControlBoards.csproj" />
   </ItemGroup>
 
 </Project>
